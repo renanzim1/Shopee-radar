@@ -1,241 +1,785 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
+/* ========================================
+   SHOPEE RADAR — MOBILE UI V2
+======================================== */
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  <meta
-    name="theme-color"
-    content="#080a0f"
-  >
+:root {
+  --bg: #080a0f;
+  --surface: #10131a;
+  --surface-2: #151922;
+  --border: #222734;
 
-  <title>Shopee Radar</title>
+  --text: #f7f8fa;
+  --muted: #8991a3;
 
-  <link rel="stylesheet" href="style.css">
+  --orange: #ff5a1f;
+  --orange-soft: rgba(255, 90, 31, .12);
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
+  --green: #27e58c;
+  --green-soft: rgba(39, 229, 140, .12);
 
-<body>
+  --blue: #5b8cff;
 
-  <header class="topbar">
+  --radius: 18px;
+}
 
-    <div class="brand">
-      <div class="brand-icon">S</div>
+html {
+  background: var(--bg);
+}
 
-      <div>
-        <h1>Shopee Radar</h1>
-        <p>
-          <span class="online-dot"></span>
-          Inteligência para afiliados
-        </p>
-      </div>
-    </div>
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
 
-    <div class="status-pill">
-      ● AO VIVO
-    </div>
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(255, 90, 31, .08),
+      transparent 320px
+    ),
+    var(--bg);
 
-  </header>
+  color: var(--text);
 
+  min-height: 100vh;
 
-  <main class="container">
+  padding-bottom: 90px;
+}
 
-    <!-- HERO -->
 
-    <section class="hero">
+/* ========================================
+   TOPO
+======================================== */
 
-      <span class="eyebrow">
-        ⚡ RADAR DE OPORTUNIDADES
-      </span>
+.topbar {
+  height: 72px;
 
-      <h2>
-        Encontre produtos
-        <span>antes de saturarem.</span>
-      </h2>
+  padding: 0 18px;
 
-      <p>
-        Descubra produtos com vendas fortes,
-        poucos afiliados e alto potencial.
-      </p>
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-    </section>
+  border-bottom: 1px solid var(--border);
 
+  background: rgba(8, 10, 15, .92);
 
-    <!-- RESUMO -->
+  position: sticky;
+  top: 0;
 
-    <section class="summary">
+  z-index: 50;
 
-      <div class="summary-card">
-        <div class="summary-icon">🔥</div>
+  backdrop-filter: blur(14px);
+}
 
-        <div>
-          <strong id="totalProducts">0</strong>
-          <span>No Radar</span>
-        </div>
-      </div>
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
 
+.brand-icon {
+  width: 39px;
+  height: 39px;
 
-      <div class="summary-card">
-        <div class="summary-icon">💎</div>
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-        <div>
-          <strong id="totalOpportunities">0</strong>
-          <span>Oportunidades</span>
-        </div>
-      </div>
+  border-radius: 12px;
 
+  background:
+    linear-gradient(
+      135deg,
+      #ff713b,
+      #ff4500
+    );
 
-      <div class="summary-card">
-        <div class="summary-icon">🎬</div>
+  color: white;
 
-        <div>
-          <strong id="totalVideos">0</strong>
-          <span>Vídeos 7D</span>
-        </div>
-      </div>
+  font-size: 20px;
+  font-weight: 900;
 
-    </section>
+  box-shadow:
+    0 6px 20px rgba(255, 90, 31, .25);
+}
 
+.brand h1 {
+  font-size: 16px;
+  line-height: 1.2;
+}
 
-    <!-- BUSCA -->
+.brand p {
+  margin-top: 4px;
 
-    <section class="tools">
+  color: var(--muted);
 
-      <div class="search-wrapper">
+  font-size: 10px;
 
-        <span class="search-icon">⌕</span>
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Pesquisar produto..."
-          autocomplete="off"
-        >
+.online-dot {
+  width: 6px;
+  height: 6px;
 
-      </div>
+  background: var(--green);
 
+  border-radius: 50%;
 
-      <select id="categoryFilter">
+  box-shadow:
+    0 0 8px var(--green);
+}
 
-        <option value="">
-          Todas categorias
-        </option>
+.status-pill {
+  padding: 7px 10px;
 
-        <option value="Moda Feminina">
-          Moda Feminina
-        </option>
+  border: 1px solid rgba(39, 229, 140, .18);
 
-        <option value="Casa e Construção">
-          Casa e Construção
-        </option>
+  border-radius: 20px;
 
-        <option value="Casa e Cozinha">
-          Casa e Cozinha
-        </option>
+  background: var(--green-soft);
 
-      </select>
+  color: var(--green);
 
-    </section>
+  font-size: 9px;
+  font-weight: 800;
+}
 
 
-    <!-- ATALHOS -->
+/* ========================================
+   CONTEÚDO
+======================================== */
 
-    <section class="quick-filters">
+.container {
+  width: calc(100% - 28px);
 
-      <button class="quick active">
-        🔥 Melhores
-      </button>
+  max-width: 1150px;
 
-      <button class="quick">
-        💎 Pouca concorrência
-      </button>
+  margin: auto;
+}
 
-      <button class="quick">
-        📈 Mais vendidos
-      </button>
 
-      <button class="quick">
-        🎬 Viral 7D
-      </button>
+/* HERO */
 
-    </section>
+.hero {
+  padding: 29px 2px 22px;
+}
 
+.eyebrow {
+  color: var(--orange);
 
-    <!-- TÍTULO -->
+  font-size: 10px;
+  font-weight: 800;
 
-    <section class="section-header">
+  letter-spacing: 1px;
+}
 
-      <div>
-        <span class="section-label">
-          ANÁLISE EM TEMPO REAL
-        </span>
+.hero h2 {
+  margin-top: 9px;
 
-        <h2>Melhores oportunidades</h2>
-      </div>
+  max-width: 500px;
 
-      <span class="live">
-        <i></i>
-        AO VIVO
-      </span>
+  font-size: clamp(28px, 8vw, 44px);
 
-    </section>
+  line-height: 1.02;
 
+  letter-spacing: -1.4px;
+}
 
-    <!-- PRODUTOS -->
+.hero h2 span {
+  display: block;
 
-    <section
-      id="productsContainer"
-      class="products-grid"
-    >
+  color: var(--orange);
+}
 
-      <div class="loading">
-        <div class="loader"></div>
+.hero p {
+  max-width: 520px;
 
-        <strong>Analisando oportunidades...</strong>
+  margin-top: 13px;
 
-        <span>
-          Buscando dados do Radar
-        </span>
-      </div>
+  color: var(--muted);
 
-    </section>
+  font-size: 13px;
 
-  </main>
+  line-height: 1.5;
+}
 
 
-  <!-- MENU INFERIOR -->
+/* ========================================
+   RESUMO
+======================================== */
 
-  <nav class="bottom-nav">
+.summary {
+  display: grid;
 
-    <button class="nav-item active">
-      <span>⌁</span>
-      Radar
-    </button>
+  grid-template-columns:
+    repeat(3, 1fr);
 
-    <button class="nav-item">
-      <span>🔥</span>
-      7 Dias
-    </button>
+  gap: 8px;
 
-    <button class="nav-item">
-      <span>▶</span>
-      Vídeos
-    </button>
+  margin-bottom: 20px;
+}
 
-    <button class="nav-item">
-      <span>♡</span>
-      Favoritos
-    </button>
+.summary-card {
+  min-height: 80px;
 
-  </nav>
+  padding: 13px 10px;
 
+  border: 1px solid var(--border);
 
-  <script src="app.js"></script>
+  border-radius: 15px;
 
-</body>
-</html>
+  background:
+    linear-gradient(
+      145deg,
+      #131720,
+      #0e1117
+    );
+}
+
+.summary-icon {
+  margin-bottom: 8px;
+
+  font-size: 16px;
+}
+
+.summary-card strong {
+  display: block;
+
+  font-size: 21px;
+  line-height: 1;
+}
+
+.summary-card span {
+  display: block;
+
+  margin-top: 6px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  text-transform: uppercase;
+
+  letter-spacing: .5px;
+}
+
+
+/* ========================================
+   PESQUISA
+======================================== */
+
+.tools {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) 135px;
+
+  gap: 8px;
+
+  margin-bottom: 11px;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+
+  left: 13px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: var(--muted);
+
+  font-size: 21px;
+}
+
+.search-wrapper input,
+.tools select {
+  width: 100%;
+  height: 48px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 13px;
+
+  outline: none;
+
+  background: var(--surface);
+
+  color: white;
+
+  font-size: 12px;
+}
+
+.search-wrapper input {
+  padding: 0 12px 0 40px;
+}
+
+.search-wrapper input:focus,
+.tools select:focus {
+  border-color: var(--orange);
+}
+
+.tools select {
+  padding: 0 10px;
+}
+
+
+/* ========================================
+   FILTROS
+======================================== */
+
+.quick-filters {
+  display: flex;
+
+  gap: 7px;
+
+  overflow-x: auto;
+
+  padding-bottom: 8px;
+
+  scrollbar-width: none;
+}
+
+.quick-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.quick {
+  flex: 0 0 auto;
+
+  border: 1px solid var(--border);
+
+  border-radius: 20px;
+
+  padding: 9px 12px;
+
+  background: var(--surface);
+
+  color: var(--muted);
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+.quick.active {
+  border-color:
+    rgba(255, 90, 31, .35);
+
+  background: var(--orange-soft);
+
+  color: #ff8154;
+}
+
+
+/* ========================================
+   CABEÇALHO DA LISTA
+======================================== */
+
+.section-header {
+  margin: 23px 0 13px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.section-label {
+  color: var(--muted);
+
+  font-size: 9px;
+
+  letter-spacing: 1px;
+}
+
+.section-header h2 {
+  margin-top: 5px;
+
+  font-size: 20px;
+
+  letter-spacing: -.4px;
+}
+
+.live {
+  color: var(--green);
+
+  font-size: 9px;
+  font-weight: 800;
+
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+}
+
+.live i {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: var(--green);
+
+  box-shadow:
+    0 0 7px var(--green);
+}
+
+
+/* ========================================
+   PRODUTOS
+======================================== */
+
+.products-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(280px, 1fr)
+    );
+
+  gap: 12px;
+}
+
+.card {
+  padding: 16px;
+
+  border: 1px solid var(--border);
+
+  border-radius: var(--radius);
+
+  background:
+    linear-gradient(
+      145deg,
+      #141820,
+      #101319
+    );
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, .14);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+}
+
+.badge {
+  display: inline-flex;
+
+  padding: 6px 9px;
+
+  border-radius: 8px;
+
+  background: var(--orange-soft);
+
+  color: #ff8a5f;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.score-number {
+  padding: 6px 9px;
+
+  border-radius: 8px;
+
+  background: var(--green-soft);
+
+  color: var(--green);
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.card h3 {
+  padding-right: 5px;
+
+  font-size: 15px;
+
+  line-height: 1.35;
+}
+
+.category {
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.stats {
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 7px;
+
+  margin-top: 15px;
+}
+
+.stat {
+  padding: 12px;
+
+  border-radius: 12px;
+
+  background: #0b0e14;
+}
+
+.stat span {
+  display: block;
+
+  color: #697183;
+
+  font-size: 8px;
+
+  letter-spacing: .6px;
+}
+
+.stat strong {
+  display: block;
+
+  margin-top: 5px;
+
+  font-size: 14px;
+}
+
+.score {
+  margin-top: 14px;
+
+  padding-top: 13px;
+
+  border-top: 1px solid var(--border);
+
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+.score > div:last-child {
+  text-align: right;
+}
+
+.score small {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: var(--muted);
+
+  font-size: 8px;
+
+  letter-spacing: .6px;
+}
+
+.score strong {
+  font-size: 13px;
+}
+
+
+/* ========================================
+   LOADING / VAZIO
+======================================== */
+
+.loading,
+.empty {
+  grid-column: 1 / -1;
+
+  min-height: 180px;
+
+  border: 1px dashed var(--border);
+
+  border-radius: var(--radius);
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  color: var(--muted);
+
+  padding: 25px;
+}
+
+.loading strong,
+.empty h3 {
+  margin-top: 12px;
+
+  color: white;
+
+  font-size: 14px;
+}
+
+.loading span,
+.empty p {
+  margin-top: 5px;
+
+  font-size: 10px;
+}
+
+.loader {
+  width: 28px;
+  height: 28px;
+
+  border: 3px solid #242936;
+
+  border-top-color: var(--orange);
+
+  border-radius: 50%;
+
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ========================================
+   MENU INFERIOR
+======================================== */
+
+.bottom-nav {
+  position: fixed;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  z-index: 100;
+
+  width: 100%;
+
+  max-width: 650px;
+
+  height: 68px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  border-top: 1px solid var(--border);
+
+  background:
+    rgba(13, 16, 22, .96);
+
+  backdrop-filter: blur(18px);
+}
+
+.nav-item {
+  border: 0;
+
+  background: transparent;
+
+  color: #707889;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  font-size: 9px;
+
+  font-weight: 700;
+}
+
+.nav-item span {
+  font-size: 18px;
+}
+
+.nav-item.active {
+  color: var(--orange);
+}
+
+
+/* ========================================
+   DESKTOP
+======================================== */
+
+@media (min-width: 700px) {
+
+  .container {
+    width: calc(100% - 48px);
+  }
+
+  .hero {
+    padding-top: 45px;
+  }
+
+  .summary {
+    max-width: 620px;
+  }
+
+  .tools {
+    max-width: 650px;
+  }
+
+  .bottom-nav {
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+
+    border-radius: 18px 18px 0 0;
+  }
+
+}
+
+
+/* ========================================
+   CELULARES PEQUENOS
+======================================== */
+
+@media (max-width: 370px) {
+
+  .container {
+    width: calc(100% - 20px);
+  }
+
+  .tools {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card {
+    padding: 11px 7px;
+  }
+
+  .summary-card strong {
+    font-size: 18px;
+  }
+
+}
