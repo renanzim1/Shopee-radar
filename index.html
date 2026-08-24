@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090b10">
+
+  <title>Shopee Radar</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div>
+      <span class="logo-icon">◉</span>
+      <strong>Shopee Radar</strong>
+    </div>
+
+    <span class="live">
+      <i></i>
+      RADAR ATIVO
+    </span>
+  </header>
+
+
+  <main>
+
+    <section class="hero">
+      <p class="eyebrow">INTELIGÊNCIA PARA AFILIADOS</p>
+
+      <h1>
+        Encontre produtos antes
+        <span>de saturarem.</span>
+      </h1>
+
+      <p class="subtitle">
+        Produtos, concorrência, comissão e vídeos analisados
+        em um único radar.
+      </p>
+    </section>
+
+
+    <section class="stats">
+
+      <div class="stat">
+        <span>🔥</span>
+        <div>
+          <small>NO RADAR</small>
+          <strong id="totalProducts">--</strong>
+        </div>
+      </div>
+
+      <div class="stat">
+        <span>💎</span>
+        <div>
+          <small>OPORTUNIDADES</small>
+          <strong id="totalOpportunities">--</strong>
+        </div>
+      </div>
+
+      <div class="stat">
+        <span>🎥</span>
+        <div>
+          <small>VÍDEOS 7D</small>
+          <strong id="totalVideos">--</strong>
+        </div>
+      </div>
+
+    </section>
+
+
+    <nav class="tabs">
+
+      <button class="tab active" data-tab="opportunities">
+        💎 Oportunidades
+      </button>
+
+      <button class="tab" data-tab="radar">
+        🔥 Radar 7D
+      </button>
+
+      <button class="tab" data-tab="videos">
+        🎥 Vídeos
+      </button>
+
+    </nav>
+
+
+    <section class="filters">
+
+      <div class="search-box">
+        🔎
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Pesquisar produto..."
+        >
+      </div>
+
+      <select id="categoryFilter">
+        <option value="">Todas categorias</option>
+        <option value="Moda Feminina">Moda Feminina</option>
+        <option value="Casa e Cozinha">Casa e Cozinha</option>
+        <option value="Casa e Construção">Casa e Construção</option>
+      </select>
+
+    </section>
+
+
+    <section class="section-header">
+      <div>
+        <small>ANÁLISE EM TEMPO REAL</small>
+        <h2>Melhores oportunidades</h2>
+      </div>
+
+      <span class="pulse">● AO VIVO</span>
+    </section>
+
+
+    <section id="productsContainer" class="products">
+
+      <div class="loading">
+        <div class="loader"></div>
+        <p>Conectando ao Shopee Radar...</p>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <nav class="bottom-nav">
+
+    <button class="active">
+      <span>◉</span>
+      Radar
+    </button>
+
+    <button>
+      <span>🔥</span>
+      7 Dias
+    </button>
+
+    <button>
+      <span>🎥</span>
+      Vídeos
+    </button>
+
+    <button>
+      <span>♡</span>
+      Favoritos
+    </button>
+
+  </nav>
+
+
+  <script src="app.js"></script>
+
+</body>
+</html>
