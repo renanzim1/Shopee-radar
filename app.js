@@ -1,651 +1,685 @@
-// ==========================================
+// ======================================================
 // SHOPEE RADAR — APP.JS
-// ==========================================
+// ======================================================
 
 const SUPABASE_URL = "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
 
-// Tabela criada no Supabase
-const TABLE = "produtos";
+// ======================================================
+// ESTADO
+// ======================================================
 
 let produtos = [];
-let filtroAtual = "oportunidades";
-let categoriaAtual = "todas";
-let pesquisaAtual = "";
+let produtosFiltrados = [];
+let abaAtual = "opportunities";
 
-// ==========================================
-// SUPABASE
-// ==========================================
+// ======================================================
+// ELEMENTOS DA PÁGINA
+// ======================================================
 
-async function buscarProdutos() {
-  mostrarCarregando();
-
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/${TABLE}?select=*&order=radar_score.desc`,
-      {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          Accept: "application/json"
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const erro = await response.text();
-      throw new Error(
-        `Supabase respondeu ${response.status}: ${erro}`
-      );
+function encontrarElemento(...ids) {
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) return el;
     }
-
-    produtos = await response.json();
-
-    console.log("Produtos recebidos:", produtos);
-
-    atualizarDashboard();
-    renderizarProdutos();
-
-  } catch (erro) {
-    console.error("Erro Shopee Radar:", erro);
-    mostrarErro(erro.message);
-  }
+    return null;
 }
 
-// ==========================================
-// ELEMENTOS
-// ==========================================
-
-function pegarElemento(...ids) {
-  for (const id of ids) {
-    const elemento = document.getElementById(id);
-    if (elemento) return elemento;
-  }
-
-  return null;
+function setTexto(valor, ...ids) {
+    const el = encontrarElemento(...ids);
+    if (el) el.textContent = valor;
 }
 
-function containerProdutos() {
-  return pegarElemento(
-    "products",
-    "product-list",
-    "produtos",
-    "lista-produtos",
-    "radar-list"
-  );
-}
-
-// ==========================================
-// DASHBOARD
-// ==========================================
-
-function atualizarDashboard() {
-  const total = produtos.length;
-
-  const oportunidades = produtos.filter((p) => {
-    return numero(p.radar_score) >= 70;
-  }).length;
-
-  const videos7d = produtos.reduce((total, p) => {
-    return total + numero(p.videos_7d);
-  }, 0);
-
-  atualizarTexto(
-    ["total-radar", "radar-count", "totalProdutos"],
-    total
-  );
-
-  atualizarTexto(
-    ["total-oportunidades", "opportunity-count", "oportunidades-count"],
-    oportunidades
-  );
-
-  atualizarTexto(
-    ["total-videos", "videos-count", "videos7d-count"],
-    videos7d
-  );
-}
-
-function atualizarTexto(ids, valor) {
-  for (const id of ids) {
-    const elemento = document.getElementById(id);
-
-    if (elemento) {
-      elemento.textContent = valor;
-    }
-  }
-}
-
-// ==========================================
-// FILTROS
-// ==========================================
-
-function produtosFiltrados() {
-  let lista = [...produtos];
-
-  if (filtroAtual === "oportunidades") {
-    lista = lista.filter(
-      (p) => numero(p.radar_score) >= 70
-    );
-  }
-
-  if (filtroAtual === "7dias") {
-    lista.sort(
-      (a, b) =>
-        numero(b.videos_7d) - numero(a.videos_7d)
-    );
-  }
-
-  if (filtroAtual === "videos") {
-    lista = lista.filter(
-      (p) => numero(p.videos_7d) > 0
-    );
-  }
-
-  if (filtroAtual === "favoritos") {
-    lista = lista.filter(
-      (p) =>
-        p.favorito === true ||
-        p.favorite === true
-    );
-  }
-
-  if (
-    categoriaAtual &&
-    categoriaAtual !== "todas" &&
-    categoriaAtual !== "Todas categorias"
-  ) {
-    lista = lista.filter((p) => {
-      return String(p.categoria || p.category || "")
-        .toLowerCase() ===
-        categoriaAtual.toLowerCase();
-    });
-  }
-
-  if (pesquisaAtual) {
-    const busca = pesquisaAtual.toLowerCase();
-
-    lista = lista.filter((p) => {
-      const nome = String(
-        p.nome ||
-        p.name ||
-        p.produto ||
-        p.title ||
-        ""
-      ).toLowerCase();
-
-      const categoria = String(
-        p.categoria ||
-        p.category ||
-        ""
-      ).toLowerCase();
-
-      return (
-        nome.includes(busca) ||
-        categoria.includes(busca)
-      );
-    });
-  }
-
-  return lista;
-}
-
-// ==========================================
-// RENDERIZAÇÃO
-// ==========================================
-
-function renderizarProdutos() {
-  const container = containerProdutos();
-
-  if (!container) {
-    console.error(
-      "Container dos produtos não foi encontrado no index.html"
-    );
-    return;
-  }
-
-  const lista = produtosFiltrados();
-
-  if (!lista.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📡</div>
-        <strong>Nenhum produto encontrado</strong>
-        <p>O radar não encontrou produtos para este filtro.</p>
-      </div>
-    `;
-
-    return;
-  }
-
-  container.innerHTML = lista
-    .map(criarCardProduto)
-    .join("");
-}
-
-function criarCardProduto(produto) {
-  const nome =
-    produto.nome ||
-    produto.name ||
-    produto.produto ||
-    produto.title ||
-    "Produto";
-
-  const categoria =
-    produto.categoria ||
-    produto.category ||
-    "Sem categoria";
-
-  const score = numero(
-    produto.radar_score ??
-    produto.score
-  );
-
-  const vendidos =
-    produto.vendidos ??
-    produto.sales ??
-    produto.vendas ??
-    0;
-
-  const afiliados =
-    produto.afiliados ??
-    produto.affiliates ??
-    0;
-
-  const comissao =
-    produto.comissao ??
-    produto.commission ??
-    0;
-
-  const vendasAfiliado =
-    produto.vendas_afiliado ??
-    produto.sales_per_affiliate ??
-    produto.vendas_por_afiliado ??
-    calcularVendasAfiliado(vendidos, afiliados);
-
-  const preco =
-    produto.preco ??
-    produto.price ??
-    0;
-
-  const videos =
-    produto.videos_7d ??
-    0;
-
-  const imagem =
-    produto.imagem ||
-    produto.image ||
-    produto.image_url ||
-    "";
-
-  const status = obterStatus(score);
-
-  return `
-    <article class="product-card">
-
-      ${
-        imagem
-          ? `
-          <div class="product-image">
-            <img
-              src="${escapar(imagem)}"
-              alt="${escapar(nome)}"
-              loading="lazy"
-            >
-          </div>
-        `
-          : ""
-      }
-
-      <div class="product-content">
-
-        <div class="product-top">
-
-          <span class="status-badge ${status.classe}">
-            ${status.icone}
-            ${status.texto}
-          </span>
-
-          <span class="score-badge">
-            ${score}/100
-          </span>
-
-        </div>
-
-        <h3>${escapar(nome)}</h3>
-
-        <p class="product-category">
-          ${escapar(categoria)}
-        </p>
-
-        <div class="metrics-grid">
-
-          <div class="metric">
-            <span>VENDIDOS</span>
-            <strong>
-              ${formatarQuantidade(vendidos)}
-            </strong>
-          </div>
-
-          <div class="metric">
-            <span>AFILIADOS</span>
-            <strong>
-              ${formatarQuantidade(afiliados)}
-            </strong>
-          </div>
-
-          <div class="metric">
-            <span>COMISSÃO</span>
-            <strong>
-              ${formatarPorcentagem(comissao)}
-            </strong>
-          </div>
-
-          <div class="metric">
-            <span>VENDAS / AFILIADO</span>
-            <strong>
-              ${formatarDecimal(vendasAfiliado)}
-            </strong>
-          </div>
-
-        </div>
-
-        ${
-          numero(videos) > 0
-            ? `
-            <div class="video-info">
-              🎬 ${formatarQuantidade(videos)}
-              vídeos nos últimos 7 dias
-            </div>
-          `
-            : ""
-        }
-
-        <div class="product-footer">
-
-          <div>
-            <span>RADAR SCORE</span>
-            <strong>${score}</strong>
-          </div>
-
-          <div class="price">
-            <span>PREÇO</span>
-            <strong>
-              ${formatarDinheiro(preco)}
-            </strong>
-          </div>
-
-        </div>
-
-      </div>
-
-    </article>
-  `;
-}
-
-// ==========================================
-// STATUS
-// ==========================================
-
-function obterStatus(score) {
-  if (score >= 85) {
-    return {
-      texto: "Oportunidade alta",
-      icone: "🔥",
-      classe: "high"
-    };
-  }
-
-  if (score >= 70) {
-    return {
-      texto: "Promissor",
-      icone: "🚀",
-      classe: "good"
-    };
-  }
-
-  if (score >= 50) {
-    return {
-      texto: "Em crescimento",
-      icone: "📈",
-      classe: "medium"
-    };
-  }
-
-  return {
-    texto: "Em observação",
-    icone: "◉",
-    classe: "low"
-  };
-}
-
-// ==========================================
-// PESQUISA
-// ==========================================
-
-function configurarPesquisa() {
-  const input =
-    pegarElemento(
-      "search",
-      "search-input",
-      "pesquisa",
-      "buscar-produto"
-    ) ||
-    document.querySelector(
-      'input[type="search"]'
-    );
-
-  if (!input) return;
-
-  input.addEventListener("input", (event) => {
-    pesquisaAtual =
-      event.target.value.trim();
-
-    renderizarProdutos();
-  });
-}
-
-// ==========================================
-// CATEGORIAS
-// ==========================================
-
-function configurarCategorias() {
-  const select =
-    pegarElemento(
-      "category",
-      "category-filter",
-      "categoria"
-    ) ||
-    document.querySelector("select");
-
-  if (!select) return;
-
-  select.addEventListener("change", (event) => {
-    categoriaAtual =
-      event.target.value || "todas";
-
-    renderizarProdutos();
-  });
-}
-
-// ==========================================
-// ABAS
-// ==========================================
-
-function configurarAbas() {
-  document
-    .querySelectorAll("[data-filter]")
-    .forEach((botao) => {
-
-      botao.addEventListener("click", () => {
-
-        filtroAtual =
-          botao.dataset.filter;
-
-        document
-          .querySelectorAll("[data-filter]")
-          .forEach((item) => {
-            item.classList.remove("active");
-          });
-
-        botao.classList.add("active");
-
-        renderizarProdutos();
-      });
-
+// ======================================================
+// FORMATAÇÃO
+// ======================================================
+
+function dinheiro(valor) {
+    const numero = Number(valor || 0);
+
+    return numero.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
     });
 }
-
-// ==========================================
-// LOADING / ERRO
-// ==========================================
-
-function mostrarCarregando() {
-  const container = containerProdutos();
-
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="loading-state">
-      <div class="radar-loader"></div>
-      <strong>Analisando produtos...</strong>
-      <p>
-        Buscando oportunidades no radar.
-      </p>
-    </div>
-  `;
-}
-
-function mostrarErro(mensagem) {
-  const container = containerProdutos();
-
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="error-state">
-      <div>⚠️</div>
-
-      <strong>
-        Não foi possível carregar o radar
-      </strong>
-
-      <p>
-        Verifique a conexão com o Supabase.
-      </p>
-
-      <small>
-        ${escapar(mensagem)}
-      </small>
-
-      <br><br>
-
-      <button onclick="buscarProdutos()">
-        Tentar novamente
-      </button>
-    </div>
-  `;
-}
-
-// ==========================================
-// UTILIDADES
-// ==========================================
 
 function numero(valor) {
-  if (valor === null || valor === undefined) {
-    return 0;
-  }
+    const n = Number(valor || 0);
 
-  if (typeof valor === "number") {
-    return valor;
-  }
-
-  const convertido = String(valor)
-    .replace("%", "")
-    .replace(",", ".");
-
-  const resultado = Number(convertido);
-
-  return Number.isFinite(resultado)
-    ? resultado
-    : 0;
-}
-
-function calcularVendasAfiliado(
-  vendidos,
-  afiliados
-) {
-  const vendas = numero(vendidos);
-  const totalAfiliados = numero(afiliados);
-
-  if (!totalAfiliados) return 0;
-
-  return vendas / totalAfiliados;
-}
-
-function formatarDinheiro(valor) {
-  return numero(valor).toLocaleString(
-    "pt-BR",
-    {
-      style: "currency",
-      currency: "BRL"
+    if (n >= 1000000) {
+        return (n / 1000000)
+            .toFixed(1)
+            .replace(".", ",") + " mi";
     }
-  );
-}
 
-function formatarDecimal(valor) {
-  return numero(valor).toLocaleString(
-    "pt-BR",
-    {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
+    if (n >= 1000) {
+        return (n / 1000)
+            .toFixed(n >= 10000 ? 0 : 1)
+            .replace(".", ",") + " mil";
     }
-  );
+
+    return n.toLocaleString("pt-BR");
 }
 
-function formatarPorcentagem(valor) {
-  return `${formatarDecimal(valor)}%`;
+function percentual(valor) {
+    return Number(valor || 0)
+        .toFixed(1)
+        .replace(".", ",") + "%";
 }
 
-function formatarQuantidade(valor) {
-  const n = numero(valor);
+// ======================================================
+// BUSCAR PRODUTOS NO SUPABASE
+// ======================================================
 
-  if (n >= 1000000) {
-    return `${formatarDecimal(
-      n / 1000000
-    )} mi`;
-  }
+async function carregarProdutos() {
 
-  if (n >= 1000) {
-    return `${formatarDecimal(
-      n / 1000
-    )} mil`;
-  }
+    mostrarCarregando();
 
-  return Math.round(n).toLocaleString(
-    "pt-BR"
-  );
+    try {
+
+        const resposta = await fetch(
+            `${SUPABASE_URL}/rest/v1/products?select=*&order=radar_score.desc`,
+            {
+                method: "GET",
+
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": `Bearer ${SUPABASE_KEY}`,
+                    "Accept": "application/json"
+                }
+            }
+        );
+
+        if (!resposta.ok) {
+
+            const erroTexto = await resposta.text();
+
+            console.error(
+                "Erro Supabase:",
+                resposta.status,
+                erroTexto
+            );
+
+            throw new Error(
+                `Erro ${resposta.status} ao consultar o Supabase`
+            );
+        }
+
+        const dados = await resposta.json();
+
+        console.log("PRODUTOS RECEBIDOS:", dados);
+
+        produtos = Array.isArray(dados)
+            ? dados
+            : [];
+
+        produtosFiltrados = [...produtos];
+
+        atualizarDashboard();
+
+    } catch (erro) {
+
+        console.error("SHOPEE RADAR:", erro);
+
+        mostrarErro(erro.message);
+    }
 }
+
+// ======================================================
+// DASHBOARD
+// ======================================================
+
+function atualizarDashboard() {
+
+    atualizarContadores();
+    carregarCategorias();
+    aplicarFiltros();
+}
+
+// ======================================================
+// CONTADORES
+// ======================================================
+
+function atualizarContadores() {
+
+    const total = produtos.length;
+
+    const oportunidades = produtos.filter(produto =>
+        Number(produto.radar_score || 0) >= 70
+    ).length;
+
+    setTexto(
+        total,
+        "radarCount",
+        "radar-count",
+        "countRadar"
+    );
+
+    setTexto(
+        oportunidades,
+        "opportunitiesCount",
+        "opportunities-count",
+        "countOpportunities"
+    );
+
+    // Por enquanto esta contagem usa os produtos disponíveis.
+    // Quando ligarmos a tabela videos, ela passa a usar dados reais.
+    setTexto(
+        0,
+        "videosCount",
+        "videos-count",
+        "countVideos"
+    );
+}
+
+// ======================================================
+// CATEGORIAS
+// ======================================================
+
+function carregarCategorias() {
+
+    const select = encontrarElemento(
+        "categoryFilter",
+        "category-filter",
+        "category"
+    );
+
+    if (!select) return;
+
+    const valorAtual = select.value;
+
+    const categorias = [
+        ...new Set(
+            produtos
+                .map(p => p.category)
+                .filter(Boolean)
+        )
+    ].sort();
+
+    select.innerHTML =
+        `<option value="">Todas categorias</option>` +
+        categorias.map(categoria =>
+            `<option value="${escapar(categoria)}">
+                ${escapar(categoria)}
+            </option>`
+        ).join("");
+
+    if (
+        valorAtual &&
+        categorias.includes(valorAtual)
+    ) {
+        select.value = valorAtual;
+    }
+}
+
+// ======================================================
+// FILTROS
+// ======================================================
+
+function aplicarFiltros() {
+
+    const pesquisa =
+        encontrarElemento(
+            "searchInput",
+            "search-input",
+            "search"
+        );
+
+    const categoria =
+        encontrarElemento(
+            "categoryFilter",
+            "category-filter",
+            "category"
+        );
+
+    const termo = pesquisa
+        ? pesquisa.value.trim().toLowerCase()
+        : "";
+
+    const categoriaSelecionada =
+        categoria
+            ? categoria.value
+            : "";
+
+    produtosFiltrados = produtos.filter(produto => {
+
+        const nome =
+            String(produto.name || "")
+                .toLowerCase();
+
+        const loja =
+            String(produto.shop_name || "")
+                .toLowerCase();
+
+        const categoriaProduto =
+            String(produto.category || "");
+
+        const batePesquisa =
+            !termo ||
+            nome.includes(termo) ||
+            loja.includes(termo) ||
+            categoriaProduto
+                .toLowerCase()
+                .includes(termo);
+
+        const bateCategoria =
+            !categoriaSelecionada ||
+            categoriaProduto === categoriaSelecionada;
+
+        return batePesquisa && bateCategoria;
+    });
+
+    // Ordenação dependendo da aba
+    if (abaAtual === "opportunities") {
+
+        produtosFiltrados.sort(
+            (a, b) =>
+                Number(b.radar_score || 0) -
+                Number(a.radar_score || 0)
+        );
+    }
+
+    if (abaAtual === "radar") {
+
+        produtosFiltrados.sort(
+            (a, b) =>
+                Number(b.sold_count || 0) -
+                Number(a.sold_count || 0)
+        );
+    }
+
+    renderizarProdutos();
+}
+
+// ======================================================
+// RENDERIZAR CARDS
+// ======================================================
+
+function renderizarProdutos() {
+
+    const container =
+        encontrarElemento(
+            "productsContainer",
+            "products-container",
+            "productList",
+            "product-list",
+            "results",
+            "opportunitiesList",
+            "opportunities-list"
+        );
+
+    if (!container) {
+
+        console.warn(
+            "Container dos produtos não encontrado no HTML."
+        );
+
+        return;
+    }
+
+    if (!produtosFiltrados.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size:42px;">📡</div>
+                <h3>Nenhum produto encontrado</h3>
+                <p>
+                    O radar não encontrou produtos
+                    com esses filtros.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML =
+        produtosFiltrados
+            .map(criarCard)
+            .join("");
+}
+
+// ======================================================
+// CARD
+// ======================================================
+
+function criarCard(produto) {
+
+    const score =
+        Number(produto.radar_score || 0);
+
+    const vendas =
+        Number(produto.sold_count || 0);
+
+    const afiliados =
+        Number(produto.affiliates_count || 0);
+
+    const vendasPorAfiliado =
+        afiliados > 0
+            ? vendas / afiliados
+            : 0;
+
+    let status = "Em observação";
+    let emoji = "👀";
+
+    if (score >= 85) {
+        status = "Oportunidade alta";
+        emoji = "🔥";
+    } else if (score >= 70) {
+        status = "Promissor";
+        emoji = "💎";
+    } else if (score >= 50) {
+        status = "Potencial";
+        emoji = "📈";
+    }
+
+    const imagem = produto.image_url
+        ? `
+            <img
+                src="${escapar(produto.image_url)}"
+                alt="${escapar(produto.name || "Produto")}"
+                class="product-image"
+                loading="lazy"
+                onerror="this.style.display='none'"
+            >
+          `
+        : "";
+
+    const loja = produto.shop_name
+        ? `
+            <div class="product-shop">
+                ${escapar(produto.shop_name)}
+            </div>
+          `
+        : "";
+
+    const rating =
+        produto.rating !== null &&
+        produto.rating !== undefined
+            ? Number(produto.rating)
+                .toFixed(1)
+                .replace(".", ",")
+            : "—";
+
+    const linkAbrir = produto.product_url
+        ? `
+            <a
+                href="${escapar(produto.product_url)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="product-link"
+            >
+                Ver produto →
+            </a>
+          `
+        : "";
+
+    return `
+        <article class="product-card">
+
+            ${imagem}
+
+            <div class="product-card-content">
+
+                <div class="product-card-top">
+
+                    <span class="opportunity-badge">
+                        ${emoji} ${status}
+                    </span>
+
+                    <span class="score-badge">
+                        ${score.toFixed(0)}/100
+                    </span>
+
+                </div>
+
+                <h3 class="product-name">
+                    ${escapar(produto.name || "Produto sem nome")}
+                </h3>
+
+                ${loja}
+
+                <div class="product-category">
+                    ${escapar(produto.category || "Sem categoria")}
+                </div>
+
+                <div class="product-stats">
+
+                    <div class="product-stat">
+                        <span>VENDIDOS</span>
+                        <strong>
+                            ${numero(vendas)}
+                        </strong>
+                    </div>
+
+                    <div class="product-stat">
+                        <span>AFILIADOS</span>
+                        <strong>
+                            ${numero(afiliados)}
+                        </strong>
+                    </div>
+
+                    <div class="product-stat">
+                        <span>COMISSÃO</span>
+                        <strong>
+                            ${percentual(produto.commission_rate)}
+                        </strong>
+                    </div>
+
+                    <div class="product-stat">
+                        <span>VENDAS / AFILIADO</span>
+                        <strong>
+                            ${vendasPorAfiliado
+                                .toFixed(1)
+                                .replace(".", ",")}
+                        </strong>
+                    </div>
+
+                </div>
+
+                <div class="product-extra">
+
+                    <span>
+                        ⭐ ${rating}
+                    </span>
+
+                    ${
+                        produto.commission_extra
+                            ? `<span>🔥 Comissão extra</span>`
+                            : ""
+                    }
+
+                </div>
+
+                <div class="product-footer">
+
+                    <div>
+                        <small>RADAR SCORE</small>
+                        <strong>
+                            ${score.toFixed(0)}
+                        </strong>
+                    </div>
+
+                    <div class="product-price">
+                        <small>PREÇO</small>
+                        <strong>
+                            ${dinheiro(produto.price)}
+                        </strong>
+                    </div>
+
+                </div>
+
+                ${linkAbrir}
+
+            </div>
+
+        </article>
+    `;
+}
+
+// ======================================================
+// CARREGAMENTO
+// ======================================================
+
+function mostrarCarregando() {
+
+    const container =
+        encontrarElemento(
+            "productsContainer",
+            "products-container",
+            "productList",
+            "product-list",
+            "results",
+            "opportunitiesList",
+            "opportunities-list"
+        );
+
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="loading-state">
+
+            <div class="radar-loader"></div>
+
+            <p>
+                Analisando produtos...
+            </p>
+
+        </div>
+    `;
+}
+
+// ======================================================
+// ERRO
+// ======================================================
+
+function mostrarErro(mensagem) {
+
+    const container =
+        encontrarElemento(
+            "productsContainer",
+            "products-container",
+            "productList",
+            "product-list",
+            "results",
+            "opportunitiesList",
+            "opportunities-list"
+        );
+
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="empty-state">
+
+            <div style="font-size:40px;">
+                ⚠️
+            </div>
+
+            <h3>
+                Não consegui acessar o radar
+            </h3>
+
+            <p>
+                ${escapar(mensagem)}
+            </p>
+
+            <button
+                type="button"
+                onclick="carregarProdutos()"
+            >
+                Tentar novamente
+            </button>
+
+        </div>
+    `;
+}
+
+// ======================================================
+// SEGURANÇA DO HTML
+// ======================================================
 
 function escapar(valor) {
-  return String(valor ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
-// ==========================================
-// INICIAR SHOPEE RADAR
-// ==========================================
+// ======================================================
+// ABAS
+// ======================================================
+
+function selecionarAba(aba) {
+
+    abaAtual = aba;
+
+    document
+        .querySelectorAll("[data-tab]")
+        .forEach(botao => {
+
+            botao.classList.toggle(
+                "active",
+                botao.dataset.tab === aba
+            );
+        });
+
+    aplicarFiltros();
+}
+
+// ======================================================
+// EVENTOS
+// ======================================================
 
 document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-    configurarPesquisa();
-    configurarCategorias();
-    configurarAbas();
-    buscarProdutos();
-  }
+    "DOMContentLoaded",
+    () => {
+
+        const pesquisa =
+            encontrarElemento(
+                "searchInput",
+                "search-input",
+                "search"
+            );
+
+        const categoria =
+            encontrarElemento(
+                "categoryFilter",
+                "category-filter",
+                "category"
+            );
+
+        if (pesquisa) {
+
+            pesquisa.addEventListener(
+                "input",
+                aplicarFiltros
+            );
+        }
+
+        if (categoria) {
+
+            categoria.addEventListener(
+                "change",
+                aplicarFiltros
+            );
+        }
+
+        document
+            .querySelectorAll("[data-tab]")
+            .forEach(botao => {
+
+                botao.addEventListener(
+                    "click",
+                    () =>
+                        selecionarAba(
+                            botao.dataset.tab
+                        )
+                );
+            });
+
+        carregarProdutos();
+    }
 );
