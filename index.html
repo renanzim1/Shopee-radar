@@ -1,785 +1,319 @@
-/* ========================================
-   SHOPEE RADAR — MOBILE UI V2
-======================================== */
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  >
 
-:root {
-  --bg: #080a0f;
-  --surface: #10131a;
-  --surface-2: #151922;
-  --border: #222734;
+  <meta name="theme-color" content="#ff5a1f">
 
-  --text: #f7f8fa;
-  --muted: #8991a3;
+  <title>Shopee Radar</title>
 
-  --orange: #ff5a1f;
-  --orange-soft: rgba(255, 90, 31, .12);
+  <link rel="stylesheet" href="style.css">
+</head>
 
-  --green: #27e58c;
-  --green-soft: rgba(39, 229, 140, .12);
+<body>
 
-  --blue: #5b8cff;
+  <!-- TOPO -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">◉</div>
 
-  --radius: 18px;
-}
+      <div>
+        <h1>Shopee Radar</h1>
 
-html {
-  background: var(--bg);
-}
+        <div class="status">
+          <span class="status-dot"></span>
+          RADAR ATIVO
+        </div>
+      </div>
+    </div>
 
-body {
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Arial,
-    sans-serif;
+    <div class="live-badge">
+      AO VIVO
+    </div>
+  </header>
 
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(255, 90, 31, .08),
-      transparent 320px
-    ),
-    var(--bg);
 
-  color: var(--text);
+  <main class="container">
 
-  min-height: 100vh;
+    <!-- HERO -->
+    <section class="hero">
 
-  padding-bottom: 90px;
-}
+      <div class="hero-badge">
+        INTELIGÊNCIA PARA AFILIADOS
+      </div>
 
+      <h2>
+        Encontre produtos
+        <span>antes de saturarem.</span>
+      </h2>
 
-/* ========================================
-   TOPO
-======================================== */
+      <p>
+        Analise vendas, concorrência, comissão e
+        desempenho dos produtos em um único radar.
+      </p>
 
-.topbar {
-  height: 72px;
+    </section>
 
-  padding: 0 18px;
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    <!-- RESUMO -->
+    <section class="stats-grid">
 
-  border-bottom: 1px solid var(--border);
+      <div class="stat-card">
+        <span class="stat-icon">🔥</span>
 
-  background: rgba(8, 10, 15, .92);
+        <div>
+          <small>NO RADAR</small>
+          <strong id="totalProdutos">0</strong>
+        </div>
+      </div>
 
-  position: sticky;
-  top: 0;
 
-  z-index: 50;
+      <div class="stat-card">
+        <span class="stat-icon">💎</span>
 
-  backdrop-filter: blur(14px);
-}
+        <div>
+          <small>OPORTUNIDADES</small>
+          <strong id="totalOportunidades">0</strong>
+        </div>
+      </div>
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
 
-.brand-icon {
-  width: 39px;
-  height: 39px;
+      <div class="stat-card">
+        <span class="stat-icon">📈</span>
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+        <div>
+          <small>VÍDEOS 7D</small>
+          <strong id="totalVideos">0</strong>
+        </div>
+      </div>
 
-  border-radius: 12px;
+    </section>
 
-  background:
-    linear-gradient(
-      135deg,
-      #ff713b,
-      #ff4500
-    );
 
-  color: white;
+    <!-- ABAS -->
+    <nav class="tabs">
 
-  font-size: 20px;
-  font-weight: 900;
+      <button
+        class="tab active"
+        data-filter="all"
+      >
+        💎 Oportunidades
+      </button>
 
-  box-shadow:
-    0 6px 20px rgba(255, 90, 31, .25);
-}
+      <button
+        class="tab"
+        data-filter="hot"
+      >
+        🔥 Radar 7D
+      </button>
 
-.brand h1 {
-  font-size: 16px;
-  line-height: 1.2;
-}
+      <button
+        class="tab"
+        data-filter="videos"
+      >
+        🎬 Vídeos
+      </button>
 
-.brand p {
-  margin-top: 4px;
+      <button
+        class="tab"
+        data-filter="favorites"
+      >
+        ♡ Favoritos
+      </button>
 
-  color: var(--muted);
+    </nav>
 
-  font-size: 10px;
 
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
+    <!-- PESQUISA -->
+    <section class="filters">
 
-.online-dot {
-  width: 6px;
-  height: 6px;
+      <div class="search-box">
 
-  background: var(--green);
+        <span>⌕</span>
 
-  border-radius: 50%;
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Pesquisar produto..."
+          autocomplete="off"
+        >
 
-  box-shadow:
-    0 0 8px var(--green);
-}
+      </div>
 
-.status-pill {
-  padding: 7px 10px;
 
-  border: 1px solid rgba(39, 229, 140, .18);
+      <select id="categoryFilter">
 
-  border-radius: 20px;
+        <option value="all">
+          Todas categorias
+        </option>
 
-  background: var(--green-soft);
+        <option value="Moda Feminina">
+          Moda Feminina
+        </option>
 
-  color: var(--green);
+        <option value="Casa e Cozinha">
+          Casa e Cozinha
+        </option>
 
-  font-size: 9px;
-  font-weight: 800;
-}
+        <option value="Casa e Construção">
+          Casa e Construção
+        </option>
 
+        <option value="Beleza">
+          Beleza
+        </option>
 
-/* ========================================
-   CONTEÚDO
-======================================== */
+        <option value="Eletrônicos">
+          Eletrônicos
+        </option>
 
-.container {
-  width: calc(100% - 28px);
+      </select>
 
-  max-width: 1150px;
+    </section>
 
-  margin: auto;
-}
 
+    <!-- CABEÇALHO RESULTADOS -->
+    <section class="section-heading">
 
-/* HERO */
+      <div>
 
-.hero {
-  padding: 29px 2px 22px;
-}
+        <span class="eyebrow">
+          ANÁLISE EM TEMPO REAL
+        </span>
 
-.eyebrow {
-  color: var(--orange);
+        <h3>
+          Melhores oportunidades
+        </h3>
 
-  font-size: 10px;
-  font-weight: 800;
+      </div>
 
-  letter-spacing: 1px;
-}
 
-.hero h2 {
-  margin-top: 9px;
+      <div class="live-indicator">
 
-  max-width: 500px;
+        <span></span>
+        AO VIVO
 
-  font-size: clamp(28px, 8vw, 44px);
+      </div>
 
-  line-height: 1.02;
+    </section>
 
-  letter-spacing: -1.4px;
-}
 
-.hero h2 span {
-  display: block;
+    <!-- PRODUTOS -->
+    <section
+      id="productsGrid"
+      class="products-grid"
+    >
 
-  color: var(--orange);
-}
+      <div class="loading">
 
-.hero p {
-  max-width: 520px;
+        <div class="loader"></div>
 
-  margin-top: 13px;
+        <p>
+          Analisando produtos...
+        </p>
 
-  color: var(--muted);
+      </div>
 
-  font-size: 13px;
+    </section>
 
-  line-height: 1.5;
-}
 
+    <!-- SEM RESULTADOS -->
+    <section
+      id="emptyState"
+      class="empty-state"
+      hidden
+    >
 
-/* ========================================
-   RESUMO
-======================================== */
+      <div>🔎</div>
 
-.summary {
-  display: grid;
+      <h3>
+        Nenhum produto encontrado
+      </h3>
 
-  grid-template-columns:
-    repeat(3, 1fr);
+      <p>
+        Tente mudar sua pesquisa ou categoria.
+      </p>
 
-  gap: 8px;
+    </section>
 
-  margin-bottom: 20px;
-}
+  </main>
 
-.summary-card {
-  min-height: 80px;
 
-  padding: 13px 10px;
+  <!-- MENU MOBILE -->
+  <nav class="bottom-nav">
 
-  border: 1px solid var(--border);
+    <button
+      class="bottom-item active"
+      data-filter="all"
+    >
+      <span>⌁</span>
+      Radar
+    </button>
 
-  border-radius: 15px;
 
-  background:
-    linear-gradient(
-      145deg,
-      #131720,
-      #0e1117
-    );
-}
+    <button
+      class="bottom-item"
+      data-filter="hot"
+    >
+      <span>🔥</span>
+      7 Dias
+    </button>
 
-.summary-icon {
-  margin-bottom: 8px;
 
-  font-size: 16px;
-}
+    <button
+      class="bottom-item"
+      data-filter="videos"
+    >
+      <span>🎬</span>
+      Vídeos
+    </button>
 
-.summary-card strong {
-  display: block;
 
-  font-size: 21px;
-  line-height: 1;
-}
+    <button
+      class="bottom-item"
+      data-filter="favorites"
+    >
+      <span>♡</span>
+      Favoritos
+    </button>
 
-.summary-card span {
-  display: block;
+  </nav>
 
-  margin-top: 6px;
 
-  color: var(--muted);
+  <!-- MODAL DO PRODUTO -->
+  <div
+    id="productModal"
+    class="modal"
+    hidden
+  >
 
-  font-size: 9px;
+    <div class="modal-overlay"></div>
 
-  text-transform: uppercase;
 
-  letter-spacing: .5px;
-}
+    <div class="modal-content">
 
+      <button
+        id="closeModal"
+        class="modal-close"
+        aria-label="Fechar"
+      >
+        ×
+      </button>
 
-/* ========================================
-   PESQUISA
-======================================== */
 
-.tools {
-  display: grid;
+      <div id="modalBody"></div>
 
-  grid-template-columns:
-    minmax(0, 1fr) 135px;
+    </div>
 
-  gap: 8px;
+  </div>
 
-  margin-bottom: 11px;
-}
 
-.search-wrapper {
-  position: relative;
-}
+  <script src="app.js"></script>
 
-.search-icon {
-  position: absolute;
-
-  left: 13px;
-  top: 50%;
-
-  transform: translateY(-50%);
-
-  color: var(--muted);
-
-  font-size: 21px;
-}
-
-.search-wrapper input,
-.tools select {
-  width: 100%;
-  height: 48px;
-
-  border: 1px solid var(--border);
-
-  border-radius: 13px;
-
-  outline: none;
-
-  background: var(--surface);
-
-  color: white;
-
-  font-size: 12px;
-}
-
-.search-wrapper input {
-  padding: 0 12px 0 40px;
-}
-
-.search-wrapper input:focus,
-.tools select:focus {
-  border-color: var(--orange);
-}
-
-.tools select {
-  padding: 0 10px;
-}
-
-
-/* ========================================
-   FILTROS
-======================================== */
-
-.quick-filters {
-  display: flex;
-
-  gap: 7px;
-
-  overflow-x: auto;
-
-  padding-bottom: 8px;
-
-  scrollbar-width: none;
-}
-
-.quick-filters::-webkit-scrollbar {
-  display: none;
-}
-
-.quick {
-  flex: 0 0 auto;
-
-  border: 1px solid var(--border);
-
-  border-radius: 20px;
-
-  padding: 9px 12px;
-
-  background: var(--surface);
-
-  color: var(--muted);
-
-  font-size: 10px;
-
-  font-weight: 700;
-}
-
-.quick.active {
-  border-color:
-    rgba(255, 90, 31, .35);
-
-  background: var(--orange-soft);
-
-  color: #ff8154;
-}
-
-
-/* ========================================
-   CABEÇALHO DA LISTA
-======================================== */
-
-.section-header {
-  margin: 23px 0 13px;
-
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.section-label {
-  color: var(--muted);
-
-  font-size: 9px;
-
-  letter-spacing: 1px;
-}
-
-.section-header h2 {
-  margin-top: 5px;
-
-  font-size: 20px;
-
-  letter-spacing: -.4px;
-}
-
-.live {
-  color: var(--green);
-
-  font-size: 9px;
-  font-weight: 800;
-
-  display: flex;
-  align-items: center;
-
-  gap: 5px;
-}
-
-.live i {
-  width: 6px;
-  height: 6px;
-
-  border-radius: 50%;
-
-  background: var(--green);
-
-  box-shadow:
-    0 0 7px var(--green);
-}
-
-
-/* ========================================
-   PRODUTOS
-======================================== */
-
-.products-grid {
-  display: grid;
-
-  grid-template-columns:
-    repeat(
-      auto-fit,
-      minmax(280px, 1fr)
-    );
-
-  gap: 12px;
-}
-
-.card {
-  padding: 16px;
-
-  border: 1px solid var(--border);
-
-  border-radius: var(--radius);
-
-  background:
-    linear-gradient(
-      145deg,
-      #141820,
-      #101319
-    );
-
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, .14);
-}
-
-.card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 10px;
-
-  margin-bottom: 13px;
-}
-
-.badge {
-  display: inline-flex;
-
-  padding: 6px 9px;
-
-  border-radius: 8px;
-
-  background: var(--orange-soft);
-
-  color: #ff8a5f;
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.score-number {
-  padding: 6px 9px;
-
-  border-radius: 8px;
-
-  background: var(--green-soft);
-
-  color: var(--green);
-
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.card h3 {
-  padding-right: 5px;
-
-  font-size: 15px;
-
-  line-height: 1.35;
-}
-
-.category {
-  margin-top: 5px;
-
-  color: var(--muted);
-
-  font-size: 11px;
-}
-
-.stats {
-  display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap: 7px;
-
-  margin-top: 15px;
-}
-
-.stat {
-  padding: 12px;
-
-  border-radius: 12px;
-
-  background: #0b0e14;
-}
-
-.stat span {
-  display: block;
-
-  color: #697183;
-
-  font-size: 8px;
-
-  letter-spacing: .6px;
-}
-
-.stat strong {
-  display: block;
-
-  margin-top: 5px;
-
-  font-size: 14px;
-}
-
-.score {
-  margin-top: 14px;
-
-  padding-top: 13px;
-
-  border-top: 1px solid var(--border);
-
-  display: flex;
-
-  justify-content: space-between;
-
-  gap: 15px;
-}
-
-.score > div:last-child {
-  text-align: right;
-}
-
-.score small {
-  display: block;
-
-  margin-bottom: 4px;
-
-  color: var(--muted);
-
-  font-size: 8px;
-
-  letter-spacing: .6px;
-}
-
-.score strong {
-  font-size: 13px;
-}
-
-
-/* ========================================
-   LOADING / VAZIO
-======================================== */
-
-.loading,
-.empty {
-  grid-column: 1 / -1;
-
-  min-height: 180px;
-
-  border: 1px dashed var(--border);
-
-  border-radius: var(--radius);
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-
-  color: var(--muted);
-
-  padding: 25px;
-}
-
-.loading strong,
-.empty h3 {
-  margin-top: 12px;
-
-  color: white;
-
-  font-size: 14px;
-}
-
-.loading span,
-.empty p {
-  margin-top: 5px;
-
-  font-size: 10px;
-}
-
-.loader {
-  width: 28px;
-  height: 28px;
-
-  border: 3px solid #242936;
-
-  border-top-color: var(--orange);
-
-  border-radius: 50%;
-
-  animation: spin .8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-
-/* ========================================
-   MENU INFERIOR
-======================================== */
-
-.bottom-nav {
-  position: fixed;
-
-  left: 50%;
-  bottom: 0;
-
-  transform: translateX(-50%);
-
-  z-index: 100;
-
-  width: 100%;
-
-  max-width: 650px;
-
-  height: 68px;
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(4, 1fr);
-
-  border-top: 1px solid var(--border);
-
-  background:
-    rgba(13, 16, 22, .96);
-
-  backdrop-filter: blur(18px);
-}
-
-.nav-item {
-  border: 0;
-
-  background: transparent;
-
-  color: #707889;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 4px;
-
-  font-size: 9px;
-
-  font-weight: 700;
-}
-
-.nav-item span {
-  font-size: 18px;
-}
-
-.nav-item.active {
-  color: var(--orange);
-}
-
-
-/* ========================================
-   DESKTOP
-======================================== */
-
-@media (min-width: 700px) {
-
-  .container {
-    width: calc(100% - 48px);
-  }
-
-  .hero {
-    padding-top: 45px;
-  }
-
-  .summary {
-    max-width: 620px;
-  }
-
-  .tools {
-    max-width: 650px;
-  }
-
-  .bottom-nav {
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-
-    border-radius: 18px 18px 0 0;
-  }
-
-}
-
-
-/* ========================================
-   CELULARES PEQUENOS
-======================================== */
-
-@media (max-width: 370px) {
-
-  .container {
-    width: calc(100% - 20px);
-  }
-
-  .tools {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-card {
-    padding: 11px 7px;
-  }
-
-  .summary-card strong {
-    font-size: 18px;
-  }
-
-}
+</body>
+</html>
