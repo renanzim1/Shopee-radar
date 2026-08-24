@@ -1,174 +1,377 @@
 // ==========================================
-// SHOPEE RADAR
+// SHOPEE RADAR V1
 // ==========================================
 
-// DADOS DO SUPABASE
-const SUPABASE_URL = "COLE_AQUI_SUA_API_URL";
-const SUPABASE_KEY = "COLE_AQUI_SUA_PUBLISHABLE_KEY";
+const SUPABASE_URL =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 
-const headers = {
-  apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`
-};
+const SUPABASE_KEY =
+  "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
 
-// Converte valores como "310,4mil" para número
-function numero(valor) {
-  if (valor === null || valor === undefined) return 0;
+// Conexão com Supabase
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
-  if (typeof valor === "number") return valor;
+let todosProdutos = [];
 
-  let texto = String(valor)
-    .toLowerCase()
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
+// ==========================================
+// FORMATADORES
+// ==========================================
 
-  if (texto.includes("mil")) {
-    return parseFloat(texto.replace("mil", "")) * 1000;
+function formatarNumero(valor) {
+  const numero = Number(valor || 0);
+
+  if (numero >= 1000000) {
+    return (numero / 1000000)
+      .toFixed(1)
+      .replace(".", ",") + " mi";
   }
 
-  return parseFloat(texto.replace(/[^\d.]/g, "")) || 0;
+  if (numero >= 1000) {
+    return (numero / 1000)
+      .toFixed(numero >= 10000 ? 0 : 1)
+      .replace(".", ",") + " mil";
+  }
+
+  return numero.toLocaleString("pt-BR");
 }
 
-// Calcula oportunidade:
-// muitas vendas + poucos afiliados
-function calcularScore(vendas, afiliados) {
-  vendas = numero(vendas);
-  afiliados = numero(afiliados);
+function formatarPreco(valor) {
+  if (valor === null || valor === undefined) {
+    return "—";
+  }
 
-  if (vendas <= 0) return 0;
-
-  const proporcao = vendas / Math.max(afiliados, 1);
-
-  return Math.round(proporcao * 10) / 10;
+  return Number(valor).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
 }
 
-// Busca produtos no Supabase
+function formatarPercentual(valor) {
+  if (valor === null || valor === undefined) {
+    return "—";
+  }
+
+  return Number(valor)
+    .toFixed(1)
+    .replace(".", ",") + "%";
+}
+
+function vendasPorAfiliado(produto) {
+  const vendas = Number(produto.sold_count || 0);
+  const afiliados = Number(produto.affiliates_count || 0);
+
+  if (afiliados <= 0) return vendas;
+
+  return vendas / afiliados;
+}
+
+// ==========================================
+// CLASSIFICAÇÃO
+// ==========================================
+
+function classificacao(score) {
+  score = Number(score || 0);
+
+  if (score >= 85) {
+    return {
+      texto: "🔥 Oportunidade alta",
+      classe: "high"
+    };
+  }
+
+  if (score >= 65) {
+    return {
+      texto: "🚀 Promissor",
+      classe: "medium"
+    };
+  }
+
+  return {
+    texto: "👀 Em observação",
+    classe: "low"
+  };
+}
+
+// ==========================================
+// CARREGAR PRODUTOS
+// ==========================================
+
 async function carregarProdutos() {
-  try {
-    const resposta = await fetch(
-      `${SUPABASE_URL}/rest/v1/products?select=*`,
-      { headers }
-    );
+  const container =
+    document.getElementById("productsContainer");
 
-    if (!resposta.ok) {
-      throw new Error(`Erro Supabase: ${resposta.status}`);
+  try {
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .order("radar_score", {
+        ascending: false
+      });
+
+    if (error) {
+      throw error;
     }
 
-    const produtos = await resposta.json();
+    todosProdutos = data || [];
 
-    produtos.forEach(produto => {
-      produto.score = calcularScore(
-        produto.sales || produto.vendas,
-        produto.affiliates || produto.afiliados
-      );
-    });
-
-    produtos.sort((a, b) => b.score - a.score);
-
-    mostrarProdutos(produtos);
+    atualizarResumo(todosProdutos);
+    renderizarProdutos(todosProdutos);
 
   } catch (erro) {
-    console.error(erro);
+    console.error("Erro Shopee Radar:", erro);
 
-    const area = document.getElementById("products");
-
-    if (area) {
-      area.innerHTML = `
+    if (container) {
+      container.innerHTML = `
         <div class="empty">
-          Não foi possível carregar os produtos.
+          <h3>Erro ao conectar ao Radar</h3>
+          <p>
+            Não foi possível carregar os produtos
+            do Supabase.
+          </p>
         </div>
       `;
     }
   }
 }
 
-// Mostra os produtos
-function mostrarProdutos(produtos) {
-  const area = document.getElementById("products");
+// ==========================================
+// RESUMO DO DASHBOARD
+// ==========================================
 
-  if (!area) return;
+async function atualizarResumo(produtos) {
+  const total =
+    document.getElementById("totalProducts");
+
+  const oportunidades =
+    document.getElementById("totalOpportunities");
+
+  const videos =
+    document.getElementById("totalVideos");
+
+  if (total) {
+    total.textContent = produtos.length;
+  }
+
+  if (oportunidades) {
+    oportunidades.textContent =
+      produtos.filter(
+        produto =>
+          Number(produto.radar_score || 0) >= 70
+      ).length;
+  }
+
+  try {
+    const seteDiasAtras =
+      new Date(
+        Date.now() - 7 * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+    const { count, error } = await supabaseClient
+      .from("videos")
+      .select("*", {
+        count: "exact",
+        head: true
+      })
+      .gte("published_at", seteDiasAtras);
+
+    if (!error && videos) {
+      videos.textContent = count || 0;
+    }
+
+  } catch (erro) {
+    console.error("Erro ao contar vídeos:", erro);
+
+    if (videos) {
+      videos.textContent = "0";
+    }
+  }
+}
+
+// ==========================================
+// MOSTRAR PRODUTOS
+// ==========================================
+
+function renderizarProdutos(produtos) {
+  const container =
+    document.getElementById("productsContainer");
+
+  if (!container) return;
 
   if (!produtos.length) {
-    area.innerHTML = `
+    container.innerHTML = `
       <div class="empty">
-        Nenhum produto encontrado.
+        <h3>Nenhum produto encontrado</h3>
+        <p>
+          Tente alterar a pesquisa ou categoria.
+        </p>
       </div>
     `;
+
     return;
   }
 
-  area.innerHTML = produtos.map(produto => {
+  container.innerHTML = produtos.map(produto => {
+    const score =
+      Number(produto.radar_score || 0);
 
-    const nome =
-      produto.name ||
-      produto.nome ||
-      "Produto Shopee";
+    const oportunidade =
+      classificacao(score);
 
-    const vendas =
-      produto.sales ||
-      produto.vendas ||
-      0;
-
-    const afiliados =
-      produto.affiliates ||
-      produto.afiliados ||
-      0;
-
-    const comissao =
-      produto.commission ||
-      produto.comissao ||
-      "-";
+    const proporcao =
+      vendasPorAfiliado(produto);
 
     return `
-      <div class="card">
+      <article class="card">
 
-        <span class="badge">
-          🔥 Oportunidade
-        </span>
+        <div class="card-top">
+          <span class="badge ${oportunidade.classe}">
+            ${oportunidade.texto}
+          </span>
 
-        <h3>${nome}</h3>
+          <span class="score-number">
+            ${Math.round(score)}/100
+          </span>
+        </div>
+
+        <h3>
+          ${produto.name || "Produto Shopee"}
+        </h3>
+
+        <p class="category">
+          ${produto.category || "Shopee"}
+        </p>
 
         <div class="stats">
 
           <div class="stat">
-            <span>VENDAS</span>
-            <strong>${vendas}</strong>
+            <span>VENDIDOS</span>
+            <strong>
+              ${formatarNumero(produto.sold_count)}
+            </strong>
           </div>
 
           <div class="stat">
             <span>AFILIADOS</span>
-            <strong>${afiliados}</strong>
+            <strong>
+              ${formatarNumero(
+                produto.affiliates_count
+              )}
+            </strong>
           </div>
 
           <div class="stat">
             <span>COMISSÃO</span>
-            <strong>${comissao}</strong>
+            <strong>
+              ${formatarPercentual(
+                produto.commission_rate
+              )}
+            </strong>
           </div>
 
           <div class="stat">
             <span>VENDAS / AFILIADO</span>
             <strong>
-              ${calcularScore(vendas, afiliados)}
+              ${proporcao
+                .toFixed(1)
+                .replace(".", ",")}
             </strong>
           </div>
 
         </div>
 
         <div class="score">
-          <span>Radar Score</span>
 
-          <span class="score-number">
-            ${produto.score}
-          </span>
+          <div>
+            <small>RADAR SCORE</small>
+            <strong>
+              ${Math.round(score)}
+            </strong>
+          </div>
+
+          <div>
+            <small>PREÇO</small>
+            <strong>
+              ${formatarPreco(produto.price)}
+            </strong>
+          </div>
+
         </div>
 
-      </div>
+      </article>
     `;
   }).join("");
 }
 
-// Inicia o Radar
-document.addEventListener("DOMContentLoaded", () => {
-  carregarProdutos();
-});
+// ==========================================
+// PESQUISA E FILTROS
+// ==========================================
+
+function aplicarFiltros() {
+  const pesquisa =
+    document
+      .getElementById("searchInput")
+      ?.value
+      .trim()
+      .toLowerCase() || "";
+
+  const categoria =
+    document
+      .getElementById("categoryFilter")
+      ?.value || "";
+
+  const filtrados =
+    todosProdutos.filter(produto => {
+      const nome =
+        String(produto.name || "")
+          .toLowerCase();
+
+      const correspondePesquisa =
+        nome.includes(pesquisa);
+
+      const correspondeCategoria =
+        !categoria ||
+        produto.category === categoria;
+
+      return (
+        correspondePesquisa &&
+        correspondeCategoria
+      );
+    });
+
+  renderizarProdutos(filtrados);
+}
+
+// ==========================================
+// INICIAR SHOPEE RADAR
+// ==========================================
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    const pesquisa =
+      document.getElementById("searchInput");
+
+    const categoria =
+      document.getElementById("categoryFilter");
+
+    if (pesquisa) {
+      pesquisa.addEventListener(
+        "input",
+        aplicarFiltros
+      );
+    }
+
+    if (categoria) {
+      categoria.addEventListener(
+        "change",
+        aplicarFiltros
+      );
+    }
+
+    carregarProdutos();
+  }
+);
