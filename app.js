@@ -1,33 +1,43 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
+// Compatível com o index.html atual
 // ======================================================
 
 const SUPABASE_URL = "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
 
-// ======================================================
-// ESTADO
-// ======================================================
-
 let produtos = [];
-let produtosFiltrados = [];
-let abaAtual = "opportunities";
+let filtroAtual = "all";
 
 // ======================================================
-// ELEMENTOS DA PÁGINA
+// ELEMENTOS
 // ======================================================
 
-function encontrarElemento(...ids) {
-    for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el) return el;
-    }
-    return null;
-}
+const productsGrid = document.getElementById("productsGrid");
+const emptyState = document.getElementById("emptyState");
 
-function setTexto(valor, ...ids) {
-    const el = encontrarElemento(...ids);
-    if (el) el.textContent = valor;
+const totalProdutos = document.getElementById("totalProdutos");
+const totalOportunidades = document.getElementById("totalOportunidades");
+const totalVideos = document.getElementById("totalVideos");
+
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+
+const productModal = document.getElementById("productModal");
+const modalBody = document.getElementById("modalBody");
+const closeModal = document.getElementById("closeModal");
+
+// ======================================================
+// SEGURANÇA
+// ======================================================
+
+function escapar(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 // ======================================================
@@ -35,9 +45,7 @@ function setTexto(valor, ...ids) {
 // ======================================================
 
 function dinheiro(valor) {
-    const numero = Number(valor || 0);
-
-    return numero.toLocaleString("pt-BR", {
+    return Number(valor || 0).toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL"
     });
@@ -68,7 +76,52 @@ function percentual(valor) {
 }
 
 // ======================================================
-// BUSCAR PRODUTOS NO SUPABASE
+// CARREGAMENTO
+// ======================================================
+
+function mostrarCarregando() {
+    productsGrid.innerHTML = `
+        <div class="loading">
+            <div class="loader"></div>
+            <p>Analisando produtos...</p>
+        </div>
+    `;
+}
+
+// ======================================================
+// ERRO
+// ======================================================
+
+function mostrarErro(mensagem) {
+    productsGrid.innerHTML = `
+        <div class="empty-state" style="display:block;">
+            <div style="font-size:42px;">⚠️</div>
+
+            <h3>Erro ao carregar o radar</h3>
+
+            <p>${escapar(mensagem)}</p>
+
+            <button
+                type="button"
+                onclick="carregarProdutos()"
+                style="
+                    margin-top:16px;
+                    padding:12px 18px;
+                    border:0;
+                    border-radius:12px;
+                    background:#ff5a1f;
+                    color:white;
+                    font-weight:700;
+                "
+            >
+                Tentar novamente
+            </button>
+        </div>
+    `;
+}
+
+// ======================================================
+// SUPABASE
 // ======================================================
 
 async function carregarProdutos() {
@@ -77,31 +130,30 @@ async function carregarProdutos() {
 
     try {
 
-        const resposta = await fetch(
-            `${SUPABASE_URL}/rest/v1/products?select=*&order=radar_score.desc`,
-            {
-                method: "GET",
+        const url =
+            `${SUPABASE_URL}/rest/v1/products?select=*&order=radar_score.desc`;
 
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": `Bearer ${SUPABASE_KEY}`,
-                    "Accept": "application/json"
-                }
+        const resposta = await fetch(url, {
+            method: "GET",
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Accept": "application/json"
             }
-        );
+        });
 
         if (!resposta.ok) {
 
-            const erroTexto = await resposta.text();
+            const texto = await resposta.text();
 
             console.error(
-                "Erro Supabase:",
+                "ERRO SUPABASE:",
                 resposta.status,
-                erroTexto
+                texto
             );
 
             throw new Error(
-                `Erro ${resposta.status} ao consultar o Supabase`
+                `Supabase respondeu com erro ${resposta.status}`
             );
         }
 
@@ -109,31 +161,29 @@ async function carregarProdutos() {
 
         console.log("PRODUTOS RECEBIDOS:", dados);
 
-        produtos = Array.isArray(dados)
-            ? dados
-            : [];
+        if (!Array.isArray(dados)) {
+            throw new Error(
+                "Os dados recebidos não estão no formato esperado."
+            );
+        }
 
-        produtosFiltrados = [...produtos];
+        produtos = dados;
 
-        atualizarDashboard();
+        atualizarContadores();
+        carregarCategorias();
+        aplicarFiltros();
 
     } catch (erro) {
 
-        console.error("SHOPEE RADAR:", erro);
+        console.error(
+            "ERRO SHOPEE RADAR:",
+            erro
+        );
 
-        mostrarErro(erro.message);
+        mostrarErro(
+            erro.message || "Erro desconhecido."
+        );
     }
-}
-
-// ======================================================
-// DASHBOARD
-// ======================================================
-
-function atualizarDashboard() {
-
-    atualizarContadores();
-    carregarCategorias();
-    aplicarFiltros();
 }
 
 // ======================================================
@@ -142,34 +192,25 @@ function atualizarDashboard() {
 
 function atualizarContadores() {
 
-    const total = produtos.length;
-
-    const oportunidades = produtos.filter(produto =>
-        Number(produto.radar_score || 0) >= 70
-    ).length;
-
-    setTexto(
-        total,
-        "radarCount",
-        "radar-count",
-        "countRadar"
+    const oportunidades = produtos.filter(
+        produto =>
+            Number(produto.radar_score || 0) >= 70
     );
 
-    setTexto(
-        oportunidades,
-        "opportunitiesCount",
-        "opportunities-count",
-        "countOpportunities"
-    );
+    if (totalProdutos) {
+        totalProdutos.textContent =
+            produtos.length;
+    }
 
-    // Por enquanto esta contagem usa os produtos disponíveis.
-    // Quando ligarmos a tabela videos, ela passa a usar dados reais.
-    setTexto(
-        0,
-        "videosCount",
-        "videos-count",
-        "countVideos"
-    );
+    if (totalOportunidades) {
+        totalOportunidades.textContent =
+            oportunidades.length;
+    }
+
+    // Depois conectamos à tabela de vídeos.
+    if (totalVideos) {
+        totalVideos.textContent = "0";
+    }
 }
 
 // ======================================================
@@ -178,38 +219,26 @@ function atualizarContadores() {
 
 function carregarCategorias() {
 
-    const select = encontrarElemento(
-        "categoryFilter",
-        "category-filter",
-        "category"
-    );
-
-    if (!select) return;
-
-    const valorAtual = select.value;
+    if (!categoryFilter) return;
 
     const categorias = [
         ...new Set(
             produtos
-                .map(p => p.category)
+                .map(produto => produto.category)
                 .filter(Boolean)
         )
     ].sort();
 
-    select.innerHTML =
-        `<option value="">Todas categorias</option>` +
-        categorias.map(categoria =>
-            `<option value="${escapar(categoria)}">
+    categoryFilter.innerHTML = `
+        <option value="all">
+            Todas categorias
+        </option>
+        ${categorias.map(categoria => `
+            <option value="${escapar(categoria)}">
                 ${escapar(categoria)}
-            </option>`
-        ).join("");
-
-    if (
-        valorAtual &&
-        categorias.includes(valorAtual)
-    ) {
-        select.value = valorAtual;
-    }
+            </option>
+        `).join("")}
+    `;
 }
 
 // ======================================================
@@ -218,30 +247,15 @@ function carregarCategorias() {
 
 function aplicarFiltros() {
 
-    const pesquisa =
-        encontrarElemento(
-            "searchInput",
-            "search-input",
-            "search"
-        );
-
-    const categoria =
-        encontrarElemento(
-            "categoryFilter",
-            "category-filter",
-            "category"
-        );
-
-    const termo = pesquisa
-        ? pesquisa.value.trim().toLowerCase()
+    const termo = searchInput
+        ? searchInput.value.trim().toLowerCase()
         : "";
 
-    const categoriaSelecionada =
-        categoria
-            ? categoria.value
-            : "";
+    const categoria = categoryFilter
+        ? categoryFilter.value
+        : "all";
 
-    produtosFiltrados = produtos.filter(produto => {
+    let resultado = produtos.filter(produto => {
 
         const nome =
             String(produto.name || "")
@@ -263,80 +277,135 @@ function aplicarFiltros() {
                 .includes(termo);
 
         const bateCategoria =
-            !categoriaSelecionada ||
-            categoriaProduto === categoriaSelecionada;
+            categoria === "all" ||
+            categoriaProduto === categoria;
 
         return batePesquisa && bateCategoria;
     });
 
-    // Ordenação dependendo da aba
-    if (abaAtual === "opportunities") {
+    // OPORTUNIDADES
+    if (filtroAtual === "all") {
 
-        produtosFiltrados.sort(
+        resultado.sort(
             (a, b) =>
                 Number(b.radar_score || 0) -
                 Number(a.radar_score || 0)
         );
     }
 
-    if (abaAtual === "radar") {
+    // RADAR 7 DIAS
+    if (filtroAtual === "hot") {
 
-        produtosFiltrados.sort(
+        resultado.sort(
             (a, b) =>
                 Number(b.sold_count || 0) -
                 Number(a.sold_count || 0)
         );
     }
 
-    renderizarProdutos();
+    // VÍDEOS
+    if (filtroAtual === "videos") {
+
+        mostrarAreaEmConstrucao(
+            "🎬",
+            "Radar de vídeos",
+            "A tabela de vídeos será conectada na próxima etapa."
+        );
+
+        return;
+    }
+
+    // FAVORITOS
+    if (filtroAtual === "favorites") {
+
+        mostrarAreaEmConstrucao(
+            "♡",
+            "Favoritos",
+            "Aqui ficarão os produtos que você salvar."
+        );
+
+        return;
+    }
+
+    renderizarProdutos(resultado);
 }
 
 // ======================================================
-// RENDERIZAR CARDS
+// ÁREA TEMPORÁRIA
 // ======================================================
 
-function renderizarProdutos() {
+function mostrarAreaEmConstrucao(
+    icone,
+    titulo,
+    texto
+) {
 
-    const container =
-        encontrarElemento(
-            "productsContainer",
-            "products-container",
-            "productList",
-            "product-list",
-            "results",
-            "opportunitiesList",
-            "opportunities-list"
-        );
-
-    if (!container) {
-
-        console.warn(
-            "Container dos produtos não encontrado no HTML."
-        );
-
-        return;
+    if (emptyState) {
+        emptyState.hidden = true;
     }
 
-    if (!produtosFiltrados.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size:42px;">📡</div>
-                <h3>Nenhum produto encontrado</h3>
-                <p>
-                    O radar não encontrou produtos
-                    com esses filtros.
-                </p>
+    productsGrid.innerHTML = `
+        <div
+            class="empty-state"
+            style="display:block;"
+        >
+            <div style="font-size:42px;">
+                ${icone}
             </div>
-        `;
+
+            <h3>${titulo}</h3>
+
+            <p>${texto}</p>
+        </div>
+    `;
+}
+
+// ======================================================
+// RENDERIZAÇÃO
+// ======================================================
+
+function renderizarProdutos(lista) {
+
+    if (!lista.length) {
+
+        productsGrid.innerHTML = "";
+
+        if (emptyState) {
+            emptyState.hidden = false;
+        }
 
         return;
     }
 
-    container.innerHTML =
-        produtosFiltrados
-            .map(criarCard)
-            .join("");
+    if (emptyState) {
+        emptyState.hidden = true;
+    }
+
+    productsGrid.innerHTML =
+        lista.map(criarCard).join("");
+
+    document
+        .querySelectorAll(".product-card")
+        .forEach(card => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    const id =
+                        card.dataset.id;
+
+                    const produto =
+                        produtos.find(
+                            p => String(p.id) === id
+                        );
+
+                    if (produto) {
+                        abrirModal(produto);
+                    }
+                }
+            );
+        });
 }
 
 // ======================================================
@@ -348,7 +417,7 @@ function criarCard(produto) {
     const score =
         Number(produto.radar_score || 0);
 
-    const vendas =
+    const vendidos =
         Number(produto.sold_count || 0);
 
     const afiliados =
@@ -356,7 +425,7 @@ function criarCard(produto) {
 
     const vendasPorAfiliado =
         afiliados > 0
-            ? vendas / afiliados
+            ? vendidos / afiliados
             : 0;
 
     let status = "Em observação";
@@ -376,46 +445,20 @@ function criarCard(produto) {
     const imagem = produto.image_url
         ? `
             <img
+                class="product-image"
                 src="${escapar(produto.image_url)}"
                 alt="${escapar(produto.name || "Produto")}"
-                class="product-image"
                 loading="lazy"
                 onerror="this.style.display='none'"
             >
-          `
-        : "";
-
-    const loja = produto.shop_name
-        ? `
-            <div class="product-shop">
-                ${escapar(produto.shop_name)}
-            </div>
-          `
-        : "";
-
-    const rating =
-        produto.rating !== null &&
-        produto.rating !== undefined
-            ? Number(produto.rating)
-                .toFixed(1)
-                .replace(".", ",")
-            : "—";
-
-    const linkAbrir = produto.product_url
-        ? `
-            <a
-                href="${escapar(produto.product_url)}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="product-link"
-            >
-                Ver produto →
-            </a>
-          `
+        `
         : "";
 
     return `
-        <article class="product-card">
+        <article
+            class="product-card"
+            data-id="${escapar(produto.id)}"
+        >
 
             ${imagem}
 
@@ -434,26 +477,42 @@ function criarCard(produto) {
                 </div>
 
                 <h3 class="product-name">
-                    ${escapar(produto.name || "Produto sem nome")}
+                    ${escapar(
+                        produto.name ||
+                        "Produto sem nome"
+                    )}
                 </h3>
 
-                ${loja}
+                ${
+                    produto.shop_name
+                        ? `
+                            <div class="product-shop">
+                                ${escapar(produto.shop_name)}
+                            </div>
+                          `
+                        : ""
+                }
 
                 <div class="product-category">
-                    ${escapar(produto.category || "Sem categoria")}
+                    ${escapar(
+                        produto.category ||
+                        "Sem categoria"
+                    )}
                 </div>
 
                 <div class="product-stats">
 
                     <div class="product-stat">
                         <span>VENDIDOS</span>
+
                         <strong>
-                            ${numero(vendas)}
+                            ${numero(vendidos)}
                         </strong>
                     </div>
 
                     <div class="product-stat">
                         <span>AFILIADOS</span>
+
                         <strong>
                             ${numero(afiliados)}
                         </strong>
@@ -461,13 +520,17 @@ function criarCard(produto) {
 
                     <div class="product-stat">
                         <span>COMISSÃO</span>
+
                         <strong>
-                            ${percentual(produto.commission_rate)}
+                            ${percentual(
+                                produto.commission_rate
+                            )}
                         </strong>
                     </div>
 
                     <div class="product-stat">
                         <span>VENDAS / AFILIADO</span>
+
                         <strong>
                             ${vendasPorAfiliado
                                 .toFixed(1)
@@ -477,24 +540,11 @@ function criarCard(produto) {
 
                 </div>
 
-                <div class="product-extra">
-
-                    <span>
-                        ⭐ ${rating}
-                    </span>
-
-                    ${
-                        produto.commission_extra
-                            ? `<span>🔥 Comissão extra</span>`
-                            : ""
-                    }
-
-                </div>
-
                 <div class="product-footer">
 
                     <div>
                         <small>RADAR SCORE</small>
+
                         <strong>
                             ${score.toFixed(0)}
                         </strong>
@@ -502,14 +552,13 @@ function criarCard(produto) {
 
                     <div class="product-price">
                         <small>PREÇO</small>
+
                         <strong>
                             ${dinheiro(produto.price)}
                         </strong>
                     </div>
 
                 </div>
-
-                ${linkAbrir}
 
             </div>
 
@@ -518,111 +567,111 @@ function criarCard(produto) {
 }
 
 // ======================================================
-// CARREGAMENTO
+// MODAL
 // ======================================================
 
-function mostrarCarregando() {
+function abrirModal(produto) {
 
-    const container =
-        encontrarElemento(
-            "productsContainer",
-            "products-container",
-            "productList",
-            "product-list",
-            "results",
-            "opportunitiesList",
-            "opportunities-list"
-        );
+    if (
+        !productModal ||
+        !modalBody
+    ) {
+        return;
+    }
 
-    if (!container) return;
+    const score =
+        Number(produto.radar_score || 0);
 
-    container.innerHTML = `
-        <div class="loading-state">
+    modalBody.innerHTML = `
 
-            <div class="radar-loader"></div>
+        <h2>
+            ${escapar(produto.name || "Produto")}
+        </h2>
+
+        <p>
+            ${escapar(produto.category || "")}
+        </p>
+
+        <div style="margin-top:20px;">
 
             <p>
-                Analisando produtos...
+                <strong>Preço:</strong>
+                ${dinheiro(produto.price)}
+            </p>
+
+            <p>
+                <strong>Vendidos:</strong>
+                ${numero(produto.sold_count)}
+            </p>
+
+            <p>
+                <strong>Afiliados:</strong>
+                ${numero(produto.affiliates_count)}
+            </p>
+
+            <p>
+                <strong>Comissão:</strong>
+                ${percentual(produto.commission_rate)}
+            </p>
+
+            <p>
+                <strong>Radar Score:</strong>
+                ${score.toFixed(0)}/100
             </p>
 
         </div>
+
+        ${
+            produto.product_url
+                ? `
+                    <a
+                        href="${escapar(produto.product_url)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="
+                            display:block;
+                            margin-top:22px;
+                            padding:14px;
+                            text-align:center;
+                            background:#ff5a1f;
+                            color:white;
+                            border-radius:12px;
+                            text-decoration:none;
+                            font-weight:700;
+                        "
+                    >
+                        Abrir produto
+                    </a>
+                  `
+                : ""
+        }
     `;
+
+    productModal.hidden = false;
+}
+
+function fecharModal() {
+
+    if (productModal) {
+        productModal.hidden = true;
+    }
 }
 
 // ======================================================
-// ERRO
+// TROCAR ABA
 // ======================================================
 
-function mostrarErro(mensagem) {
+function selecionarFiltro(filtro) {
 
-    const container =
-        encontrarElemento(
-            "productsContainer",
-            "products-container",
-            "productList",
-            "product-list",
-            "results",
-            "opportunitiesList",
-            "opportunities-list"
-        );
-
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="empty-state">
-
-            <div style="font-size:40px;">
-                ⚠️
-            </div>
-
-            <h3>
-                Não consegui acessar o radar
-            </h3>
-
-            <p>
-                ${escapar(mensagem)}
-            </p>
-
-            <button
-                type="button"
-                onclick="carregarProdutos()"
-            >
-                Tentar novamente
-            </button>
-
-        </div>
-    `;
-}
-
-// ======================================================
-// SEGURANÇA DO HTML
-// ======================================================
-
-function escapar(valor) {
-
-    return String(valor ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-// ======================================================
-// ABAS
-// ======================================================
-
-function selecionarAba(aba) {
-
-    abaAtual = aba;
+    filtroAtual = filtro;
 
     document
-        .querySelectorAll("[data-tab]")
+        .querySelectorAll("[data-filter]")
         .forEach(botao => {
 
             botao.classList.toggle(
                 "active",
-                botao.dataset.tab === aba
+                botao.dataset.filter === filtro
             );
         });
 
@@ -633,53 +682,58 @@ function selecionarAba(aba) {
 // EVENTOS
 // ======================================================
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+if (searchInput) {
+    searchInput.addEventListener(
+        "input",
+        aplicarFiltros
+    );
+}
 
-        const pesquisa =
-            encontrarElemento(
-                "searchInput",
-                "search-input",
-                "search"
-            );
+if (categoryFilter) {
+    categoryFilter.addEventListener(
+        "change",
+        aplicarFiltros
+    );
+}
 
-        const categoria =
-            encontrarElemento(
-                "categoryFilter",
-                "category-filter",
-                "category"
-            );
+document
+    .querySelectorAll("[data-filter]")
+    .forEach(botao => {
 
-        if (pesquisa) {
-
-            pesquisa.addEventListener(
-                "input",
-                aplicarFiltros
-            );
-        }
-
-        if (categoria) {
-
-            categoria.addEventListener(
-                "change",
-                aplicarFiltros
-            );
-        }
-
-        document
-            .querySelectorAll("[data-tab]")
-            .forEach(botao => {
-
-                botao.addEventListener(
-                    "click",
-                    () =>
-                        selecionarAba(
-                            botao.dataset.tab
-                        )
+        botao.addEventListener(
+            "click",
+            () => {
+                selecionarFiltro(
+                    botao.dataset.filter
                 );
-            });
+            }
+        );
+    });
 
-        carregarProdutos();
+if (closeModal) {
+    closeModal.addEventListener(
+        "click",
+        fecharModal
+    );
+}
+
+if (productModal) {
+
+    const overlay =
+        productModal.querySelector(
+            ".modal-overlay"
+        );
+
+    if (overlay) {
+        overlay.addEventListener(
+            "click",
+            fecharModal
+        );
     }
-);
+}
+
+// ======================================================
+// INICIAR RADAR
+// ======================================================
+
+carregarProdutos();
