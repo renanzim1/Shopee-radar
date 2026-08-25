@@ -999,3 +999,208 @@ select {
   }
 
   }
+/* =========================================
+   SHOPEE RADAR — GRID COMPACTO MOBILE
+========================================= */
+
+/* 2 produtos lado a lado */
+.products-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  align-items: start;
+}
+
+/* Card compacto */
+.product-card {
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Imagem quadrada */
+.product-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  background: #fff;
+}
+
+/* Parte das informações */
+.product-card-content {
+  padding: 9px;
+  min-width: 0;
+}
+
+/* Badge + score */
+.product-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+
+.opportunity-badge {
+  min-width: 0;
+  padding: 4px 5px;
+  border-radius: 6px;
+
+  background: rgba(255, 90, 31, 0.12);
+  color: #ff966d;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-badge {
+  flex-shrink: 0;
+
+  padding: 4px 5px;
+  border-radius: 6px;
+
+  background: rgba(50, 213, 131, 0.12);
+  color: var(--green);
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+/* Nome do produto: máximo 2 linhas */
+.product-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+
+  min-height: 32px;
+
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+/* Loja */
+.product-shop {
+  margin-top: 4px;
+
+  color: #b5bac5;
+
+  font-size: 8px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Categoria */
+.product-category {
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 8px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Métricas */
+.product-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 5px;
+
+  margin-top: 8px;
+}
+
+.product-stat {
+  min-width: 0;
+
+  padding: 6px;
+
+  border-radius: 7px;
+
+  background: #0b0e14;
+}
+
+.product-stat span {
+  display: block;
+
+  color: #737b8b;
+
+  font-size: 6px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-stat strong {
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Rodapé */
+.product-footer {
+  margin-top: 8px;
+  padding-top: 7px;
+
+  gap: 4px;
+}
+
+.product-footer small {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 6px;
+  font-weight: 700;
+}
+
+.product-footer strong {
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.product-price {
+  text-align: right;
+}
+
+/* Tablet */
+@media (min-width: 600px) {
+  .products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+/* PC */
+@media (min-width: 900px) {
+  .products-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
