@@ -1,13 +1,14 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
-// Compatível com o index.html atual
+// Dados reais via Shopee + Supabase Edge Function
 // ======================================================
 
-const SUPABASE_URL = "https://vepoqxpnvlzzhmajcqzo.supabase.co";
-const SUPABASE_KEY = "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+const API_URL =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-api";
 
 let produtos = [];
 let filtroAtual = "all";
+let ultimaBusca = "";
 
 // ======================================================
 // ELEMENTOS
@@ -32,12 +33,12 @@ const closeModal = document.getElementById("closeModal");
 // ======================================================
 
 function escapar(valor) {
-    return String(valor ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+  return String(valor ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 // ======================================================
@@ -45,34 +46,165 @@ function escapar(valor) {
 // ======================================================
 
 function dinheiro(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
+  const numero = Number(valor || 0);
+
+  return numero.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
 }
 
-function numero(valor) {
-    const n = Number(valor || 0);
+function formatarNumero(valor) {
+  const n = Number(valor || 0);
 
-    if (n >= 1000000) {
-        return (n / 1000000)
-            .toFixed(1)
-            .replace(".", ",") + " mi";
-    }
+  if (n >= 1000000) {
+    return (n / 1000000)
+      .toFixed(1)
+      .replace(".", ",") + " mi";
+  }
 
-    if (n >= 1000) {
-        return (n / 1000)
-            .toFixed(n >= 10000 ? 0 : 1)
-            .replace(".", ",") + " mil";
-    }
+  if (n >= 1000) {
+    return (n / 1000)
+      .toFixed(n >= 10000 ? 0 : 1)
+      .replace(".", ",") + " mil";
+  }
 
-    return n.toLocaleString("pt-BR");
+  return n.toLocaleString("pt-BR");
 }
 
 function percentual(valor) {
-    return Number(valor || 0)
-        .toFixed(1)
-        .replace(".", ",") + "%";
+  return Number(valor || 0)
+    .toFixed(2)
+    .replace(".", ",") + "%";
+}
+
+// ======================================================
+// NORMALIZAR PRODUTO DA SHOPEE
+// ======================================================
+
+function normalizarProduto(p) {
+  return {
+    id: p.id || p.itemId || "",
+    name: p.nome || p.productName || "Produto Shopee",
+
+    image_url:
+      p.imagem ||
+      p.imageUrl ||
+      "",
+
+    price:
+      Number(
+        p.precoMin ??
+        p.priceMin ??
+        0
+      ),
+
+    price_max:
+      Number(
+        p.precoMax ??
+        p.priceMax ??
+        p.precoMin ??
+        p.priceMin ??
+        0
+      ),
+
+    sold_count:
+      Number(
+        p.vendidos ??
+        p.sales ??
+        0
+      ),
+
+    rating:
+      Number(
+        p.avaliacao ??
+        p.ratingStar ??
+        0
+      ),
+
+    commission_rate:
+      Number(
+        p.comissao ??
+        p.commissionRate ??
+        0
+      ),
+
+    seller_commission:
+      Number(
+        p.taxaComissaoVendedor ??
+        p.sellerCommissionRate ??
+        0
+      ),
+
+    shopee_commission:
+      Number(
+        p.taxaComissaoShopee ??
+        p.shopeeCommissionRate ??
+        0
+      ),
+
+    shop_name:
+      p.loja ||
+      p.shopName ||
+      "Shopee",
+
+    shop_id:
+      p.lojaId ||
+      p.shopId ||
+      "",
+
+    category:
+      p.tipoLoja ||
+      p.shopType ||
+      "Shopee",
+
+    product_url:
+      p.linkProduto ||
+      p.productLink ||
+      "",
+
+    affiliate_url:
+      p.linkAfiliado ||
+      p.offerLink ||
+      p.linkProduto ||
+      p.productLink ||
+      ""
+  };
+}
+
+// ======================================================
+// SCORE DO RADAR
+// ======================================================
+
+function calcularScore(produto) {
+  const vendas = Number(produto.sold_count || 0);
+  const avaliacao = Number(produto.rating || 0);
+  const comissao = Number(produto.commission_rate || 0);
+
+  let score = 0;
+
+  // Vendas — até 50 pontos
+  if (vendas >= 10000) score += 50;
+  else if (vendas >= 5000) score += 45;
+  else if (vendas >= 1000) score += 38;
+  else if (vendas >= 500) score += 30;
+  else if (vendas >= 100) score += 20;
+  else score += 10;
+
+  // Avaliação — até 25 pontos
+  if (avaliacao >= 4.8) score += 25;
+  else if (avaliacao >= 4.6) score += 22;
+  else if (avaliacao >= 4.4) score += 18;
+  else if (avaliacao >= 4) score += 12;
+
+  // Comissão — até 25 pontos
+  if (comissao >= 10) score += 25;
+  else if (comissao >= 7) score += 22;
+  else if (comissao >= 5) score += 18;
+  else if (comissao >= 3) score += 12;
+  else if (comissao > 0) score += 7;
+
+  return Math.min(100, score);
 }
 
 // ======================================================
@@ -80,110 +212,138 @@ function percentual(valor) {
 // ======================================================
 
 function mostrarCarregando() {
-    productsGrid.innerHTML = `
-        <div class="loading">
-            <div class="loader"></div>
-            <p>Analisando produtos...</p>
-        </div>
-    `;
-}
+  if (emptyState) {
+    emptyState.hidden = true;
+  }
 
-// ======================================================
-// ERRO
-// ======================================================
+  productsGrid.innerHTML = `
+    <div class="loading">
+      <div class="loader"></div>
+      <p>Buscando produtos na Shopee...</p>
+    </div>
+  `;
+}
 
 function mostrarErro(mensagem) {
-    productsGrid.innerHTML = `
-        <div class="empty-state" style="display:block;">
-            <div style="font-size:42px;">⚠️</div>
+  productsGrid.innerHTML = `
+    <div class="empty-state" style="display:block;">
+      <div style="font-size:42px;">⚠️</div>
 
-            <h3>Erro ao carregar o radar</h3>
+      <h3>Não foi possível carregar o radar</h3>
 
-            <p>${escapar(mensagem)}</p>
+      <p>${escapar(mensagem)}</p>
 
-            <button
-                type="button"
-                onclick="carregarProdutos()"
-                style="
-                    margin-top:16px;
-                    padding:12px 18px;
-                    border:0;
-                    border-radius:12px;
-                    background:#ff5a1f;
-                    color:white;
-                    font-weight:700;
-                "
-            >
-                Tentar novamente
-            </button>
-        </div>
-    `;
+      <button
+        onclick="carregarProdutos(ultimaBusca)"
+        style="
+          margin-top:16px;
+          padding:12px 18px;
+          border:0;
+          border-radius:12px;
+          background:#ff5a1f;
+          color:#fff;
+          font-weight:700;
+        "
+      >
+        Tentar novamente
+      </button>
+    </div>
+  `;
 }
 
 // ======================================================
-// SUPABASE
+// BUSCAR NA EDGE FUNCTION
 // ======================================================
 
-async function carregarProdutos() {
+async function carregarProdutos(keyword = "") {
+  ultimaBusca = keyword.trim();
 
-    mostrarCarregando();
+  mostrarCarregando();
 
-    try {
+  try {
+    let url = API_URL;
 
-        const url =
-            `${SUPABASE_URL}/rest/v1/products?select=*&order=radar_score.desc`;
-
-        const resposta = await fetch(url, {
-            method: "GET",
-            headers: {
-                "apikey": SUPABASE_KEY,
-                "Authorization": `Bearer ${SUPABASE_KEY}`,
-                "Accept": "application/json"
-            }
-        });
-
-        if (!resposta.ok) {
-
-            const texto = await resposta.text();
-
-            console.error(
-                "ERRO SUPABASE:",
-                resposta.status,
-                texto
-            );
-
-            throw new Error(
-                `Supabase respondeu com erro ${resposta.status}`
-            );
-        }
-
-        const dados = await resposta.json();
-
-        console.log("PRODUTOS RECEBIDOS:", dados);
-
-        if (!Array.isArray(dados)) {
-            throw new Error(
-                "Os dados recebidos não estão no formato esperado."
-            );
-        }
-
-        produtos = dados;
-
-        atualizarContadores();
-        carregarCategorias();
-        aplicarFiltros();
-
-    } catch (erro) {
-
-        console.error(
-            "ERRO SHOPEE RADAR:",
-            erro
-        );
-
-        mostrarErro(
-            erro.message || "Erro desconhecido."
-        );
+    if (ultimaBusca) {
+      url += "?keyword=" + encodeURIComponent(ultimaBusca);
     }
+
+    const resposta = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!resposta.ok) {
+      const texto = await resposta.text();
+
+      console.error(
+        "ERRO API:",
+        resposta.status,
+        texto
+      );
+
+      throw new Error(
+        `API respondeu com erro ${resposta.status}`
+      );
+    }
+
+    const dados = await resposta.json();
+
+    console.log("RESPOSTA SHOPEE:", dados);
+
+    if (dados.ok === false) {
+      throw new Error(
+        dados.erro ||
+        dados.error ||
+        "A Shopee retornou um erro."
+      );
+    }
+
+    let lista = [];
+
+    // Formato novo da nossa função
+    if (Array.isArray(dados.produtos)) {
+      lista = dados.produtos;
+    }
+
+    // Compatibilidade com resposta anterior
+    else if (
+      dados.shopee &&
+      dados.shopee.data &&
+      dados.shopee.data.productOfferV2 &&
+      Array.isArray(dados.shopee.data.productOfferV2.nodes)
+    ) {
+      lista = dados.shopee.data.productOfferV2.nodes;
+    }
+
+    // Outro formato possível
+    else if (
+      dados.data &&
+      dados.data.productOfferV2 &&
+      Array.isArray(dados.data.productOfferV2.nodes)
+    ) {
+      lista = dados.data.productOfferV2.nodes;
+    }
+
+    produtos = lista.map(normalizarProduto);
+
+    produtos = produtos.map(produto => ({
+      ...produto,
+      radar_score: calcularScore(produto)
+    }));
+
+    atualizarContadores();
+    aplicarFiltros();
+
+  } catch (erro) {
+    console.error("ERRO SHOPEE RADAR:", erro);
+
+    mostrarErro(
+      erro.message ||
+      "Erro desconhecido ao consultar a Shopee."
+    );
+  }
 }
 
 // ======================================================
@@ -191,54 +351,22 @@ async function carregarProdutos() {
 // ======================================================
 
 function atualizarContadores() {
+  const oportunidades = produtos.filter(
+    p => Number(p.radar_score || 0) >= 70
+  );
 
-    const oportunidades = produtos.filter(
-        produto =>
-            Number(produto.radar_score || 0) >= 70
-    );
+  if (totalProdutos) {
+    totalProdutos.textContent = produtos.length;
+  }
 
-    if (totalProdutos) {
-        totalProdutos.textContent =
-            produtos.length;
-    }
+  if (totalOportunidades) {
+    totalOportunidades.textContent =
+      oportunidades.length;
+  }
 
-    if (totalOportunidades) {
-        totalOportunidades.textContent =
-            oportunidades.length;
-    }
-
-    // Depois conectamos à tabela de vídeos.
-    if (totalVideos) {
-        totalVideos.textContent = "0";
-    }
-}
-
-// ======================================================
-// CATEGORIAS
-// ======================================================
-
-function carregarCategorias() {
-
-    if (!categoryFilter) return;
-
-    const categorias = [
-        ...new Set(
-            produtos
-                .map(produto => produto.category)
-                .filter(Boolean)
-        )
-    ].sort();
-
-    categoryFilter.innerHTML = `
-        <option value="all">
-            Todas categorias
-        </option>
-        ${categorias.map(categoria => `
-            <option value="${escapar(categoria)}">
-                ${escapar(categoria)}
-            </option>
-        `).join("")}
-    `;
+  if (totalVideos) {
+    totalVideos.textContent = "0";
+  }
 }
 
 // ======================================================
@@ -246,166 +374,58 @@ function carregarCategorias() {
 // ======================================================
 
 function aplicarFiltros() {
+  const categoria = categoryFilter
+    ? categoryFilter.value
+    : "all";
 
-    const termo = searchInput
-        ? searchInput.value.trim().toLowerCase()
-        : "";
+  let resultado = [...produtos];
 
-    const categoria = categoryFilter
-        ? categoryFilter.value
-        : "all";
+  if (categoria !== "all") {
+    resultado = resultado.filter(
+      p =>
+        String(p.category)
+          .toLowerCase()
+          .includes(
+            categoria.toLowerCase()
+          )
+    );
+  }
 
-    let resultado = produtos.filter(produto => {
+  if (filtroAtual === "all") {
+    resultado.sort(
+      (a, b) =>
+        Number(b.radar_score || 0) -
+        Number(a.radar_score || 0)
+    );
+  }
 
-        const nome =
-            String(produto.name || "")
-                .toLowerCase();
+  if (filtroAtual === "hot") {
+    resultado.sort(
+      (a, b) =>
+        Number(b.sold_count || 0) -
+        Number(a.sold_count || 0)
+    );
+  }
 
-        const loja =
-            String(produto.shop_name || "")
-                .toLowerCase();
+  if (filtroAtual === "videos") {
+    mostrarAreaEmConstrucao(
+      "🎬",
+      "Radar de vídeos",
+      "Vamos conectar essa área depois."
+    );
+    return;
+  }
 
-        const categoriaProduto =
-            String(produto.category || "");
+  if (filtroAtual === "favorites") {
+    mostrarAreaEmConstrucao(
+      "♡",
+      "Favoritos",
+      "Aqui ficarão os produtos que você salvar."
+    );
+    return;
+  }
 
-        const batePesquisa =
-            !termo ||
-            nome.includes(termo) ||
-            loja.includes(termo) ||
-            categoriaProduto
-                .toLowerCase()
-                .includes(termo);
-
-        const bateCategoria =
-            categoria === "all" ||
-            categoriaProduto === categoria;
-
-        return batePesquisa && bateCategoria;
-    });
-
-    // OPORTUNIDADES
-    if (filtroAtual === "all") {
-
-        resultado.sort(
-            (a, b) =>
-                Number(b.radar_score || 0) -
-                Number(a.radar_score || 0)
-        );
-    }
-
-    // RADAR 7 DIAS
-    if (filtroAtual === "hot") {
-
-        resultado.sort(
-            (a, b) =>
-                Number(b.sold_count || 0) -
-                Number(a.sold_count || 0)
-        );
-    }
-
-    // VÍDEOS
-    if (filtroAtual === "videos") {
-
-        mostrarAreaEmConstrucao(
-            "🎬",
-            "Radar de vídeos",
-            "A tabela de vídeos será conectada na próxima etapa."
-        );
-
-        return;
-    }
-
-    // FAVORITOS
-    if (filtroAtual === "favorites") {
-
-        mostrarAreaEmConstrucao(
-            "♡",
-            "Favoritos",
-            "Aqui ficarão os produtos que você salvar."
-        );
-
-        return;
-    }
-
-    renderizarProdutos(resultado);
-}
-
-// ======================================================
-// ÁREA TEMPORÁRIA
-// ======================================================
-
-function mostrarAreaEmConstrucao(
-    icone,
-    titulo,
-    texto
-) {
-
-    if (emptyState) {
-        emptyState.hidden = true;
-    }
-
-    productsGrid.innerHTML = `
-        <div
-            class="empty-state"
-            style="display:block;"
-        >
-            <div style="font-size:42px;">
-                ${icone}
-            </div>
-
-            <h3>${titulo}</h3>
-
-            <p>${texto}</p>
-        </div>
-    `;
-}
-
-// ======================================================
-// RENDERIZAÇÃO
-// ======================================================
-
-function renderizarProdutos(lista) {
-
-    if (!lista.length) {
-
-        productsGrid.innerHTML = "";
-
-        if (emptyState) {
-            emptyState.hidden = false;
-        }
-
-        return;
-    }
-
-    if (emptyState) {
-        emptyState.hidden = true;
-    }
-
-    productsGrid.innerHTML =
-        lista.map(criarCard).join("");
-
-    document
-        .querySelectorAll(".product-card")
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    const id =
-                        card.dataset.id;
-
-                    const produto =
-                        produtos.find(
-                            p => String(p.id) === id
-                        );
-
-                    if (produto) {
-                        abrirModal(produto);
-                    }
-                }
-            );
-        });
+  renderizarProdutos(resultado);
 }
 
 // ======================================================
@@ -413,157 +433,147 @@ function renderizarProdutos(lista) {
 // ======================================================
 
 function criarCard(produto) {
+  const score =
+    Number(produto.radar_score || 0);
 
-    const score =
-        Number(produto.radar_score || 0);
+  let status = "Em observação";
+  let emoji = "👀";
 
-    const vendidos =
-        Number(produto.sold_count || 0);
+  if (score >= 85) {
+    status = "Oportunidade alta";
+    emoji = "🔥";
+  } else if (score >= 70) {
+    status = "Promissor";
+    emoji = "💎";
+  } else if (score >= 50) {
+    status = "Potencial";
+    emoji = "📈";
+  }
 
-    const afiliados =
-        Number(produto.affiliates_count || 0);
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(produto.id)}"
+    >
 
-    const vendasPorAfiliado =
-        afiliados > 0
-            ? vendidos / afiliados
-            : 0;
+      ${
+        produto.image_url
+          ? `
+          <img
+            class="product-image"
+            src="${escapar(produto.image_url)}"
+            alt="${escapar(produto.name)}"
+            loading="lazy"
+          >
+          `
+          : ""
+      }
 
-    let status = "Em observação";
-    let emoji = "👀";
+      <div class="product-card-content">
 
-    if (score >= 85) {
-        status = "Oportunidade alta";
-        emoji = "🔥";
-    } else if (score >= 70) {
-        status = "Promissor";
-        emoji = "💎";
-    } else if (score >= 50) {
-        status = "Potencial";
-        emoji = "📈";
+        <div class="product-card-top">
+
+          <span class="opportunity-badge">
+            ${emoji} ${status}
+          </span>
+
+          <span class="score-badge">
+            ${score}/100
+          </span>
+
+        </div>
+
+        <h3 class="product-name">
+          ${escapar(produto.name)}
+        </h3>
+
+        <div class="product-shop">
+          🏪 ${escapar(produto.shop_name)}
+        </div>
+
+        <div class="product-stats">
+
+          <div class="product-stat">
+            <span>VENDIDOS</span>
+            <strong>
+              ${formatarNumero(produto.sold_count)}
+            </strong>
+          </div>
+
+          <div class="product-stat">
+            <span>AVALIAÇÃO</span>
+            <strong>
+              ⭐ ${Number(produto.rating).toFixed(1)}
+            </strong>
+          </div>
+
+          <div class="product-stat">
+            <span>COMISSÃO</span>
+            <strong>
+              ${percentual(produto.commission_rate)}
+            </strong>
+          </div>
+
+        </div>
+
+        <div class="product-footer">
+
+          <div>
+            <small>RADAR SCORE</small>
+            <strong>${score}</strong>
+          </div>
+
+          <div class="product-price">
+            <small>PREÇO</small>
+            <strong>
+              ${dinheiro(produto.price)}
+            </strong>
+          </div>
+
+        </div>
+
+      </div>
+    </article>
+  `;
+}
+
+// ======================================================
+// RENDERIZAR
+// ======================================================
+
+function renderizarProdutos(lista) {
+  if (!lista.length) {
+    productsGrid.innerHTML = "";
+
+    if (emptyState) {
+      emptyState.hidden = false;
     }
 
-    const imagem = produto.image_url
-        ? `
-            <img
-                class="product-image"
-                src="${escapar(produto.image_url)}"
-                alt="${escapar(produto.name || "Produto")}"
-                loading="lazy"
-                onerror="this.style.display='none'"
-            >
-        `
-        : "";
+    return;
+  }
 
-    return `
-        <article
-            class="product-card"
-            data-id="${escapar(produto.id)}"
-        >
+  if (emptyState) {
+    emptyState.hidden = true;
+  }
 
-            ${imagem}
+  productsGrid.innerHTML =
+    lista.map(criarCard).join("");
 
-            <div class="product-card-content">
+  document
+    .querySelectorAll(".product-card")
+    .forEach(card => {
+      card.addEventListener("click", () => {
+        const produto = produtos.find(
+          p =>
+            String(p.id) ===
+            String(card.dataset.id)
+        );
 
-                <div class="product-card-top">
-
-                    <span class="opportunity-badge">
-                        ${emoji} ${status}
-                    </span>
-
-                    <span class="score-badge">
-                        ${score.toFixed(0)}/100
-                    </span>
-
-                </div>
-
-                <h3 class="product-name">
-                    ${escapar(
-                        produto.name ||
-                        "Produto sem nome"
-                    )}
-                </h3>
-
-                ${
-                    produto.shop_name
-                        ? `
-                            <div class="product-shop">
-                                ${escapar(produto.shop_name)}
-                            </div>
-                          `
-                        : ""
-                }
-
-                <div class="product-category">
-                    ${escapar(
-                        produto.category ||
-                        "Sem categoria"
-                    )}
-                </div>
-
-                <div class="product-stats">
-
-                    <div class="product-stat">
-                        <span>VENDIDOS</span>
-
-                        <strong>
-                            ${numero(vendidos)}
-                        </strong>
-                    </div>
-
-                    <div class="product-stat">
-                        <span>AFILIADOS</span>
-
-                        <strong>
-                            ${numero(afiliados)}
-                        </strong>
-                    </div>
-
-                    <div class="product-stat">
-                        <span>COMISSÃO</span>
-
-                        <strong>
-                            ${percentual(
-                                produto.commission_rate
-                            )}
-                        </strong>
-                    </div>
-
-                    <div class="product-stat">
-                        <span>VENDAS / AFILIADO</span>
-
-                        <strong>
-                            ${vendasPorAfiliado
-                                .toFixed(1)
-                                .replace(".", ",")}
-                        </strong>
-                    </div>
-
-                </div>
-
-                <div class="product-footer">
-
-                    <div>
-                        <small>RADAR SCORE</small>
-
-                        <strong>
-                            ${score.toFixed(0)}
-                        </strong>
-                    </div>
-
-                    <div class="product-price">
-                        <small>PREÇO</small>
-
-                        <strong>
-                            ${dinheiro(produto.price)}
-                        </strong>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </article>
-    `;
+        if (produto) {
+          abrirModal(produto);
+        }
+      });
+    });
 }
 
 // ======================================================
@@ -571,169 +581,206 @@ function criarCard(produto) {
 // ======================================================
 
 function abrirModal(produto) {
+  if (!productModal || !modalBody) return;
 
-    if (
-        !productModal ||
-        !modalBody
-    ) {
-        return;
+  modalBody.innerHTML = `
+
+    ${
+      produto.image_url
+        ? `
+        <img
+          src="${escapar(produto.image_url)}"
+          style="
+            width:100%;
+            max-height:300px;
+            object-fit:contain;
+            border-radius:14px;
+            margin-bottom:16px;
+          "
+        >
+        `
+        : ""
     }
 
-    const score =
-        Number(produto.radar_score || 0);
+    <h2>${escapar(produto.name)}</h2>
 
-    modalBody.innerHTML = `
+    <p style="margin-top:8px;">
+      🏪 ${escapar(produto.shop_name)}
+    </p>
 
-        <h2>
-            ${escapar(produto.name || "Produto")}
-        </h2>
+    <div style="margin-top:20px;">
 
-        <p>
-            ${escapar(produto.category || "")}
-        </p>
+      <p>
+        <strong>Preço:</strong>
+        ${dinheiro(produto.price)}
+      </p>
 
-        <div style="margin-top:20px;">
+      <p>
+        <strong>Vendidos:</strong>
+        ${formatarNumero(produto.sold_count)}
+      </p>
 
-            <p>
-                <strong>Preço:</strong>
-                ${dinheiro(produto.price)}
-            </p>
+      <p>
+        <strong>Avaliação:</strong>
+        ⭐ ${Number(produto.rating).toFixed(1)}
+      </p>
 
-            <p>
-                <strong>Vendidos:</strong>
-                ${numero(produto.sold_count)}
-            </p>
+      <p>
+        <strong>Comissão:</strong>
+        ${percentual(produto.commission_rate)}
+      </p>
 
-            <p>
-                <strong>Afiliados:</strong>
-                ${numero(produto.affiliates_count)}
-            </p>
+      <p>
+        <strong>Radar Score:</strong>
+        ${produto.radar_score}/100
+      </p>
 
-            <p>
-                <strong>Comissão:</strong>
-                ${percentual(produto.commission_rate)}
-            </p>
+    </div>
 
-            <p>
-                <strong>Radar Score:</strong>
-                ${score.toFixed(0)}/100
-            </p>
+    ${
+      produto.affiliate_url
+        ? `
+        <a
+          href="${escapar(produto.affiliate_url)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="
+            display:block;
+            margin-top:22px;
+            padding:15px;
+            text-align:center;
+            background:#ff5a1f;
+            color:white;
+            border-radius:12px;
+            text-decoration:none;
+            font-weight:700;
+          "
+        >
+          🛒 Abrir link de afiliado
+        </a>
+        `
+        : ""
+    }
+  `;
 
-        </div>
-
-        ${
-            produto.product_url
-                ? `
-                    <a
-                        href="${escapar(produto.product_url)}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style="
-                            display:block;
-                            margin-top:22px;
-                            padding:14px;
-                            text-align:center;
-                            background:#ff5a1f;
-                            color:white;
-                            border-radius:12px;
-                            text-decoration:none;
-                            font-weight:700;
-                        "
-                    >
-                        Abrir produto
-                    </a>
-                  `
-                : ""
-        }
-    `;
-
-    productModal.hidden = false;
+  productModal.hidden = false;
 }
 
 function fecharModal() {
-
-    if (productModal) {
-        productModal.hidden = true;
-    }
+  if (productModal) {
+    productModal.hidden = true;
+  }
 }
 
 // ======================================================
-// TROCAR ABA
+// ÁREAS FUTURAS
+// ======================================================
+
+function mostrarAreaEmConstrucao(
+  icone,
+  titulo,
+  texto
+) {
+  if (emptyState) {
+    emptyState.hidden = true;
+  }
+
+  productsGrid.innerHTML = `
+    <div
+      class="empty-state"
+      style="display:block;"
+    >
+      <div style="font-size:42px;">
+        ${icone}
+      </div>
+
+      <h3>${titulo}</h3>
+
+      <p>${texto}</p>
+    </div>
+  `;
+}
+
+// ======================================================
+// ABAS
 // ======================================================
 
 function selecionarFiltro(filtro) {
+  filtroAtual = filtro;
 
-    filtroAtual = filtro;
+  document
+    .querySelectorAll("[data-filter]")
+    .forEach(botao => {
+      botao.classList.toggle(
+        "active",
+        botao.dataset.filter === filtro
+      );
+    });
 
-    document
-        .querySelectorAll("[data-filter]")
-        .forEach(botao => {
-
-            botao.classList.toggle(
-                "active",
-                botao.dataset.filter === filtro
-            );
-        });
-
-    aplicarFiltros();
+  aplicarFiltros();
 }
 
 // ======================================================
 // EVENTOS
 // ======================================================
 
+// Pesquisa real na Shopee ao pressionar ENTER
 if (searchInput) {
-    searchInput.addEventListener(
-        "input",
-        aplicarFiltros
-    );
+  searchInput.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Enter") {
+        carregarProdutos(
+          searchInput.value
+        );
+      }
+    }
+  );
 }
 
 if (categoryFilter) {
-    categoryFilter.addEventListener(
-        "change",
-        aplicarFiltros
-    );
+  categoryFilter.addEventListener(
+    "change",
+    aplicarFiltros
+  );
 }
 
 document
-    .querySelectorAll("[data-filter]")
-    .forEach(botao => {
-
-        botao.addEventListener(
-            "click",
-            () => {
-                selecionarFiltro(
-                    botao.dataset.filter
-                );
-            }
+  .querySelectorAll("[data-filter]")
+  .forEach(botao => {
+    botao.addEventListener(
+      "click",
+      () => {
+        selecionarFiltro(
+          botao.dataset.filter
         );
-    });
+      }
+    );
+  });
 
 if (closeModal) {
-    closeModal.addEventListener(
-        "click",
-        fecharModal
-    );
+  closeModal.addEventListener(
+    "click",
+    fecharModal
+  );
 }
 
 if (productModal) {
+  const overlay =
+    productModal.querySelector(
+      ".modal-overlay"
+    );
 
-    const overlay =
-        productModal.querySelector(
-            ".modal-overlay"
-        );
-
-    if (overlay) {
-        overlay.addEventListener(
-            "click",
-            fecharModal
-        );
-    }
+  if (overlay) {
+    overlay.addEventListener(
+      "click",
+      fecharModal
+    );
+  }
 }
 
 // ======================================================
-// INICIAR RADAR
+// INICIAR
 // ======================================================
 
 carregarProdutos();
