@@ -1,6 +1,7 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
 // Busca real Shopee + nichos + ranking + rolagem infinita
+// + favoritos persistentes
 // ======================================================
 
 const API_URL =
@@ -19,6 +20,87 @@ let carregando = false;
 let buscaDigitada = "";
 let nichoAtual = "all";
 let ordenacaoAtual = "radar";
+
+let modoFavoritos = false;
+
+// ======================================================
+// FAVORITOS
+// ======================================================
+
+let favoritos = [];
+
+try {
+  favoritos =
+    JSON.parse(
+      localStorage.getItem("shopeeRadarFavoritos")
+    ) || [];
+
+  if (!Array.isArray(favoritos)) {
+    favoritos = [];
+  }
+} catch (erro) {
+  console.error("Erro ao carregar favoritos:", erro);
+  favoritos = [];
+}
+
+function salvarFavoritos() {
+  try {
+    localStorage.setItem(
+      "shopeeRadarFavoritos",
+      JSON.stringify(favoritos)
+    );
+  } catch (erro) {
+    console.error("Erro ao salvar favoritos:", erro);
+  }
+}
+
+function estaFavoritado(id) {
+  return favoritos.some(
+    produto =>
+      String(produto.id) === String(id)
+  );
+}
+
+function encontrarProduto(id) {
+  return (
+    produtos.find(
+      produto =>
+        String(produto.id) === String(id)
+    ) ||
+    favoritos.find(
+      produto =>
+        String(produto.id) === String(id)
+    )
+  );
+}
+
+function alternarFavorito(id) {
+  const produto =
+    encontrarProduto(id);
+
+  if (!produto) return;
+
+  if (estaFavoritado(id)) {
+    favoritos =
+      favoritos.filter(
+        item =>
+          String(item.id) !== String(id)
+      );
+  } else {
+    favoritos.unshift({
+      ...produto
+    });
+  }
+
+  salvarFavoritos();
+
+  if (modoFavoritos) {
+    atualizarTituloFavoritos();
+    renderizarProdutos(favoritos);
+  } else {
+    aplicarOrdenacao();
+  }
+}
 
 // ======================================================
 // ELEMENTOS
@@ -129,7 +211,6 @@ function percentual(valor) {
 // ======================================================
 
 function normalizarProduto(p) {
-
   const produto = {
     id:
       p.id ||
@@ -252,7 +333,6 @@ function normalizarProduto(p) {
 // ======================================================
 
 function calcularScore(produto) {
-
   const vendas =
     Number(produto.sold_count || 0);
 
@@ -271,7 +351,6 @@ function calcularScore(produto) {
 
   let score = 0;
 
-  // VENDAS — 50
   if (vendas >= 10000) score += 50;
   else if (vendas >= 5000) score += 45;
   else if (vendas >= 1000) score += 38;
@@ -279,13 +358,11 @@ function calcularScore(produto) {
   else if (vendas >= 100) score += 20;
   else score += 10;
 
-  // AVALIAÇÃO — 25
   if (avaliacao >= 4.8) score += 25;
   else if (avaliacao >= 4.6) score += 22;
   else if (avaliacao >= 4.4) score += 18;
   else if (avaliacao >= 4) score += 12;
 
-  // COMISSÃO — 25
   if (comissao >= 10) score += 25;
   else if (comissao >= 7) score += 22;
   else if (comissao >= 5) score += 18;
@@ -300,7 +377,6 @@ function calcularScore(produto) {
 // ======================================================
 
 function obterKeywordAtual() {
-
   const busca =
     buscaDigitada.trim();
 
@@ -309,8 +385,6 @@ function obterKeywordAtual() {
       ? ""
       : nichoAtual.trim();
 
-  // Se usuário digitou algo + escolheu nicho:
-  // "air fryer casa cozinha"
   if (busca && nicho) {
     return `${busca} ${nicho}`;
   }
@@ -327,12 +401,23 @@ function obterKeywordAtual() {
 }
 
 // ======================================================
-// TÍTULO
+// TÍTULOS
 // ======================================================
 
-function atualizarTitulo() {
-
+function atualizarTituloFavoritos() {
   if (!resultsTitle) return;
+
+  resultsTitle.textContent =
+    `Meus favoritos (${favoritos.length})`;
+}
+
+function atualizarTitulo() {
+  if (!resultsTitle) return;
+
+  if (modoFavoritos) {
+    atualizarTituloFavoritos();
+    return;
+  }
 
   if (buscaDigitada) {
     resultsTitle.textContent =
@@ -367,7 +452,6 @@ function atualizarTitulo() {
 // ======================================================
 
 function montarURL(pagina) {
-
   const url =
     new URL(API_URL);
 
@@ -399,7 +483,6 @@ function montarURL(pagina) {
 // ======================================================
 
 function mostrarCarregandoInicial() {
-
   if (!productsGrid) return;
 
   if (emptyState) {
@@ -421,14 +504,12 @@ function mostrarCarregandoInicial() {
 }
 
 function mostrarCarregandoMais() {
-
   if (infiniteLoader) {
     infiniteLoader.hidden = false;
   }
 }
 
 function esconderCarregandoMais() {
-
   if (infiniteLoader) {
     infiniteLoader.hidden = true;
   }
@@ -439,7 +520,6 @@ function esconderCarregandoMais() {
 // ======================================================
 
 function mostrarErro(mensagem) {
-
   if (!productsGrid) return;
 
   productsGrid.innerHTML = `
@@ -450,7 +530,6 @@ function mostrarErro(mensagem) {
         grid-column:1/-1;
       "
     >
-
       <div>⚠️</div>
 
       <h3>
@@ -475,7 +554,6 @@ function mostrarErro(mensagem) {
       >
         Tentar novamente
       </button>
-
     </div>
   `;
 
@@ -495,8 +573,9 @@ async function carregarProdutos(
   pagina = 1,
   adicionar = false
 ) {
-
   if (carregando) return;
+
+  if (modoFavoritos) return;
 
   if (
     adicionar &&
@@ -514,7 +593,6 @@ async function carregarProdutos(
   }
 
   try {
-
     const url =
       montarURL(pagina);
 
@@ -560,12 +638,7 @@ async function carregarProdutos(
         normalizarProduto
       );
 
-    // =========================================
-    // NÃO DUPLICAR PRODUTOS
-    // =========================================
-
     if (adicionar) {
-
       const existentes =
         new Set(
           produtos.map(
@@ -582,15 +655,9 @@ async function carregarProdutos(
         );
 
       produtos.push(...novos);
-
     } else {
-
       produtos = novos;
     }
-
-    // =========================================
-    // PAGINAÇÃO
-    // =========================================
 
     paginaAtual =
       Number(
@@ -611,7 +678,6 @@ async function carregarProdutos(
     aplicarOrdenacao();
 
   } catch (erro) {
-
     console.error(
       "ERRO SHOPEE RADAR:",
       erro
@@ -626,7 +692,6 @@ async function carregarProdutos(
     }
 
   } finally {
-
     carregando = false;
     esconderCarregandoMais();
   }
@@ -637,6 +702,7 @@ async function carregarProdutos(
 // ======================================================
 
 function reiniciarRadar() {
+  modoFavoritos = false;
 
   produtos = [];
 
@@ -656,8 +722,8 @@ function reiniciarRadar() {
 // ======================================================
 
 function carregarProximaPagina() {
-
   if (
+    modoFavoritos ||
     carregando ||
     !temProximaPagina
   ) {
@@ -675,7 +741,6 @@ function carregarProximaPagina() {
 // ======================================================
 
 function atualizarContadores() {
-
   const oportunidades =
     produtos.filter(
       p =>
@@ -705,65 +770,52 @@ function atualizarContadores() {
 // ======================================================
 
 function aplicarOrdenacao() {
+  if (modoFavoritos) {
+    renderizarProdutos(
+      favoritos
+    );
+
+    return;
+  }
 
   let resultado =
     [...produtos];
 
   switch (ordenacaoAtual) {
-
-    // RELEVÂNCIA
     case "relevance":
-
-      // Mantém a ordem que a Shopee enviou.
       break;
 
-
-    // MAIS VENDIDOS
     case "sales":
-
       resultado.sort(
         (a, b) =>
           b.sold_count -
           a.sold_count
       );
-
       break;
 
-
-    // MAIOR COMISSÃO
     case "commission":
-
       resultado.sort(
         (a, b) =>
           b.commission_rate -
           a.commission_rate
       );
-
       break;
 
-
-    // MELHOR AVALIAÇÃO
     case "rating":
-
       resultado.sort(
         (a, b) =>
           b.rating -
           a.rating
       );
-
       break;
 
-
-    // RADAR SCORE
     case "radar":
     default:
-
       resultado.sort(
         (a, b) =>
           b.radar_score -
           a.radar_score
       );
-
       break;
   }
 
@@ -777,11 +829,13 @@ function aplicarOrdenacao() {
 // ======================================================
 
 function criarCard(produto) {
-
   const score =
     Number(
       produto.radar_score || 0
     );
+
+  const favoritado =
+    estaFavoritado(produto.id);
 
   let status =
     "Em observação";
@@ -790,7 +844,6 @@ function criarCard(produto) {
     "👀";
 
   if (score >= 85) {
-
     status =
       "Oportunidade alta";
 
@@ -798,7 +851,6 @@ function criarCard(produto) {
       "🔥";
 
   } else if (score >= 70) {
-
     status =
       "Promissor";
 
@@ -806,7 +858,6 @@ function criarCard(produto) {
       "💎";
 
   } else if (score >= 50) {
-
     status =
       "Potencial";
 
@@ -818,7 +869,44 @@ function criarCard(produto) {
     <article
       class="product-card"
       data-id="${escapar(produto.id)}"
+      style="position:relative;"
     >
+
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(produto.id)}"
+        aria-label="${
+          favoritado
+            ? "Remover dos favoritos"
+            : "Adicionar aos favoritos"
+        }"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#ffffff"
+          };
+          font-size:24px;
+          line-height:1;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          cursor:pointer;
+          backdrop-filter:blur(8px);
+          -webkit-backdrop-filter:blur(8px);
+        "
+      >
+        ${favoritado ? "♥" : "♡"}
+      </button>
 
       ${
         produto.image_url
@@ -847,16 +935,13 @@ function criarCard(produto) {
 
         </div>
 
-
         <h3 class="product-name">
           ${escapar(produto.name)}
         </h3>
 
-
         <div class="product-shop">
           🏪 ${escapar(produto.shop_name)}
         </div>
-
 
         <div class="product-stats">
 
@@ -870,7 +955,6 @@ function criarCard(produto) {
             </strong>
           </div>
 
-
           <div class="product-stat">
             <span>AVALIAÇÃO</span>
 
@@ -880,7 +964,6 @@ function criarCard(produto) {
               ).toFixed(1)}
             </strong>
           </div>
-
 
           <div class="product-stat">
             <span>COMISSÃO</span>
@@ -894,7 +977,6 @@ function criarCard(produto) {
 
         </div>
 
-
         <div class="product-footer">
 
           <div>
@@ -906,7 +988,6 @@ function criarCard(produto) {
               ${score}
             </strong>
           </div>
-
 
           <div class="product-price">
 
@@ -923,7 +1004,6 @@ function criarCard(produto) {
           </div>
 
         </div>
-
 
         ${
           produto.commission_value > 0
@@ -957,25 +1037,48 @@ function criarCard(produto) {
 // ======================================================
 
 function renderizarProdutos(lista) {
-
   if (!productsGrid) return;
 
   if (!lista.length) {
-
-    productsGrid.innerHTML =
-      "";
+    productsGrid.innerHTML = "";
 
     if (emptyState) {
-      emptyState.hidden =
-        false;
+      emptyState.hidden = false;
+
+      const titulo =
+        emptyState.querySelector("h3");
+
+      const texto =
+        emptyState.querySelector("p");
+
+      if (modoFavoritos) {
+        if (titulo) {
+          titulo.textContent =
+            "Nenhum favorito ainda";
+        }
+
+        if (texto) {
+          texto.textContent =
+            "Toque no coração de um produto para salvá-lo aqui.";
+        }
+      } else {
+        if (titulo) {
+          titulo.textContent =
+            "Nenhum produto encontrado";
+        }
+
+        if (texto) {
+          texto.textContent =
+            "Tente mudar sua pesquisa ou selecionar outro nicho.";
+        }
+      }
     }
 
     return;
   }
 
   if (emptyState) {
-    emptyState.hidden =
-      true;
+    emptyState.hidden = true;
   }
 
   productsGrid.innerHTML =
@@ -994,17 +1097,33 @@ function renderizarProdutos(lista) {
         () => {
 
           const produto =
-            produtos.find(
-              p =>
-                String(p.id) ===
-                String(
-                  card.dataset.id
-                )
+            encontrarProduto(
+              card.dataset.id
             );
 
           if (produto) {
             abrirModal(produto);
           }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      ".favorite-btn"
+    )
+    .forEach(botao => {
+
+      botao.addEventListener(
+        "click",
+        event => {
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          alternarFavorito(
+            botao.dataset.favoriteId
+          );
         }
       );
     });
@@ -1015,13 +1134,15 @@ function renderizarProdutos(lista) {
 // ======================================================
 
 function abrirModal(produto) {
-
   if (
     !productModal ||
     !modalBody
   ) {
     return;
   }
+
+  const favoritado =
+    estaFavoritado(produto.id);
 
   modalBody.innerHTML = `
 
@@ -1042,16 +1163,13 @@ function abrirModal(produto) {
         : ""
     }
 
-
     <h2>
       ${escapar(produto.name)}
     </h2>
 
-
     <p style="margin-top:8px;">
       🏪 ${escapar(produto.shop_name)}
     </p>
-
 
     <div style="margin-top:20px;">
 
@@ -1095,6 +1213,27 @@ function abrirModal(produto) {
 
     </div>
 
+    <button
+      id="modalFavoriteButton"
+      data-id="${escapar(produto.id)}"
+      style="
+        width:100%;
+        margin-top:20px;
+        padding:14px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.15);
+        background:#151821;
+        color:white;
+        font-weight:800;
+        cursor:pointer;
+      "
+    >
+      ${
+        favoritado
+          ? "♥ Remover dos favoritos"
+          : "♡ Salvar nos favoritos"
+      }
+    </button>
 
     ${
       produto.affiliate_url
@@ -1105,7 +1244,7 @@ function abrirModal(produto) {
           rel="noopener noreferrer"
           style="
             display:block;
-            margin-top:22px;
+            margin-top:12px;
             padding:15px;
             text-align:center;
             background:#ff5a1f;
@@ -1122,15 +1261,40 @@ function abrirModal(produto) {
     }
   `;
 
-  productModal.hidden =
-    false;
+  const modalFavoriteButton =
+    document.getElementById(
+      "modalFavoriteButton"
+    );
+
+  if (modalFavoriteButton) {
+    modalFavoriteButton.addEventListener(
+      "click",
+      () => {
+
+        alternarFavorito(
+          modalFavoriteButton.dataset.id
+        );
+
+        const atualizado =
+          encontrarProduto(
+            modalFavoriteButton.dataset.id
+          );
+
+        if (atualizado) {
+          abrirModal(atualizado);
+        } else {
+          fecharModal();
+        }
+      }
+    );
+  }
+
+  productModal.hidden = false;
 }
 
 function fecharModal() {
-
   if (productModal) {
-    productModal.hidden =
-      true;
+    productModal.hidden = true;
   }
 }
 
@@ -1139,29 +1303,29 @@ function fecharModal() {
 // ======================================================
 
 if (searchInput) {
-
   searchInput.addEventListener(
     "keydown",
     event => {
 
       if (event.key === "Enter") {
-
         buscaDigitada =
           searchInput.value.trim();
+
+        modoFavoritos = false;
 
         reiniciarRadar();
       }
     }
   );
 
-  // X do input de pesquisa
   searchInput.addEventListener(
     "search",
     () => {
 
       if (!searchInput.value) {
-
         buscaDigitada = "";
+
+        modoFavoritos = false;
 
         reiniciarRadar();
       }
@@ -1171,17 +1335,17 @@ if (searchInput) {
 
 // ======================================================
 // NICHO
-// AGORA FAZ UMA NOVA CONSULTA NA SHOPEE
 // ======================================================
 
 if (categoryFilter) {
-
   categoryFilter.addEventListener(
     "change",
     () => {
 
       nichoAtual =
         categoryFilter.value;
+
+      modoFavoritos = false;
 
       reiniciarRadar();
     }
@@ -1202,6 +1366,8 @@ document
       "click",
       () => {
 
+        modoFavoritos = false;
+
         ordenacaoAtual =
           botao.dataset.sort;
 
@@ -1217,6 +1383,7 @@ document
             );
           });
 
+        atualizarTitulo();
         aplicarOrdenacao();
       }
     );
@@ -1239,14 +1406,52 @@ document
         const filtro =
           botao.dataset.filter;
 
-        if (filtro === "favorites") {
+        // ===============================================
+        // FAVORITOS
+        // ===============================================
 
-          alert(
-            "Favoritos será conectado na próxima etapa."
+        if (filtro === "favorites") {
+          modoFavoritos = true;
+
+          esconderCarregandoMais();
+
+          document
+            .querySelectorAll(
+              "[data-filter]"
+            )
+            .forEach(item => {
+
+              item.classList.toggle(
+                "active",
+                item.dataset.filter ===
+                  "favorites"
+              );
+            });
+
+          document
+            .querySelectorAll(
+              "[data-sort]"
+            )
+            .forEach(item => {
+              item.classList.remove(
+                "active"
+              );
+            });
+
+          atualizarTituloFavoritos();
+
+          renderizarProdutos(
+            favoritos
           );
 
           return;
         }
+
+        // ===============================================
+        // RADAR NORMAL
+        // ===============================================
+
+        modoFavoritos = false;
 
         let sort =
           "radar";
@@ -1290,6 +1495,8 @@ document
             );
           });
 
+        atualizarTitulo();
+
         aplicarOrdenacao();
       }
     );
@@ -1300,7 +1507,6 @@ document
 // ======================================================
 
 if (closeModal) {
-
   closeModal.addEventListener(
     "click",
     fecharModal
@@ -1308,7 +1514,6 @@ if (closeModal) {
 }
 
 if (productModal) {
-
   productModal
     .querySelector(
       ".modal-overlay"
@@ -1326,6 +1531,10 @@ if (productModal) {
 window.addEventListener(
   "scroll",
   () => {
+
+    if (modoFavoritos) {
+      return;
+    }
 
     const posicao =
       window.innerHeight +
