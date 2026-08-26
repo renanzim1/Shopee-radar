@@ -1,7 +1,7 @@
-/* =========================================
-   SHOPEE RADAR — STYLE.CSS COMPLETO
+/* =====================================================
+   SHOPEE RADAR — STYLE.CSS LIMPO
    Mobile First
-========================================= */
+===================================================== */
 
 * {
   margin: 0;
@@ -21,13 +21,10 @@
 
   --orange: #ff5a1f;
   --orange-2: #ff7a1a;
-
   --green: #32d583;
-  --blue: #5ea8ff;
-  --red: #ff5d67;
   --yellow: #ffc857;
 
-  --radius: 18px;
+  --radius: 16px;
 }
 
 html {
@@ -62,22 +59,17 @@ button,
 input,
 select {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {
   cursor: pointer;
 }
 
-button,
-input,
-select {
-  -webkit-tap-highlight-color: transparent;
-}
 
-
-/* =========================================
+/* =====================================================
    HEADER
-========================================= */
+===================================================== */
 
 .topbar {
   min-height: 78px;
@@ -88,6 +80,10 @@ select {
 
   padding: 14px 18px;
 
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
   background:
     linear-gradient(
       135deg,
@@ -97,10 +93,6 @@ select {
 
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.28);
-
-  position: sticky;
-  top: 0;
-  z-index: 50;
 }
 
 .brand {
@@ -119,8 +111,8 @@ select {
 
   border-radius: 12px;
 
-  background: rgba(255,255,255,.16);
-  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 
   font-size: 20px;
 }
@@ -143,7 +135,7 @@ select {
   font-weight: 800;
   letter-spacing: 1.2px;
 
-  color: rgba(255,255,255,.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .status-dot {
@@ -151,12 +143,11 @@ select {
   height: 7px;
 
   border-radius: 50%;
-
   background: #64ff9d;
 
   box-shadow:
-    0 0 0 4px rgba(100,255,157,.15),
-    0 0 12px rgba(100,255,157,.7);
+    0 0 0 4px rgba(100, 255, 157, 0.15),
+    0 0 12px rgba(100, 255, 157, 0.7);
 }
 
 .live-badge {
@@ -164,18 +155,18 @@ select {
 
   border-radius: 999px;
 
-  background: rgba(0,0,0,.18);
-  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .8px;
+  letter-spacing: 0.8px;
 }
 
 
-/* =========================================
+/* =====================================================
    CONTAINER
-========================================= */
+===================================================== */
 
 .container {
   width: 100%;
@@ -186,9 +177,9 @@ select {
 }
 
 
-/* =========================================
+/* =====================================================
    HERO
-========================================= */
+===================================================== */
 
 .hero {
   padding: 28px 4px 20px;
@@ -202,8 +193,8 @@ select {
 
   border-radius: 7px;
 
-  background: rgba(255,90,31,.10);
-  border: 1px solid rgba(255,90,31,.18);
+  background: rgba(255, 90, 31, 0.1);
+  border: 1px solid rgba(255, 90, 31, 0.18);
 
   color: var(--orange);
 
@@ -216,10 +207,9 @@ select {
   max-width: 600px;
 
   font-size: clamp(30px, 8vw, 50px);
-  line-height: .98;
+  line-height: 0.98;
 
   letter-spacing: -1.6px;
-
   font-weight: 900;
 }
 
@@ -239,13 +229,13 @@ select {
 }
 
 
-/* =========================================
+/* =====================================================
    ESTATÍSTICAS
-========================================= */
+===================================================== */
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 8px;
 
@@ -253,14 +243,14 @@ select {
 }
 
 .stat-card {
-  min-height: 83px;
+  min-width: 0;
+  min-height: 78px;
 
   display: flex;
   align-items: center;
+  gap: 7px;
 
-  gap: 8px;
-
-  padding: 12px 10px;
+  padding: 10px 8px;
 
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -274,7 +264,7 @@ select {
 }
 
 .stat-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .stat-card div {
@@ -288,24 +278,22 @@ select {
 
   color: var(--muted);
 
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 800;
-  letter-spacing: .6px;
 }
 
 .stat-card strong {
   display: block;
 
-  font-size: 21px;
+  font-size: 19px;
   line-height: 1;
-
   font-weight: 900;
 }
 
 
-/* =========================================
-   ABAS
-========================================= */
+/* =====================================================
+   ABAS SUPERIORES
+===================================================== */
 
 .tabs {
   display: flex;
@@ -314,7 +302,7 @@ select {
   overflow-x: auto;
 
   margin: 0 -14px;
-  padding: 2px 14px 11px;
+  padding: 2px 14px 12px;
 
   scrollbar-width: none;
 }
@@ -326,42 +314,35 @@ select {
 .tab {
   flex: 0 0 auto;
 
-  border: 1px solid var(--border);
+  padding: 10px 14px;
 
+  border: 1px solid var(--border);
   border-radius: 999px;
 
-  padding: 9px 13px;
-
   background: var(--surface);
-
   color: var(--muted);
 
   font-size: 12px;
-  font-weight: 700;
-
-  transition: .2s ease;
+  font-weight: 800;
 }
 
 .tab.active {
   color: #fff;
 
-  border-color: rgba(255,90,31,.45);
+  border-color: rgba(255, 90, 31, 0.55);
 
   background:
     linear-gradient(
       135deg,
-      rgba(255,90,31,.22),
-      rgba(255,90,31,.08)
+      rgba(255, 90, 31, 0.28),
+      rgba(255, 90, 31, 0.08)
     );
-
-  box-shadow:
-    inset 0 0 0 1px rgba(255,90,31,.08);
 }
 
 
-/* =========================================
-   PESQUISA + FILTRO
-========================================= */
+/* =====================================================
+   PESQUISA + NICHO
+===================================================== */
 
 .filters {
   display: grid;
@@ -369,17 +350,15 @@ select {
 
   gap: 8px;
 
-  margin-bottom: 25px;
+  margin-bottom: 15px;
 }
 
 .search-box {
   min-width: 0;
-
   height: 48px;
 
   display: flex;
   align-items: center;
-
   gap: 8px;
 
   padding: 0 13px;
@@ -403,7 +382,6 @@ select {
   outline: 0;
 
   background: transparent;
-
   color: var(--text);
 
   font-size: 13px;
@@ -422,26 +400,106 @@ select {
   border: 1px solid var(--border);
   border-radius: 13px;
 
-  outline: none;
+  outline: 0;
 
   background: var(--surface);
-
   color: var(--text);
 
   font-size: 11px;
 }
 
 
-/* =========================================
+/* =====================================================
+   ORDENAÇÃO
+===================================================== */
+
+.radar-sort {
+  width: 100%;
+
+  margin: 14px 0 20px;
+
+  overflow: hidden;
+}
+
+.sort-title {
+  display: block;
+
+  margin: 0 0 9px 2px;
+
+  color: #7f8798;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sort-options {
+  display: flex;
+  flex-wrap: nowrap;
+
+  gap: 7px;
+
+  overflow-x: auto;
+
+  padding: 2px 2px 6px;
+
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sort-options::-webkit-scrollbar {
+  display: none;
+}
+
+.sort-btn {
+  flex: 0 0 auto;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  padding: 9px 12px;
+
+  border: 1px solid #272d3b;
+  border-radius: 12px;
+
+  outline: 0;
+
+  background: #10141e;
+  color: #9097a8;
+
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.sort-btn.active {
+  color: #fff;
+
+  border-color: rgba(255, 90, 31, 0.65);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 90, 31, 0.3),
+      rgba(255, 90, 31, 0.1)
+    );
+}
+
+
+/* =====================================================
    CABEÇALHO DOS RESULTADOS
-========================================= */
+===================================================== */
 
 .section-heading {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
 
-  gap: 12px;
+  gap: 10px;
 
   margin-bottom: 13px;
 }
@@ -460,10 +518,14 @@ select {
 
 .section-heading h3 {
   font-size: 22px;
-  letter-spacing: -.7px;
+  line-height: 1.1;
+
+  letter-spacing: -0.7px;
 }
 
 .live-indicator {
+  flex: 0 0 auto;
+
   display: flex;
   align-items: center;
 
@@ -485,26 +547,39 @@ select {
 
   background: var(--green);
 
-  box-shadow: 0 0 9px rgba(50,213,131,.8);
+  box-shadow:
+    0 0 9px rgba(50, 213, 131, 0.8);
 }
 
 
-/* =========================================
-   PRODUTOS
-========================================= */
+/* =====================================================
+   GRID DE PRODUTOS
+===================================================== */
 
 .products-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  width: 100%;
 
-  gap: 11px;
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+
+  align-items: start;
 }
 
-.product-card {
-  position: relative;
-  overflow: hidden;
 
-  padding: 14px;
+/* =====================================================
+   CARD
+===================================================== */
+
+.product-card {
+  width: 100%;
+  min-width: 0;
+
+  position: relative;
+
+  overflow: hidden;
 
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -517,221 +592,289 @@ select {
     );
 
   box-shadow:
-    0 8px 25px rgba(0,0,0,.14);
-
-  transition:
-    transform .18s ease,
-    border-color .18s ease;
+    0 8px 25px rgba(0, 0, 0, 0.14);
 }
 
 .product-card:active {
-  transform: scale(.99);
-}
-
-.product-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-
-  gap: 10px;
-}
-
-.product-badge {
-  display: inline-flex;
-  align-items: center;
-
-  gap: 4px;
-
-  margin-bottom: 9px;
-
-  padding: 5px 8px;
-
-  border-radius: 999px;
-
-  background: rgba(255,90,31,.12);
-
-  color: #ff966d;
-
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.product-score {
-  flex: 0 0 auto;
-
-  padding: 6px 9px;
-
-  border-radius: 9px;
-
-  background: rgba(50,213,131,.12);
-
-  color: var(--green);
-
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.product-title {
-  margin-bottom: 5px;
-
-  font-size: 15px;
-  line-height: 1.3;
-
-  font-weight: 800;
-}
-
-.product-category {
-  color: var(--muted);
-
-  font-size: 11px;
+  transform: scale(0.99);
 }
 
 
-/* =========================================
-   MÉTRICAS
-========================================= */
+/* =====================================================
+   IMAGEM
+===================================================== */
 
-.product-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.product-image {
+  display: block;
 
-  gap: 7px;
+  width: 100%;
+  height: auto;
 
-  margin-top: 13px;
+  aspect-ratio: 1 / 1;
+
+  object-fit: cover;
+  object-position: center;
+
+  background: #fff;
 }
 
-.metric {
+
+/* =====================================================
+   CONTEÚDO DO CARD
+===================================================== */
+
+.product-card-content {
+  width: 100%;
   min-width: 0;
 
   padding: 10px;
 
-  border-radius: 11px;
+  display: flex;
+  flex-direction: column;
 
-  background: #0b0e14;
-
-  border: 1px solid rgba(255,255,255,.025);
+  overflow: visible;
 }
 
-.metric span {
-  display: block;
 
-  margin-bottom: 3px;
+/* =====================================================
+   BADGE + SCORE
+===================================================== */
 
-  color: #737b8b;
+.product-card-top {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 5px;
+
+  margin-bottom: 8px;
+}
+
+.opportunity-badge {
+  min-width: 0;
+
+  padding: 4px 6px;
+
+  border-radius: 7px;
+
+  background: rgba(255, 90, 31, 0.12);
+  color: #ff966d;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-badge {
+  flex: 0 0 auto;
+
+  padding: 4px 6px;
+
+  border-radius: 7px;
+
+  background: rgba(50, 213, 131, 0.12);
+  color: var(--green);
 
   font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .4px;
+  font-weight: 900;
 }
 
-.metric strong {
-  display: block;
+
+/* =====================================================
+   NOME DO PRODUTO
+===================================================== */
+
+.product-name {
+  width: 100%;
+
+  display: -webkit-box;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 
   overflow: hidden;
 
-  text-overflow: ellipsis;
+  margin: 0 0 7px;
 
-  font-size: 14px;
-  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 800;
+
+  overflow-wrap: anywhere;
+
+  /* Reserva espaço real para 3 linhas */
+  min-height: 50px;
 }
 
 
-/* =========================================
-   RODAPÉ DO PRODUTO
-========================================= */
+/* =====================================================
+   LOJA
+===================================================== */
+
+.product-shop {
+  width: 100%;
+  min-width: 0;
+
+  display: block;
+
+  margin: 0 0 10px;
+
+  color: #b5bac5;
+
+  font-size: 9px;
+  line-height: 18px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =====================================================
+   MÉTRICAS
+===================================================== */
+
+.product-stats {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 6px;
+
+  margin-top: 0;
+}
+
+.product-stat {
+  min-width: 0;
+
+  padding: 7px;
+
+  border-radius: 9px;
+
+  background: #0b0e14;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.025);
+}
+
+.product-stat span {
+  display: block;
+
+  color: #737b8b;
+
+  font-size: 7px;
+  line-height: 1.2;
+  font-weight: 800;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-stat strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--text);
+
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =====================================================
+   RODAPÉ DO CARD
+===================================================== */
 
 .product-footer {
+  width: 100%;
+
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
 
-  gap: 10px;
+  gap: 6px;
 
-  margin-top: 13px;
-  padding-top: 12px;
+  margin-top: 11px;
+  padding-top: 9px;
 
   border-top: 1px solid var(--border);
 }
 
-.radar-score {
-  color: var(--muted);
-
-  font-size: 9px;
-  font-weight: 700;
+.product-footer > div {
+  min-width: 0;
 }
 
-.radar-score strong {
-  margin-left: 3px;
+.product-footer small {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 6px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.product-footer strong {
+  display: block;
+
+  margin-top: 3px;
 
   color: var(--text);
 
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.1;
+  font-weight: 900;
 }
 
 .product-price {
-  text-align: right;
-
-  color: var(--muted);
-
-  font-size: 9px;
-}
-
-.product-price strong {
-  margin-left: 3px;
-
-  color: var(--text);
-
-  font-size: 14px;
-}
-
-
-/* =========================================
-   BOTÕES DOS CARDS
-========================================= */
-
-.product-actions {
-  display: flex;
-
-  gap: 7px;
-
-  margin-top: 12px;
-}
-
-.action-btn {
   flex: 1;
-
-  padding: 10px 8px;
-
-  border: 1px solid var(--border);
-  border-radius: 10px;
-
-  background: var(--surface-3);
-
-  color: var(--text);
-
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.action-btn.primary {
-  border-color: transparent;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--orange),
-      var(--orange-2)
-    );
-
-  color: #fff;
+  text-align: right;
 }
 
 
-/* =========================================
+/* =====================================================
+   GANHO ESTIMADO
+===================================================== */
+
+/*
+   O ganho é criado pelo JS como o último DIV
+   dentro de product-card-content.
+*/
+
+.product-card-content > div:last-child {
+  width: 100%;
+
+  line-height: 1.35;
+
+  overflow: visible;
+
+  white-space: normal;
+}
+
+
+/* =====================================================
    LOADING
-========================================= */
+===================================================== */
 
 .loading {
+  grid-column: 1 / -1;
+
   min-height: 180px;
 
   display: flex;
@@ -753,7 +896,7 @@ select {
 
   border-radius: 50%;
 
-  animation: spin .8s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -762,10 +905,22 @@ select {
   }
 }
 
+.infinite-loader {
+  padding: 25px 10px;
 
-/* =========================================
+  text-align: center;
+
+  color: var(--muted);
+}
+
+.infinite-loader .loader {
+  margin: 0 auto 10px;
+}
+
+
+/* =====================================================
    SEM RESULTADOS
-========================================= */
+===================================================== */
 
 .empty-state {
   padding: 45px 20px;
@@ -788,9 +943,9 @@ select {
 }
 
 
-/* =========================================
+/* =====================================================
    MENU INFERIOR
-========================================= */
+===================================================== */
 
 .bottom-nav {
   position: fixed;
@@ -804,13 +959,15 @@ select {
   max-width: 1050px;
 
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns:
+    repeat(4, 1fr);
 
   transform: translateX(-50%);
 
   border-top: 1px solid var(--border);
 
-  background: rgba(12,15,21,.96);
+  background:
+    rgba(12, 15, 21, 0.96);
 
   backdrop-filter: blur(16px);
 
@@ -831,7 +988,6 @@ select {
   border: 0;
 
   background: transparent;
-
   color: #727a89;
 
   font-size: 9px;
@@ -847,9 +1003,9 @@ select {
 }
 
 
-/* =========================================
+/* =====================================================
    MODAL
-========================================= */
+===================================================== */
 
 .modal {
   position: fixed;
@@ -866,7 +1022,7 @@ select {
   position: absolute;
   inset: 0;
 
-  background: rgba(0,0,0,.72);
+  background: rgba(0, 0, 0, 0.72);
 
   backdrop-filter: blur(4px);
 }
@@ -890,7 +1046,7 @@ select {
 
   border-top: 1px solid var(--border);
 
-  animation: modalUp .22s ease;
+  animation: modalUp 0.22s ease;
 }
 
 @keyframes modalUp {
@@ -916,16 +1072,15 @@ select {
   border-radius: 50%;
 
   background: var(--surface-3);
-
   color: #fff;
 
   font-size: 22px;
 }
 
 
-/* =========================================
-   RESPONSIVIDADE
-========================================= */
+/* =====================================================
+   TABLET
+===================================================== */
 
 @media (min-width: 600px) {
 
@@ -944,19 +1099,30 @@ select {
 
   .products-grid {
     grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
+      repeat(3, minmax(0, 1fr));
 
-  .stats-grid {
     gap: 12px;
   }
 
-  .stat-card {
-    padding: 15px;
+  .product-name {
+    font-size: 14px;
+    min-height: 54px;
+  }
+
+  .product-shop {
+    font-size: 10px;
+  }
+
+  .product-stat strong {
+    font-size: 12px;
   }
 
 }
 
+
+/* =====================================================
+   COMPUTADOR
+===================================================== */
 
 @media (min-width: 900px) {
 
@@ -970,7 +1136,9 @@ select {
 
   .products-grid {
     grid-template-columns:
-      repeat(3, minmax(0, 1fr));
+      repeat(4, minmax(0, 1fr));
+
+    gap: 14px;
   }
 
   .bottom-nav {
@@ -980,591 +1148,41 @@ select {
 }
 
 
-/* =========================================
-   TELAS MUITO PEQUENAS
-========================================= */
+/* =====================================================
+   CELULAR MUITO PEQUENO
+===================================================== */
 
 @media (max-width: 370px) {
 
-  .filters {
-    grid-template-columns: 1fr;
+  .container {
+    padding-left: 9px;
+    padding-right: 9px;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-card {
-    min-height: 65px;
-  }
-
-  }
-/* =========================================
-   SHOPEE RADAR — GRID COMPACTO MOBILE
-========================================= */
-
-/* 2 produtos lado a lado */
-.products-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  align-items: start;
-}
-
-/* Card compacto */
-.product-card {
-  padding: 0;
-  border-radius: 14px;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* Imagem quadrada */
-.product-image {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  height: auto;
-  object-fit: cover;
-  background: #fff;
-}
-
-/* Parte das informações */
-.product-card-content {
-  padding: 9px;
-  min-width: 0;
-}
-
-/* Badge + score */
-.product-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  margin-bottom: 7px;
-}
-
-.opportunity-badge {
-  min-width: 0;
-  padding: 4px 5px;
-  border-radius: 6px;
-
-  background: rgba(255, 90, 31, 0.12);
-  color: #ff966d;
-
-  font-size: 7px;
-  font-weight: 800;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.score-badge {
-  flex-shrink: 0;
-
-  padding: 4px 5px;
-  border-radius: 6px;
-
-  background: rgba(50, 213, 131, 0.12);
-  color: var(--green);
-
-  font-size: 8px;
-  font-weight: 900;
-}
-
-/* Nome do produto: máximo 2 linhas */
-.product-name {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-
-  overflow: hidden;
-
-  min-height: 32px;
-
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 800;
-}
-
-/* Loja */
-.product-shop {
-  margin-top: 4px;
-
-  color: #b5bac5;
-
-  font-size: 8px;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Categoria */
-.product-category {
-  margin-top: 3px;
-
-  color: var(--muted);
-
-  font-size: 8px;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Métricas */
-.product-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  gap: 5px;
-
-  margin-top: 8px;
-}
-
-.product-stat {
-  min-width: 0;
-
-  padding: 6px;
-
-  border-radius: 7px;
-
-  background: #0b0e14;
-}
-
-.product-stat span {
-  display: block;
-
-  color: #737b8b;
-
-  font-size: 6px;
-  font-weight: 800;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.product-stat strong {
-  display: block;
-
-  margin-top: 2px;
-
-  font-size: 10px;
-  font-weight: 900;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Rodapé */
-.product-footer {
-  margin-top: 8px;
-  padding-top: 7px;
-
-  gap: 4px;
-}
-
-.product-footer small {
-  display: block;
-
-  color: var(--muted);
-
-  font-size: 6px;
-  font-weight: 700;
-}
-
-.product-footer strong {
-  display: block;
-
-  margin-top: 2px;
-
-  font-size: 10px;
-  font-weight: 900;
-}
-
-.product-price {
-  text-align: right;
-}
-
-/* Tablet */
-@media (min-width: 600px) {
   .products-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 7px;
   }
-}
-
-/* PC */
-@media (min-width: 900px) {
-  .products-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-  }
-}
-
-/* ===== CORREÇÃO FINAL GRID MOBILE ===== */
-
-#productsGrid.products-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-  width: 100% !important;
-}
-
-#productsGrid .product-card {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  border-radius: 14px !important;
-}
-
-#productsGrid .product-image {
-  display: block !important;
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 1 / 1 !important;
-  object-fit: cover !important;
-  object-position: center !important;
-}
-
-#productsGrid .product-card-content {
-  width: 100% !important;
-  padding: 8px !important;
-  min-width: 0 !important;
-}
-
-#productsGrid .product-name {
-  font-size: 11px !important;
-  line-height: 1.25 !important;
-
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-
-  overflow: hidden !important;
-}
-
-#productsGrid .product-stats {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 4px !important;
-}
-
-#productsGrid .product-stat {
-  padding: 5px !important;
-}
-
-#productsGrid .product-stat span {
-  font-size: 6px !important;
-}
-
-#productsGrid .product-stat strong {
-  font-size: 9px !important;
-}
-
-/* 3 por linha em telas maiores */
-@media (min-width: 600px) {
-  #productsGrid.products-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-}
-
-/* ======================================================
-   SHOPEE RADAR — BOTÕES DE ORDENAÇÃO
-====================================================== */
-
-.sort-section {
-  margin: 18px 0 22px;
-}
-
-.sort-section > span,
-.sort-label {
-  display: block;
-  margin-bottom: 10px;
-  color: #8f95a3;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .8px;
-}
-
-.sort-options {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-
-  scrollbar-width: none;
-}
-
-.sort-options::-webkit-scrollbar {
-  display: none;
-}
-
-.sort-options button,
-[data-sort] {
-  flex: 0 0 auto;
-
-  appearance: none;
-  -webkit-appearance: none;
-
-  border: 1px solid #282d3a;
-  outline: none;
-
-  background: #11151f;
-  color: #9298a8;
-
-  padding: 10px 14px;
-
-  border-radius: 14px;
-
-  font-size: 13px;
-  font-weight: 700;
-
-  white-space: nowrap;
-
-  cursor: pointer;
-
-  transition:
-    background .2s ease,
-    border-color .2s ease,
-    color .2s ease;
-}
-
-.sort-options button.active,
-[data-sort].active {
-  color: #ffffff;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 90, 31, .28),
-      rgba(255, 90, 31, .10)
-    );
-
-  border-color:
-    rgba(255, 90, 31, .65);
-
-  box-shadow:
-    inset 0 0 18px
-    rgba(255, 90, 31, .08);
-}
-
-.sort-options button:active,
-[data-sort]:active {
-  transform: scale(.97);
-}
-/* 4 por linha no computador */
-@media (min-width: 900px) {
-  #productsGrid.products-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
-}
-
-/* ======================================================
-   ORDENAÇÃO — VISUAL SHOPEE RADAR
-====================================================== */
-
-.radar-sort {
-  margin: 18px 0 24px;
-  width: 100%;
-  overflow: hidden;
-}
-
-.radar-sort .sort-title {
-  display: block;
-  margin: 0 0 10px 2px;
-
-  color: #7f8798;
-  font-size: 11px;
-  font-weight: 800;
-
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Linha horizontal */
-.radar-sort .sort-options {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  padding: 2px 2px 7px;
-
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.radar-sort .sort-options::-webkit-scrollbar {
-  display: none;
-}
-
-/* Botões */
-.radar-sort .sort-btn {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-
-  flex: 0 0 auto;
-
-  margin: 0 !important;
-  padding: 10px 14px !important;
-
-  border: 1px solid #272d3b !important;
-  border-radius: 14px !important;
-
-  background: #10141e !important;
-  color: #9097a8 !important;
-
-  font-family: inherit !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-
-  line-height: 1 !important;
-  white-space: nowrap;
-
-  box-shadow: none !important;
-  outline: none !important;
-
-  cursor: pointer;
-}
-
-/* Selecionado */
-.radar-sort .sort-btn.active {
-  color: #ffffff !important;
-
-  border-color: rgba(255, 90, 31, 0.65) !important;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 90, 31, 0.30),
-      rgba(255, 90, 31, 0.10)
-    ) !important;
-
-  box-shadow:
-    0 0 18px rgba(255, 90, 31, 0.08) !important;
-}
-
-/* Clique */
-.radar-sort .sort-btn:active {
-  transform: scale(0.97);
-}
-
-/* Mobile */
-@media (max-width: 600px) {
-
-  .radar-sort {
-    margin-top: 15px;
-    margin-bottom: 20px;
-  }
-
-  .radar-sort .sort-btn {
-    padding: 10px 13px !important;
-    font-size: 11px !important;
-  }
-}
-
-/* ======================================================
-   CORREÇÃO DOS CARDS — TEXTO CORTADO
-   ====================================================== */
-
-/* Card não pode esconder conteúdo */
-.product-card {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: hidden;
-}
-
-/* Conteúdo interno cresce normalmente */
-.product-card-content {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Nome do produto:
-   mostra até 3 linhas e corta de forma organizada */
-.product-name {
-  display: -webkit-box !important;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-
-  overflow: hidden !important;
-  text-overflow: ellipsis;
-
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-
-  line-height: 1.25;
-  margin-bottom: 7px;
-}
-
-/* Nome da loja:
-   uma linha, sem invadir os dados */
-.product-shop {
-  display: block !important;
-
-  width: 100%;
-  height: auto !important;
-  min-height: 20px !important;
-  max-height: none !important;
-
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis;
-
-  line-height: 20px;
-  margin-bottom: 10px;
-}
-
-/* Área de vendidos / avaliação / comissão */
-.product-stats {
-  margin-top: 0 !important;
-  flex-shrink: 0;
-}
-
-/* Rodapé do card */
-.product-footer {
-  margin-top: 12px;
-  flex-shrink: 0;
-}
-
-/* Evita que o ganho estimado fique espremido */
-.product-card-content > div:last-child {
-  flex-shrink: 0;
-}
-
-/* MOBILE */
-@media (max-width: 600px) {
 
   .product-card-content {
-    padding: 12px !important;
+    padding: 8px;
   }
 
   .product-name {
-    font-size: 15px !important;
-    line-height: 1.25 !important;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+    font-size: 11px;
+    min-height: 44px;
   }
 
-  .product-shop {
-    font-size: 11px !important;
-    line-height: 18px !important;
-    min-height: 18px !important;
+  .product-stat {
+    padding: 6px 4px;
   }
+
+  .product-stat strong {
+    font-size: 10px;
+  }
+
+  .filters {
+    grid-template-columns:
+      minmax(0, 1fr) 125px;
+  }
+
 }
