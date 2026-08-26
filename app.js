@@ -1,7 +1,7 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
-// API Shopee + Nichos + Ranking + Scroll infinito
-// Favoritos + RADAR SCORE V2
+// Busca + Nichos + Ranking + Favoritos + Scroll infinito
+// RADAR SCORE V2
 // ======================================================
 
 const API_URL =
@@ -19,7 +19,13 @@ let carregando = false;
 
 let buscaDigitada = "";
 let nichoAtual = "all";
+
+// radar | sales | commission | rating | relevance
 let ordenacaoAtual = "radar";
+
+// radar | hot | commission | rating
+let filtroAtual = "radar";
+
 let modoFavoritos = false;
 
 // ======================================================
@@ -55,40 +61,32 @@ function salvarFavoritos() {
 
 function estaFavoritado(id) {
   return favoritos.some(
-    produto =>
-      String(produto.id) === String(id)
+    produto => String(produto.id) === String(id)
   );
 }
 
 function encontrarProduto(id) {
   return (
     produtos.find(
-      produto =>
-        String(produto.id) === String(id)
+      produto => String(produto.id) === String(id)
     ) ||
     favoritos.find(
-      produto =>
-        String(produto.id) === String(id)
+      produto => String(produto.id) === String(id)
     )
   );
 }
 
 function alternarFavorito(id) {
-  const produto =
-    encontrarProduto(id);
+  const produto = encontrarProduto(id);
 
   if (!produto) return;
 
   if (estaFavoritado(id)) {
-    favoritos =
-      favoritos.filter(
-        item =>
-          String(item.id) !== String(id)
-      );
+    favoritos = favoritos.filter(
+      item => String(item.id) !== String(id)
+    );
   } else {
-    favoritos.unshift({
-      ...produto
-    });
+    favoritos.unshift({ ...produto });
   }
 
   salvarFavoritos();
@@ -159,11 +157,13 @@ function escapar(valor) {
 // ======================================================
 
 function dinheiro(valor) {
-  return Number(valor || 0)
-    .toLocaleString("pt-BR", {
+  return Number(valor || 0).toLocaleString(
+    "pt-BR",
+    {
       style: "currency",
       currency: "BRL"
-    });
+    }
+  );
 }
 
 function formatarNumero(valor) {
@@ -173,8 +173,7 @@ function formatarNumero(valor) {
     return (
       (n / 1000000)
         .toFixed(1)
-        .replace(".", ",") +
-      " mi"
+        .replace(".", ",") + " mi"
     );
   }
 
@@ -182,8 +181,7 @@ function formatarNumero(valor) {
     return (
       (n / 1000)
         .toFixed(n >= 10000 ? 0 : 1)
-        .replace(".", ",") +
-      " mil"
+        .replace(".", ",") + " mil"
     );
   }
 
@@ -197,12 +195,7 @@ function percentual(valor) {
     n *= 100;
   }
 
-  return (
-    n
-      .toFixed(2)
-      .replace(".", ",") +
-    "%"
-  );
+  return n.toFixed(2).replace(".", ",") + "%";
 }
 
 function normalizarPercentual(valor) {
@@ -217,18 +210,9 @@ function normalizarPercentual(valor) {
 
 // ======================================================
 // RADAR SCORE V2
-//
-// 30 pts — Demanda
-// 20 pts — Avaliação
-// 25 pts — Comissão %
-// 15 pts — Ganho estimado por venda
-// 10 pts — Faixa de preço
-//
-// TOTAL = 100
 // ======================================================
 
 function calcularScore(produto) {
-
   const vendas =
     Number(produto.sold_count || 0);
 
@@ -252,134 +236,78 @@ function calcularScore(produto) {
   let ganhoPts = 0;
   let precoPts = 0;
 
-  // ====================================================
-  // DEMANDA — MÁXIMO 30
-  // ====================================================
+  // DEMANDA — 30
 
-  if (vendas >= 10000) {
-    demandaPts = 30;
-  } else if (vendas >= 5000) {
-    demandaPts = 27;
-  } else if (vendas >= 1000) {
-    demandaPts = 23;
-  } else if (vendas >= 500) {
-    demandaPts = 19;
-  } else if (vendas >= 100) {
-    demandaPts = 14;
-  } else if (vendas >= 20) {
-    demandaPts = 8;
-  } else {
-    demandaPts = 3;
-  }
+  if (vendas >= 10000) demandaPts = 30;
+  else if (vendas >= 5000) demandaPts = 27;
+  else if (vendas >= 1000) demandaPts = 23;
+  else if (vendas >= 500) demandaPts = 19;
+  else if (vendas >= 100) demandaPts = 14;
+  else if (vendas >= 20) demandaPts = 8;
+  else demandaPts = 3;
 
-  // ====================================================
-  // AVALIAÇÃO — MÁXIMO 20
-  // ====================================================
+  // AVALIAÇÃO — 20
 
-  if (avaliacao >= 4.9) {
-    avaliacaoPts = 20;
-  } else if (avaliacao >= 4.8) {
-    avaliacaoPts = 19;
-  } else if (avaliacao >= 4.6) {
-    avaliacaoPts = 17;
-  } else if (avaliacao >= 4.4) {
-    avaliacaoPts = 14;
-  } else if (avaliacao >= 4.0) {
-    avaliacaoPts = 10;
-  } else if (avaliacao > 0) {
-    avaliacaoPts = 5;
-  }
+  if (avaliacao >= 4.9) avaliacaoPts = 20;
+  else if (avaliacao >= 4.8) avaliacaoPts = 19;
+  else if (avaliacao >= 4.6) avaliacaoPts = 17;
+  else if (avaliacao >= 4.4) avaliacaoPts = 14;
+  else if (avaliacao >= 4.0) avaliacaoPts = 10;
+  else if (avaliacao > 0) avaliacaoPts = 5;
 
-  // ====================================================
-  // COMISSÃO — MÁXIMO 25
-  // ====================================================
+  // COMISSÃO — 25
 
-  if (comissao >= 15) {
-    comissaoPts = 25;
-  } else if (comissao >= 12) {
-    comissaoPts = 23;
-  } else if (comissao >= 10) {
-    comissaoPts = 21;
-  } else if (comissao >= 7) {
-    comissaoPts = 17;
-  } else if (comissao >= 5) {
-    comissaoPts = 13;
-  } else if (comissao >= 3) {
-    comissaoPts = 8;
-  } else if (comissao > 0) {
-    comissaoPts = 4;
-  }
+  if (comissao >= 15) comissaoPts = 25;
+  else if (comissao >= 12) comissaoPts = 23;
+  else if (comissao >= 10) comissaoPts = 21;
+  else if (comissao >= 7) comissaoPts = 17;
+  else if (comissao >= 5) comissaoPts = 13;
+  else if (comissao >= 3) comissaoPts = 8;
+  else if (comissao > 0) comissaoPts = 4;
 
-  // ====================================================
-  // GANHO POR VENDA — MÁXIMO 15
-  // ====================================================
+  // GANHO — 15
 
-  if (ganho >= 30) {
-    ganhoPts = 15;
-  } else if (ganho >= 20) {
-    ganhoPts = 13;
-  } else if (ganho >= 10) {
-    ganhoPts = 11;
-  } else if (ganho >= 5) {
-    ganhoPts = 8;
-  } else if (ganho >= 2) {
-    ganhoPts = 5;
-  } else if (ganho > 0) {
-    ganhoPts = 2;
-  }
+  if (ganho >= 30) ganhoPts = 15;
+  else if (ganho >= 20) ganhoPts = 13;
+  else if (ganho >= 10) ganhoPts = 11;
+  else if (ganho >= 5) ganhoPts = 8;
+  else if (ganho >= 2) ganhoPts = 5;
+  else if (ganho > 0) ganhoPts = 2;
 
-  // ====================================================
-  // FAIXA DE PREÇO — MÁXIMO 10
-  // ====================================================
+  // PREÇO — 10
 
-  if (
-    preco >= 20 &&
-    preco <= 100
-  ) {
+  if (preco >= 20 && preco <= 100) {
     precoPts = 10;
-  } else if (
-    preco > 100 &&
-    preco <= 200
-  ) {
+  } else if (preco > 100 && preco <= 200) {
     precoPts = 8;
-  } else if (
-    preco > 200 &&
-    preco <= 400
-  ) {
+  } else if (preco > 200 && preco <= 400) {
     precoPts = 6;
-  } else if (
-    preco > 0 &&
-    preco < 20
-  ) {
+  } else if (preco > 0 && preco < 20) {
     precoPts = 7;
-  } else if (
-    preco > 400 &&
-    preco <= 800
-  ) {
+  } else if (preco > 400 && preco <= 800) {
     precoPts = 4;
   } else if (preco > 800) {
     precoPts = 2;
   }
 
-  const total =
-    demandaPts +
-    avaliacaoPts +
-    comissaoPts +
-    ganhoPts +
-    precoPts;
-
   return Math.min(
     100,
-    Math.max(0, total)
+    Math.max(
+      0,
+      demandaPts +
+      avaliacaoPts +
+      comissaoPts +
+      ganhoPts +
+      precoPts
+    )
   );
 }
 
 // ======================================================
-// EXPLICAÇÃO DO SCORE
+// ANÁLISE SCORE
 // ======================================================
 
 function analisarScore(produto) {
-
   const vendas =
     Number(produto.sold_count || 0);
 
@@ -399,83 +327,42 @@ function analisarScore(produto) {
 
   const motivos = [];
 
-  // DEMANDA
-
   if (vendas >= 5000) {
-    motivos.push(
-      "🔥 Demanda muito forte"
-    );
+    motivos.push("🔥 Demanda muito forte");
   } else if (vendas >= 1000) {
-    motivos.push(
-      "✓ Demanda comprovada"
-    );
+    motivos.push("✓ Demanda comprovada");
   } else if (vendas >= 100) {
-    motivos.push(
-      "✓ Produto já possui procura"
-    );
+    motivos.push("✓ Produto já possui procura");
   } else {
-    motivos.push(
-      "👀 Demanda ainda pequena"
-    );
+    motivos.push("👀 Demanda ainda pequena");
   }
-
-  // AVALIAÇÃO
 
   if (avaliacao >= 4.8) {
-    motivos.push(
-      "⭐ Excelente avaliação"
-    );
+    motivos.push("⭐ Excelente avaliação");
   } else if (avaliacao >= 4.5) {
-    motivos.push(
-      "✓ Boa avaliação"
-    );
+    motivos.push("✓ Boa avaliação");
   } else if (avaliacao > 0) {
-    motivos.push(
-      "⚠️ Avaliação pode melhorar"
-    );
+    motivos.push("⚠️ Avaliação pode melhorar");
   }
-
-  // COMISSÃO
 
   if (comissao >= 10) {
-    motivos.push(
-      "💰 Comissão muito atrativa"
-    );
+    motivos.push("💰 Comissão muito atrativa");
   } else if (comissao >= 5) {
-    motivos.push(
-      "✓ Comissão interessante"
-    );
+    motivos.push("✓ Comissão interessante");
   } else if (comissao > 0) {
-    motivos.push(
-      "👀 Comissão relativamente baixa"
-    );
+    motivos.push("👀 Comissão relativamente baixa");
   }
-
-  // GANHO
 
   if (ganho >= 20) {
-    motivos.push(
-      "💵 Excelente ganho por venda"
-    );
+    motivos.push("💵 Excelente ganho por venda");
   } else if (ganho >= 5) {
-    motivos.push(
-      "✓ Bom ganho estimado"
-    );
+    motivos.push("✓ Bom ganho estimado");
   }
 
-  // PREÇO
-
-  if (
-    preco >= 20 &&
-    preco <= 100
-  ) {
-    motivos.push(
-      "🛒 Faixa de preço favorável"
-    );
+  if (preco >= 20 && preco <= 100) {
+    motivos.push("🛒 Faixa de preço favorável");
   } else if (preco > 400) {
-    motivos.push(
-      "👀 Ticket mais alto"
-    );
+    motivos.push("👀 Ticket mais alto");
   }
 
   return motivos;
@@ -486,7 +373,6 @@ function analisarScore(produto) {
 // ======================================================
 
 function obterClassificacao(score) {
-
   if (score >= 85) {
     return {
       emoji: "🔥",
@@ -515,13 +401,11 @@ function obterClassificacao(score) {
 }
 
 // ======================================================
-// NORMALIZAÇÃO DO PRODUTO
+// NORMALIZAÇÃO
 // ======================================================
 
 function normalizarProduto(p) {
-
   const produto = {
-
     id:
       p.id ||
       p.itemId ||
@@ -625,10 +509,6 @@ function normalizarProduto(p) {
       ""
   };
 
-  // IMPORTANTE:
-  // Sempre calculamos o Score V2 aqui.
-  // Ignoramos o score antigo da API.
-
   produto.radar_score =
     calcularScore(produto);
 
@@ -636,11 +516,64 @@ function normalizarProduto(p) {
 }
 
 // ======================================================
-// BUSCA ATUAL
+// KEYWORDS PADRÃO
+//
+// A API exige keyword.
+// Quando o usuário não pesquisa nada,
+// cada aba ganha uma busca apropriada.
+// ======================================================
+
+const KEYWORDS_RADAR = [
+  "ofertas",
+  "beleza",
+  "moda",
+  "casa",
+  "acessorios"
+];
+
+const KEYWORDS_VENDIDOS = [
+  "mais vendidos",
+  "ofertas",
+  "utilidades",
+  "beleza",
+  "moda"
+];
+
+const KEYWORDS_COMISSAO = [
+  "moda",
+  "beleza",
+  "acessorios",
+  "casa",
+  "eletronicos"
+];
+
+let indiceKeywordPadrao = 0;
+
+function obterKeywordPadrao() {
+  let lista = KEYWORDS_RADAR;
+
+  if (filtroAtual === "hot") {
+    lista = KEYWORDS_VENDIDOS;
+  }
+
+  if (filtroAtual === "commission") {
+    lista = KEYWORDS_COMISSAO;
+  }
+
+  const keyword =
+    lista[
+      indiceKeywordPadrao %
+      lista.length
+    ];
+
+  return keyword;
+}
+
+// ======================================================
+// KEYWORD ATUAL
 // ======================================================
 
 function obterKeywordAtual() {
-
   const busca =
     buscaDigitada.trim();
 
@@ -661,7 +594,7 @@ function obterKeywordAtual() {
     return nicho;
   }
 
-  return "";
+  return obterKeywordPadrao();
 }
 
 // ======================================================
@@ -669,7 +602,6 @@ function obterKeywordAtual() {
 // ======================================================
 
 function atualizarTituloFavoritos() {
-
   if (!resultsTitle) return;
 
   resultsTitle.textContent =
@@ -677,7 +609,6 @@ function atualizarTituloFavoritos() {
 }
 
 function atualizarTitulo() {
-
   if (!resultsTitle) return;
 
   if (modoFavoritos) {
@@ -686,7 +617,6 @@ function atualizarTitulo() {
   }
 
   if (buscaDigitada) {
-
     resultsTitle.textContent =
       `Resultados para "${buscaDigitada}"`;
 
@@ -697,7 +627,6 @@ function atualizarTitulo() {
     categoryFilter &&
     nichoAtual !== "all"
   ) {
-
     const option =
       categoryFilter.options[
         categoryFilter.selectedIndex
@@ -705,12 +634,27 @@ function atualizarTitulo() {
 
     resultsTitle.textContent =
       option.textContent
-        .replace(
-          /[^\p{L}\p{N}\s&]/gu,
-          ""
-        )
+        .replace(/[^\p{L}\p{N}\s&]/gu, "")
         .trim();
 
+    return;
+  }
+
+  if (filtroAtual === "hot") {
+    resultsTitle.textContent =
+      "Produtos mais vendidos";
+    return;
+  }
+
+  if (filtroAtual === "commission") {
+    resultsTitle.textContent =
+      "Maiores comissões";
+    return;
+  }
+
+  if (filtroAtual === "rating") {
+    resultsTitle.textContent =
+      "Melhores avaliações";
     return;
   }
 
@@ -723,9 +667,7 @@ function atualizarTitulo() {
 // ======================================================
 
 function montarURL(pagina) {
-
-  const url =
-    new URL(API_URL);
+  const url = new URL(API_URL);
 
   url.searchParams.set(
     "page",
@@ -737,15 +679,10 @@ function montarURL(pagina) {
     "20"
   );
 
-  const keyword =
-    obterKeywordAtual();
-
-  if (keyword) {
-    url.searchParams.set(
-      "keyword",
-      keyword
-    );
-  }
+  url.searchParams.set(
+    "keyword",
+    obterKeywordAtual()
+  );
 
   return url.toString();
 }
@@ -755,7 +692,6 @@ function montarURL(pagina) {
 // ======================================================
 
 function mostrarCarregandoInicial() {
-
   if (!productsGrid) return;
 
   if (emptyState) {
@@ -768,23 +704,18 @@ function mostrarCarregandoInicial() {
       style="grid-column:1/-1;"
     >
       <div class="loader"></div>
-
-      <p>
-        Consultando produtos na Shopee...
-      </p>
+      <p>Consultando produtos na Shopee...</p>
     </div>
   `;
 }
 
 function mostrarCarregandoMais() {
-
   if (infiniteLoader) {
     infiniteLoader.hidden = false;
   }
 }
 
 function esconderCarregandoMais() {
-
   if (infiniteLoader) {
     infiniteLoader.hidden = true;
   }
@@ -795,7 +726,6 @@ function esconderCarregandoMais() {
 // ======================================================
 
 function mostrarErro(mensagem) {
-
   if (!productsGrid) return;
 
   productsGrid.innerHTML = `
@@ -806,7 +736,6 @@ function mostrarErro(mensagem) {
         grid-column:1/-1;
       "
     >
-
       <div>⚠️</div>
 
       <h3>
@@ -831,7 +760,6 @@ function mostrarErro(mensagem) {
       >
         Tentar novamente
       </button>
-
     </div>
   `;
 
@@ -839,21 +767,19 @@ function mostrarErro(mensagem) {
     .getElementById("retryButton")
     ?.addEventListener(
       "click",
-      reiniciarRadar
+      () => reiniciarRadar(true)
     );
 }
 
 // ======================================================
-// CONSULTAR SHOPEE
+// CONSULTAR API
 // ======================================================
 
 async function carregarProdutos(
   pagina = 1,
   adicionar = false
 ) {
-
   if (carregando) return;
-
   if (modoFavoritos) return;
 
   if (
@@ -872,9 +798,7 @@ async function carregarProdutos(
   }
 
   try {
-
-    const url =
-      montarURL(pagina);
+    const url = montarURL(pagina);
 
     console.log(
       "Shopee Radar:",
@@ -882,24 +806,28 @@ async function carregarProdutos(
     );
 
     const resposta =
-      await fetch(
-        url,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          }
+      await fetch(url, {
+        headers: {
+          Accept: "application/json"
         }
-      );
+      });
 
-    if (!resposta.ok) {
+    let dados;
+
+    try {
+      dados = await resposta.json();
+    } catch {
       throw new Error(
-        `Erro ${resposta.status} ao consultar a API`
+        `Resposta inválida da API (${resposta.status})`
       );
     }
 
-    const dados =
-      await resposta.json();
+    if (!resposta.ok) {
+      throw new Error(
+        dados?.erro ||
+        `Erro ${resposta.status} ao consultar a API`
+      );
+    }
 
     if (dados.ok === false) {
       throw new Error(
@@ -914,14 +842,9 @@ async function carregarProdutos(
         : [];
 
     let novos =
-      lista.map(
-        normalizarProduto
-      );
-
-    // NÃO DUPLICAR
+      lista.map(normalizarProduto);
 
     if (adicionar) {
-
       const existentes =
         new Set(
           produtos.map(
@@ -937,16 +860,10 @@ async function carregarProdutos(
             )
         );
 
-      produtos.push(
-        ...novos
-      );
-
+      produtos.push(...novos);
     } else {
-
       produtos = novos;
     }
-
-    // PAGINAÇÃO
 
     paginaAtual =
       Number(
@@ -967,14 +884,12 @@ async function carregarProdutos(
     aplicarOrdenacao();
 
   } catch (erro) {
-
     console.error(
       "ERRO SHOPEE RADAR:",
       erro
     );
 
     if (!adicionar) {
-
       mostrarErro(
         erro instanceof Error
           ? erro.message
@@ -983,32 +898,78 @@ async function carregarProdutos(
     }
 
   } finally {
-
     carregando = false;
-
     esconderCarregandoMais();
   }
 }
 
 // ======================================================
-// REINICIAR RADAR
+// REINICIAR
 // ======================================================
 
-function reiniciarRadar() {
-
+function reiniciarRadar(
+  resetarKeyword = true
+) {
   modoFavoritos = false;
 
   produtos = [];
-
   paginaAtual = 1;
   temProximaPagina = true;
 
+  if (resetarKeyword) {
+    indiceKeywordPadrao = 0;
+  }
+
   atualizarTitulo();
 
-  carregarProdutos(
-    1,
-    false
-  );
+  carregarProdutos(1, false);
+}
+
+// ======================================================
+// TROCAR ABA
+// ======================================================
+
+function trocarFiltro(filtro) {
+  modoFavoritos = false;
+  filtroAtual = filtro;
+
+  if (filtro === "hot") {
+    ordenacaoAtual = "sales";
+  } else if (filtro === "commission") {
+    ordenacaoAtual = "commission";
+  } else if (filtro === "rating") {
+    ordenacaoAtual = "rating";
+  } else {
+    ordenacaoAtual = "radar";
+  }
+
+  document
+    .querySelectorAll("[data-filter]")
+    .forEach(item => {
+      item.classList.toggle(
+        "active",
+        item.dataset.filter === filtro
+      );
+    });
+
+  document
+    .querySelectorAll("[data-sort]")
+    .forEach(item => {
+      item.classList.toggle(
+        "active",
+        item.dataset.sort ===
+          ordenacaoAtual
+      );
+    });
+
+  /*
+   * IMPORTANTE:
+   * Agora trocar a aba reinicia a consulta.
+   * Não fica apenas reorganizando visualmente
+   * a lista anterior.
+   */
+
+  reiniciarRadar(true);
 }
 
 // ======================================================
@@ -1016,7 +977,6 @@ function reiniciarRadar() {
 // ======================================================
 
 function carregarProximaPagina() {
-
   if (
     modoFavoritos ||
     carregando ||
@@ -1036,13 +996,10 @@ function carregarProximaPagina() {
 // ======================================================
 
 function atualizarContadores() {
-
   const oportunidades =
     produtos.filter(
       p =>
-        Number(
-          p.radar_score
-        ) >= 70
+        Number(p.radar_score) >= 70
     );
 
   if (totalProdutos) {
@@ -1066,74 +1023,69 @@ function atualizarContadores() {
 // ======================================================
 
 function aplicarOrdenacao() {
-
   if (modoFavoritos) {
-
-    renderizarProdutos(
-      favoritos
-    );
-
+    renderizarProdutos(favoritos);
     return;
   }
 
-  let resultado =
-    [...produtos];
+  let resultado = [...produtos];
 
   switch (ordenacaoAtual) {
-
     case "relevance":
-      // Ordem original enviada pela Shopee
       break;
 
     case "sales":
-
       resultado.sort(
         (a, b) =>
-          b.sold_count -
-          a.sold_count
+          Number(b.sold_count) -
+          Number(a.sold_count)
       );
-
       break;
 
     case "commission":
-
       resultado.sort(
-        (a, b) =>
-          normalizarPercentual(
-            b.commission_rate
-          ) -
-          normalizarPercentual(
-            a.commission_rate
-          )
-      );
+        (a, b) => {
+          const taxaB =
+            normalizarPercentual(
+              b.commission_rate
+            );
 
+          const taxaA =
+            normalizarPercentual(
+              a.commission_rate
+            );
+
+          if (taxaB !== taxaA) {
+            return taxaB - taxaA;
+          }
+
+          return (
+            Number(b.commission_value) -
+            Number(a.commission_value)
+          );
+        }
+      );
       break;
 
     case "rating":
-
       resultado.sort(
         (a, b) =>
-          b.rating -
-          a.rating
+          Number(b.rating) -
+          Number(a.rating)
       );
-
       break;
 
     case "radar":
     default:
-
       resultado.sort(
         (a, b) =>
-          b.radar_score -
-          a.radar_score
+          Number(b.radar_score) -
+          Number(a.radar_score)
       );
-
       break;
   }
 
-  renderizarProdutos(
-    resultado
-  );
+  renderizarProdutos(resultado);
 }
 
 // ======================================================
@@ -1141,11 +1093,8 @@ function aplicarOrdenacao() {
 // ======================================================
 
 function criarCard(produto) {
-
   const score =
-    Number(
-      produto.radar_score || 0
-    );
+    Number(produto.radar_score || 0);
 
   const classificacao =
     obterClassificacao(score);
@@ -1189,8 +1138,6 @@ function criarCard(produto) {
           align-items:center;
           justify-content:center;
           cursor:pointer;
-          backdrop-filter:blur(8px);
-          -webkit-backdrop-filter:blur(8px);
         "
       >
         ${favoritado ? "♥" : "♡"}
@@ -1199,12 +1146,12 @@ function criarCard(produto) {
       ${
         produto.image_url
           ? `
-          <img
-            class="product-image"
-            src="${escapar(produto.image_url)}"
-            alt="${escapar(produto.name)}"
-            loading="lazy"
-          >
+            <img
+              class="product-image"
+              src="${escapar(produto.image_url)}"
+              alt="${escapar(produto.name)}"
+              loading="lazy"
+            >
           `
           : ""
       }
@@ -1235,45 +1182,30 @@ function criarCard(produto) {
         <div class="product-stats">
 
           <div class="product-stat">
-
-            <span>
-              VENDIDOS
-            </span>
-
+            <span>VENDIDOS</span>
             <strong>
               ${formatarNumero(
                 produto.sold_count
               )}
             </strong>
-
           </div>
 
           <div class="product-stat">
-
-            <span>
-              AVALIAÇÃO
-            </span>
-
+            <span>AVALIAÇÃO</span>
             <strong>
               ⭐ ${Number(
                 produto.rating
               ).toFixed(1)}
             </strong>
-
           </div>
 
           <div class="product-stat">
-
-            <span>
-              COMISSÃO
-            </span>
-
+            <span>COMISSÃO</span>
             <strong>
               ${percentual(
                 produto.commission_rate
               )}
             </strong>
-
           </div>
 
         </div>
@@ -1281,7 +1213,6 @@ function criarCard(produto) {
         <div class="product-footer">
 
           <div>
-
             <small>
               RADAR SCORE V2
             </small>
@@ -1289,21 +1220,14 @@ function criarCard(produto) {
             <strong>
               ${score}
             </strong>
-
           </div>
 
           <div class="product-price">
-
-            <small>
-              PREÇO
-            </small>
+            <small>PREÇO</small>
 
             <strong>
-              ${dinheiro(
-                produto.price
-              )}
+              ${dinheiro(produto.price)}
             </strong>
-
           </div>
 
         </div>
@@ -1311,20 +1235,20 @@ function criarCard(produto) {
         ${
           produto.commission_value > 0
             ? `
-            <div
-              style="
-                margin-top:10px;
-                font-size:12px;
-                opacity:.85;
-              "
-            >
-              💰 Ganho estimado:
-              <strong>
-                ${dinheiro(
-                  produto.commission_value
-                )}
-              </strong>
-            </div>
+              <div
+                style="
+                  margin-top:10px;
+                  font-size:12px;
+                  opacity:.85;
+                "
+              >
+                💰 Ganho estimado:
+                <strong>
+                  ${dinheiro(
+                    produto.commission_value
+                  )}
+                </strong>
+              </div>
             `
             : ""
         }
@@ -1340,15 +1264,12 @@ function criarCard(produto) {
 // ======================================================
 
 function renderizarProdutos(lista) {
-
   if (!productsGrid) return;
 
   if (!lista.length) {
-
     productsGrid.innerHTML = "";
 
     if (emptyState) {
-
       emptyState.hidden = false;
 
       const titulo =
@@ -1358,7 +1279,6 @@ function renderizarProdutos(lista) {
         emptyState.querySelector("p");
 
       if (modoFavoritos) {
-
         if (titulo) {
           titulo.textContent =
             "Nenhum favorito ainda";
@@ -1368,9 +1288,7 @@ function renderizarProdutos(lista) {
           texto.textContent =
             "Toque no coração de um produto para salvá-lo aqui.";
         }
-
       } else {
-
         if (titulo) {
           titulo.textContent =
             "Nenhum produto encontrado";
@@ -1391,22 +1309,14 @@ function renderizarProdutos(lista) {
   }
 
   productsGrid.innerHTML =
-    lista
-      .map(criarCard)
-      .join("");
-
-  // ABRIR PRODUTO
+    lista.map(criarCard).join("");
 
   document
-    .querySelectorAll(
-      ".product-card"
-    )
+    .querySelectorAll(".product-card")
     .forEach(card => {
-
       card.addEventListener(
         "click",
         () => {
-
           const produto =
             encontrarProduto(
               card.dataset.id
@@ -1419,18 +1329,12 @@ function renderizarProdutos(lista) {
       );
     });
 
-  // FAVORITAR
-
   document
-    .querySelectorAll(
-      ".favorite-btn"
-    )
+    .querySelectorAll(".favorite-btn")
     .forEach(botao => {
-
       botao.addEventListener(
         "click",
         event => {
-
           event.preventDefault();
           event.stopPropagation();
 
@@ -1447,7 +1351,6 @@ function renderizarProdutos(lista) {
 // ======================================================
 
 function abrirModal(produto) {
-
   if (
     !productModal ||
     !modalBody
@@ -1459,9 +1362,7 @@ function abrirModal(produto) {
     estaFavoritado(produto.id);
 
   const score =
-    Number(
-      produto.radar_score || 0
-    );
+    Number(produto.radar_score || 0);
 
   const classificacao =
     obterClassificacao(score);
@@ -1474,18 +1375,16 @@ function abrirModal(produto) {
     ${
       produto.image_url
         ? `
-        <img
-          src="${escapar(
-            produto.image_url
-          )}"
-          style="
-            width:100%;
-            max-height:300px;
-            object-fit:contain;
-            border-radius:14px;
-            margin-bottom:16px;
-          "
-        >
+          <img
+            src="${escapar(produto.image_url)}"
+            style="
+              width:100%;
+              max-height:300px;
+              object-fit:contain;
+              border-radius:14px;
+              margin-bottom:16px;
+            "
+          >
         `
         : ""
     }
@@ -1495,9 +1394,7 @@ function abrirModal(produto) {
     </h2>
 
     <p style="margin-top:8px;">
-      🏪 ${escapar(
-        produto.shop_name
-      )}
+      🏪 ${escapar(produto.shop_name)}
     </p>
 
     <div
@@ -1510,42 +1407,26 @@ function abrirModal(produto) {
       "
     >
 
+      <small>
+        RADAR SCORE V2
+      </small>
+
       <div
         style="
+          margin-top:5px;
           display:flex;
-          align-items:center;
           justify-content:space-between;
           gap:12px;
         "
       >
-
-        <div>
-
-          <small
-            style="
-              display:block;
-              opacity:.6;
-              margin-bottom:4px;
-            "
-          >
-            RADAR SCORE V2
-          </small>
-
-          <strong
-            style="
-              font-size:26px;
-            "
-          >
-            ${score}/100
-          </strong>
-
-        </div>
+        <strong style="font-size:26px;">
+          ${score}/100
+        </strong>
 
         <strong>
           ${classificacao.emoji}
           ${classificacao.nome}
         </strong>
-
       </div>
 
     </div>
@@ -1609,7 +1490,6 @@ function abrirModal(produto) {
           font-size:14px;
         "
       >
-
         ${motivos
           .map(
             motivo => `
@@ -1619,7 +1499,6 @@ function abrirModal(produto) {
             `
           )
           .join("")}
-
       </div>
 
     </div>
@@ -1636,7 +1515,6 @@ function abrirModal(produto) {
         background:#151821;
         color:white;
         font-weight:800;
-        cursor:pointer;
       "
     >
       ${
@@ -1649,50 +1527,45 @@ function abrirModal(produto) {
     ${
       produto.affiliate_url
         ? `
-        <a
-          href="${escapar(
-            produto.affiliate_url
-          )}"
-          target="_blank"
-          rel="noopener noreferrer"
-          style="
-            display:block;
-            margin-top:12px;
-            padding:15px;
-            text-align:center;
-            background:#ff5a1f;
-            color:white;
-            border-radius:12px;
-            text-decoration:none;
-            font-weight:800;
-          "
-        >
-          🛒 Abrir na Shopee
-        </a>
+          <a
+            href="${escapar(
+              produto.affiliate_url
+            )}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              margin-top:12px;
+              padding:15px;
+              text-align:center;
+              background:#ff5a1f;
+              color:white;
+              border-radius:12px;
+              text-decoration:none;
+              font-weight:800;
+            "
+          >
+            🛒 Abrir na Shopee
+          </a>
         `
         : ""
     }
   `;
 
-  const modalFavoriteButton =
-    document.getElementById(
+  document
+    .getElementById(
       "modalFavoriteButton"
-    );
-
-  if (modalFavoriteButton) {
-
-    modalFavoriteButton.addEventListener(
+    )
+    ?.addEventListener(
       "click",
-      () => {
+      event => {
+        const id =
+          event.currentTarget.dataset.id;
 
-        alternarFavorito(
-          modalFavoriteButton.dataset.id
-        );
+        alternarFavorito(id);
 
         const atualizado =
-          encontrarProduto(
-            modalFavoriteButton.dataset.id
-          );
+          encontrarProduto(id);
 
         if (atualizado) {
           abrirModal(atualizado);
@@ -1701,13 +1574,11 @@ function abrirModal(produto) {
         }
       }
     );
-  }
 
   productModal.hidden = false;
 }
 
 function fecharModal() {
-
   if (productModal) {
     productModal.hidden = true;
   }
@@ -1718,19 +1589,16 @@ function fecharModal() {
 // ======================================================
 
 if (searchInput) {
-
   searchInput.addEventListener(
     "keydown",
     event => {
-
       if (event.key === "Enter") {
-
         buscaDigitada =
           searchInput.value.trim();
 
         modoFavoritos = false;
 
-        reiniciarRadar();
+        reiniciarRadar(true);
       }
     }
   );
@@ -1738,14 +1606,11 @@ if (searchInput) {
   searchInput.addEventListener(
     "search",
     () => {
-
       if (!searchInput.value) {
-
         buscaDigitada = "";
-
         modoFavoritos = false;
 
-        reiniciarRadar();
+        reiniciarRadar(true);
       }
     }
   );
@@ -1756,53 +1621,42 @@ if (searchInput) {
 // ======================================================
 
 if (categoryFilter) {
-
   categoryFilter.addEventListener(
     "change",
     () => {
-
       nichoAtual =
         categoryFilter.value;
 
       modoFavoritos = false;
 
-      reiniciarRadar();
+      reiniciarRadar(true);
     }
   );
 }
 
 // ======================================================
-// BOTÕES DE ORDENAÇÃO
+// BOTÕES ORDENAR POR
 // ======================================================
 
 document
-  .querySelectorAll(
-    "[data-sort]"
-  )
+  .querySelectorAll("[data-sort]")
   .forEach(botao => {
-
     botao.addEventListener(
       "click",
       () => {
-
         modoFavoritos = false;
 
         ordenacaoAtual =
-          botao.dataset.sort;
+          botao.dataset.sort || "radar";
 
         document
-          .querySelectorAll(
-            "[data-sort]"
-          )
+          .querySelectorAll("[data-sort]")
           .forEach(item => {
-
             item.classList.toggle(
               "active",
               item === botao
             );
           });
-
-        atualizarTitulo();
 
         aplicarOrdenacao();
       }
@@ -1810,26 +1664,21 @@ document
   });
 
 // ======================================================
-// ABAS SUPERIORES + MENU MOBILE
+// ABAS PRINCIPAIS
 // ======================================================
 
 document
-  .querySelectorAll(
-    "[data-filter]"
-  )
+  .querySelectorAll("[data-filter]")
   .forEach(botao => {
-
     botao.addEventListener(
       "click",
       () => {
-
         const filtro =
           botao.dataset.filter;
 
         // FAVORITOS
 
         if (filtro === "favorites") {
-
           modoFavoritos = true;
 
           esconderCarregandoMais();
@@ -1839,7 +1688,6 @@ document
               "[data-filter]"
             )
             .forEach(item => {
-
               item.classList.toggle(
                 "active",
                 item.dataset.filter ===
@@ -1852,82 +1700,27 @@ document
               "[data-sort]"
             )
             .forEach(item => {
-
               item.classList.remove(
                 "active"
               );
             });
 
           atualizarTituloFavoritos();
-
-          renderizarProdutos(
-            favoritos
-          );
+          renderizarProdutos(favoritos);
 
           return;
         }
 
-        // RADAR NORMAL
-
-        modoFavoritos = false;
-
-        let sort =
-          "radar";
-
-        if (filtro === "hot") {
-          sort = "sales";
-        }
-
-        if (filtro === "commission") {
-          sort = "commission";
-        }
-
-        if (filtro === "rating") {
-          sort = "rating";
-        }
-
-        ordenacaoAtual =
-          sort;
-
-        document
-          .querySelectorAll(
-            "[data-filter]"
-          )
-          .forEach(item => {
-
-            item.classList.toggle(
-              "active",
-              item.dataset.filter ===
-                filtro
-            );
-          });
-
-        document
-          .querySelectorAll(
-            "[data-sort]"
-          )
-          .forEach(item => {
-
-            item.classList.toggle(
-              "active",
-              item.dataset.sort ===
-                sort
-            );
-          });
-
-        atualizarTitulo();
-
-        aplicarOrdenacao();
+        trocarFiltro(filtro);
       }
     );
   });
 
 // ======================================================
-// MODAL
+// FECHAR MODAL
 // ======================================================
 
 if (closeModal) {
-
   closeModal.addEventListener(
     "click",
     fecharModal
@@ -1935,11 +1728,8 @@ if (closeModal) {
 }
 
 if (productModal) {
-
   productModal
-    .querySelector(
-      ".modal-overlay"
-    )
+    .querySelector(".modal-overlay")
     ?.addEventListener(
       "click",
       fecharModal
@@ -1947,16 +1737,13 @@ if (productModal) {
 }
 
 // ======================================================
-// ROLAGEM INFINITA
+// SCROLL INFINITO
 // ======================================================
 
 window.addEventListener(
   "scroll",
   () => {
-
-    if (modoFavoritos) {
-      return;
-    }
+    if (modoFavoritos) return;
 
     const posicao =
       window.innerHeight +
@@ -1979,7 +1766,7 @@ window.addEventListener(
 );
 
 // ======================================================
-// INICIAR
+// INICIALIZAÇÃO
 // ======================================================
 
-reiniciarRadar();
+reiniciarRadar(true);
