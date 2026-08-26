@@ -38,7 +38,9 @@ let favoritos = [];
 try {
   favoritos =
     JSON.parse(
-      localStorage.getItem("shopeeRadarFavoritos")
+      localStorage.getItem(
+        "shopeeRadarFavoritos"
+      )
     ) || [];
 
   if (!Array.isArray(favoritos)) {
@@ -70,7 +72,8 @@ function salvarFavoritos() {
 function estaFavoritado(id) {
   return favoritos.some(
     produto =>
-      String(produto.id) === String(id)
+      String(produto.id) ===
+      String(id)
   );
 }
 
@@ -78,11 +81,13 @@ function encontrarProduto(id) {
   return (
     produtos.find(
       produto =>
-        String(produto.id) === String(id)
+        String(produto.id) ===
+        String(id)
     ) ||
     favoritos.find(
       produto =>
-        String(produto.id) === String(id)
+        String(produto.id) ===
+        String(id)
     )
   );
 }
@@ -97,7 +102,8 @@ function alternarFavorito(id) {
     favoritos =
       favoritos.filter(
         item =>
-          String(item.id) !== String(id)
+          String(item.id) !==
+          String(id)
       );
   } else {
     favoritos.unshift({
@@ -109,7 +115,10 @@ function alternarFavorito(id) {
 
   if (modoFavoritos) {
     atualizarTituloFavoritos();
-    renderizarProdutos(favoritos);
+
+    renderizarProdutos(
+      favoritos
+    );
   } else {
     aplicarOrdenacao();
   }
@@ -120,40 +129,64 @@ function alternarFavorito(id) {
 // ======================================================
 
 const productsGrid =
-  document.getElementById("productsGrid");
+  document.getElementById(
+    "productsGrid"
+  );
 
 const emptyState =
-  document.getElementById("emptyState");
+  document.getElementById(
+    "emptyState"
+  );
 
 const totalProdutos =
-  document.getElementById("totalProdutos");
+  document.getElementById(
+    "totalProdutos"
+  );
 
 const totalOportunidades =
-  document.getElementById("totalOportunidades");
+  document.getElementById(
+    "totalOportunidades"
+  );
 
 const totalVideos =
-  document.getElementById("totalVideos");
+  document.getElementById(
+    "totalVideos"
+  );
 
 const searchInput =
-  document.getElementById("searchInput");
+  document.getElementById(
+    "searchInput"
+  );
 
 const categoryFilter =
-  document.getElementById("categoryFilter");
+  document.getElementById(
+    "categoryFilter"
+  );
 
 const productModal =
-  document.getElementById("productModal");
+  document.getElementById(
+    "productModal"
+  );
 
 const modalBody =
-  document.getElementById("modalBody");
+  document.getElementById(
+    "modalBody"
+  );
 
 const closeModal =
-  document.getElementById("closeModal");
+  document.getElementById(
+    "closeModal"
+  );
 
 const resultsTitle =
-  document.getElementById("resultsTitle");
+  document.getElementById(
+    "resultsTitle"
+  );
 
 const infiniteLoader =
-  document.getElementById("infiniteLoader");
+  document.getElementById(
+    "infiniteLoader"
+  );
 
 // ======================================================
 // SEGURANÇA
@@ -229,7 +262,9 @@ function percentual(valor) {
   );
 }
 
-function percentualCrescimento(valor) {
+function percentualCrescimento(
+  valor
+) {
   const n =
     Number(valor || 0);
 
@@ -245,7 +280,9 @@ function percentualCrescimento(valor) {
   );
 }
 
-function normalizarPercentual(valor) {
+function normalizarPercentual(
+  valor
+) {
   let n =
     Number(valor || 0);
 
@@ -289,7 +326,8 @@ function calcularScore(produto) {
 
   const ganho =
     Number(
-      produto.commission_value || 0
+      produto.commission_value ||
+        0
     );
 
   const comissao =
@@ -424,12 +462,15 @@ function analisarScore(produto) {
 
   const crescimento =
     Number(
-      produto.crescimento_percentual || 0
+      produto
+        .crescimento_percentual ||
+        0
     );
 
   const vendasHora =
     Number(
-      produto.vendas_por_hora || 0
+      produto.vendas_por_hora ||
+        0
     );
 
   const avaliacao =
@@ -439,7 +480,8 @@ function analisarScore(produto) {
 
   const ganho =
     Number(
-      produto.commission_value || 0
+      produto.commission_value ||
+        0
     );
 
   const preco =
@@ -454,7 +496,8 @@ function analisarScore(produto) {
 
   const opportunityScore =
     Number(
-      produto.opportunity_score || 0
+      produto.opportunity_score ||
+        0
     );
 
   const motivos = [];
@@ -666,7 +709,9 @@ function obterTendencia(produto) {
 
   const crescimento =
     Number(
-      produto.crescimento_percentual || 0
+      produto
+        .crescimento_percentual ||
+        0
     );
 
   const novasVendas =
@@ -693,10 +738,6 @@ function obterTendencia(produto) {
 
 // ======================================================
 // NORMALIZAÇÃO
-//
-// Aceita:
-// 1. resposta da busca Shopee
-// 2. resposta action=ranking
 // ======================================================
 
 function normalizarProduto(p) {
@@ -816,7 +857,9 @@ function normalizarProduto(p) {
 
     radar_score:
       Number(
-        p.radar_score ?? 0
+        p.radar_score ??
+          p.radarScore ??
+          0
       ),
 
     opportunity_score:
@@ -923,19 +966,17 @@ function obterKeywordPadrao() {
   }
 
   if (
-    filtroAtual === "commission"
+    filtroAtual ===
+    "commission"
   ) {
     lista =
       KEYWORDS_COMISSAO;
   }
 
-  const keyword =
-    lista[
-      indiceKeywordPadrao %
-        lista.length
-    ];
-
-  return keyword;
+  return lista[
+    indiceKeywordPadrao %
+      lista.length
+  ];
 }
 
 // ======================================================
@@ -1015,7 +1056,6 @@ function atualizarTitulo() {
   if (filtroAtual === "hot") {
     resultsTitle.textContent =
       "Produtos mais vendidos";
-
     return;
   }
 
@@ -1025,7 +1065,6 @@ function atualizarTitulo() {
   ) {
     resultsTitle.textContent =
       "Maiores comissões";
-
     return;
   }
 
@@ -1034,7 +1073,6 @@ function atualizarTitulo() {
   ) {
     resultsTitle.textContent =
       "Melhores avaliações";
-
     return;
   }
 
@@ -1043,7 +1081,6 @@ function atualizarTitulo() {
   ) {
     resultsTitle.textContent =
       "Produtos em crescimento";
-
     return;
   }
 
@@ -1052,21 +1089,19 @@ function atualizarTitulo() {
 }
 
 // ======================================================
-// DECIDIR ENTRE RANKING E BUSCA
+// RANKING OU BUSCA
 // ======================================================
 
 function deveUsarRankingServidor() {
   const temBusca =
-    buscaDigitada.trim().length > 0;
+    buscaDigitada
+      .trim()
+      .length > 0;
 
   const temNicho =
     nichoAtual !== "all";
 
-  if (temBusca || temNicho) {
-    return false;
-  }
-
-  return true;
+  return !temBusca && !temNicho;
 }
 
 // ======================================================
@@ -1081,7 +1116,7 @@ function montarURL(pagina) {
     deveUsarRankingServidor();
 
   // ==================================================
-  // RANKING INTELIGENTE
+  // RANKING PAGINADO
   // ==================================================
 
   if (usandoRankingServidor) {
@@ -1091,15 +1126,20 @@ function montarURL(pagina) {
     );
 
     url.searchParams.set(
+      "page",
+      String(pagina)
+    );
+
+    url.searchParams.set(
       "limit",
-      "100"
+      "20"
     );
 
     return url.toString();
   }
 
   // ==================================================
-  // BUSCA NORMAL
+  // BUSCA SHOPEE PAGINADA
   // ==================================================
 
   url.searchParams.set(
@@ -1213,6 +1253,37 @@ function mostrarErro(mensagem) {
 }
 
 // ======================================================
+// REMOVER DUPLICADOS
+// ======================================================
+
+function removerDuplicados(lista) {
+  const mapa =
+    new Map();
+
+  lista.forEach(
+    produto => {
+      const id =
+        String(
+          produto.id || ""
+        );
+
+      if (!id) return;
+
+      if (!mapa.has(id)) {
+        mapa.set(
+          id,
+          produto
+        );
+      }
+    }
+  );
+
+  return [
+    ...mapa.values()
+  ];
+}
+
+// ======================================================
 // CONSULTAR API
 // ======================================================
 
@@ -1221,6 +1292,7 @@ async function carregarProdutos(
   adicionar = false
 ) {
   if (carregando) return;
+
   if (modoFavoritos) return;
 
   if (
@@ -1291,74 +1363,81 @@ async function carregarProdutos(
         : [];
 
     let novos =
-      lista.map(
-        normalizarProduto
+      lista
+        .map(
+          normalizarProduto
+        )
+        .filter(
+          produto =>
+            String(
+              produto.id || ""
+            ).length > 0
+        );
+
+    // ==================================================
+    // PROTEÇÃO CONTRA PRODUTOS REPETIDOS
+    // ==================================================
+
+    novos =
+      removerDuplicados(
+        novos
       );
 
-    // ==================================================
-    // RANKING INTELIGENTE
-    // ==================================================
-
-    if (usandoRankingServidor) {
-      produtos =
-        novos;
-
-      paginaAtual = 1;
-
-      temProximaPagina =
-        false;
-    }
-
-    // ==================================================
-    // BUSCA NORMAL
-    // ==================================================
-
-    else {
-      if (adicionar) {
-        const existentes =
-          new Set(
-            produtos.map(
-              produto =>
-                String(
-                  produto.id
-                )
-            )
-          );
-
-        novos =
-          novos.filter(
+    if (adicionar) {
+      const idsExistentes =
+        new Set(
+          produtos.map(
             produto =>
-              !existentes.has(
-                String(
-                  produto.id
-                )
+              String(
+                produto.id
               )
-          );
-
-        produtos.push(
-          ...novos
-        );
-      } else {
-        produtos =
-          novos;
-      }
-
-      paginaAtual =
-        Number(
-          dados.paginaAtual ??
-            dados.pagina
-              ?.page ??
-            pagina
+          )
         );
 
-      temProximaPagina =
-        Boolean(
-          dados.temProximaPagina ??
-            dados.pagina
-              ?.hasNextPage ??
-            false
+      novos =
+        novos.filter(
+          produto =>
+            !idsExistentes.has(
+              String(
+                produto.id
+              )
+            )
+        );
+
+      produtos.push(
+        ...novos
+      );
+
+      produtos =
+        removerDuplicados(
+          produtos
+        );
+    } else {
+      produtos =
+        removerDuplicados(
+          novos
         );
     }
+
+    // ==================================================
+    // PAGINAÇÃO
+    // FUNCIONA TANTO NO RANKING QUANTO NA BUSCA
+    // ==================================================
+
+    paginaAtual =
+      Number(
+        dados.paginaAtual ??
+          dados.pagina?.page ??
+          pagina
+      );
+
+    temProximaPagina =
+      Boolean(
+        dados.temProximaPagina ??
+          dados.pagina
+            ?.hasNextPage ??
+          false
+      );
 
     atualizarContadores();
     atualizarTitulo();
@@ -1392,15 +1471,15 @@ async function carregarProdutos(
 function reiniciarRadar(
   resetarKeyword = true
 ) {
-  modoFavoritos =
-    false;
+  modoFavoritos = false;
 
   produtos = [];
 
   paginaAtual = 1;
 
-  temProximaPagina =
-    true;
+  temProximaPagina = true;
+
+  carregando = false;
 
   if (resetarKeyword) {
     indiceKeywordPadrao = 0;
@@ -1419,12 +1498,8 @@ function reiniciarRadar(
 // ======================================================
 
 function trocarFiltro(filtro) {
-  modoFavoritos =
-    false;
+  modoFavoritos = false;
 
-  // Proteção:
-  // "all" pertence ao Radar inferior.
-  // Não deve alterar o filtro real.
   if (filtro === "all") {
     window.scrollTo({
       top: 0,
@@ -1487,10 +1562,6 @@ function trocarFiltro(filtro) {
       );
     });
 
-  // Se o ranking inteligente já
-  // está carregado, apenas reorganiza.
-  // Não consulta a API novamente.
-
   if (
     deveUsarRankingServidor() &&
     produtos.length
@@ -1512,8 +1583,7 @@ function carregarProximaPagina() {
   if (
     modoFavoritos ||
     carregando ||
-    !temProximaPagina ||
-    usandoRankingServidor
+    !temProximaPagina
   ) {
     return;
   }
@@ -1570,7 +1640,9 @@ function aplicarOrdenacao() {
   }
 
   let resultado =
-    [...produtos];
+    removerDuplicados(
+      [...produtos]
+    );
 
   switch (
     ordenacaoAtual
@@ -1719,7 +1791,8 @@ function aplicarOrdenacao() {
 function criarCard(produto) {
   const score =
     Number(
-      produto.radar_score || 0
+      produto.radar_score ||
+        0
     );
 
   const opportunityScore =
@@ -1745,18 +1818,21 @@ function criarCard(produto) {
 
   const novasVendas =
     Number(
-      produto.novas_vendas || 0
+      produto.novas_vendas ||
+        0
     );
 
   const crescimento =
     Number(
-      produto.crescimento_percentual ||
+      produto
+        .crescimento_percentual ||
         0
     );
 
   const vendasHora =
     Number(
-      produto.vendas_por_hora || 0
+      produto.vendas_por_hora ||
+        0
     );
 
   const tendencia =
@@ -1825,6 +1901,7 @@ function criarCard(produto) {
                 produto.name
               )}"
               loading="lazy"
+              decoding="async"
             >
           `
           : ""
@@ -2072,10 +2149,17 @@ function criarCard(produto) {
 // RENDER
 // ======================================================
 
-function renderizarProdutos(lista) {
+function renderizarProdutos(
+  lista
+) {
   if (!productsGrid) return;
 
-  if (!lista.length) {
+  const listaUnica =
+    removerDuplicados(
+      lista
+    );
+
+  if (!listaUnica.length) {
     productsGrid.innerHTML =
       "";
 
@@ -2125,7 +2209,7 @@ function renderizarProdutos(lista) {
   }
 
   productsGrid.innerHTML =
-    lista
+    listaUnica
       .map(criarCard)
       .join("");
 
@@ -2190,7 +2274,8 @@ function abrirModal(produto) {
 
   const score =
     Number(
-      produto.radar_score || 0
+      produto.radar_score ||
+        0
     );
 
   const opportunityScore =
@@ -2216,18 +2301,21 @@ function abrirModal(produto) {
 
   const novasVendas =
     Number(
-      produto.novas_vendas || 0
+      produto.novas_vendas ||
+        0
     );
 
   const crescimento =
     Number(
-      produto.crescimento_percentual ||
+      produto
+        .crescimento_percentual ||
         0
     );
 
   const vendasHora =
     Number(
-      produto.vendas_por_hora || 0
+      produto.vendas_por_hora ||
+        0
     );
 
   const tendencia =
@@ -2672,7 +2760,7 @@ if (categoryFilter) {
 }
 
 // ======================================================
-// BOTÕES ORDENAR POR
+// BOTÕES ORDENAR
 // ======================================================
 
 document
@@ -2723,16 +2811,8 @@ document
           botao.dataset.filter;
 
         // ==============================================
-        // RADAR DO MENU INFERIOR
-        //
-        // SOMENTE sobe para o topo.
-        //
-        // NÃO:
-        // - reinicia produtos
-        // - chama API
-        // - altera ranking
-        // - troca ordenação
-        // - perde produtos carregados
+        // RADAR INFERIOR
+        // Apenas volta ao topo
         // ==============================================
 
         if (
@@ -2800,10 +2880,6 @@ document
           return;
         }
 
-        // ==============================================
-        // OUTROS FILTROS
-        // ==============================================
-
         trocarFiltro(
           filtro
         );
@@ -2833,8 +2909,6 @@ if (productModal) {
     );
 }
 
-// Fecha modal com ESC
-
 document.addEventListener(
   "keydown",
   event => {
@@ -2850,21 +2924,20 @@ document.addEventListener(
 
 // ======================================================
 // SCROLL INFINITO
+//
+// AGORA FUNCIONA:
+// - Ranking
+// - Busca
+// - Nichos
 // ======================================================
 
 window.addEventListener(
   "scroll",
   () => {
-    if (modoFavoritos) {
-      return;
-    }
-
-    // Ranking inteligente recebe
-    // todos os produtos necessários
-    // em uma única consulta.
-
     if (
-      usandoRankingServidor
+      modoFavoritos ||
+      carregando ||
+      !temProximaPagina
     ) {
       return;
     }
@@ -2880,7 +2953,7 @@ window.addEventListener(
 
     if (
       posicao >=
-      altura - 800
+      altura - 900
     ) {
       carregarProximaPagina();
     }
@@ -2891,10 +2964,7 @@ window.addEventListener(
 );
 
 // ======================================================
-// PROTEÇÃO EXTRA DO RADAR INFERIOR
-//
-// Caso o botão no HTML seja um <a>,
-// impede navegação ou reload.
+// PROTEÇÃO RADAR INFERIOR
 // ======================================================
 
 document
@@ -2902,7 +2972,6 @@ document
     ".bottom-item"
   )
   .forEach(botao => {
-
     if (
       botao.dataset.filter !==
       "all"
