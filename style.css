@@ -1473,3 +1473,98 @@ select {
     font-size: 11px !important;
   }
 }
+
+/* ======================================================
+   CORREÇÃO DOS CARDS — TEXTO CORTADO
+   ====================================================== */
+
+/* Card não pode esconder conteúdo */
+.product-card {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+/* Conteúdo interno cresce normalmente */
+.product-card-content {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Nome do produto:
+   mostra até 3 linhas e corta de forma organizada */
+.product-name {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  line-height: 1.25;
+  margin-bottom: 7px;
+}
+
+/* Nome da loja:
+   uma linha, sem invadir os dados */
+.product-shop {
+  display: block !important;
+
+  width: 100%;
+  height: auto !important;
+  min-height: 20px !important;
+  max-height: none !important;
+
+  white-space: nowrap;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+
+  line-height: 20px;
+  margin-bottom: 10px;
+}
+
+/* Área de vendidos / avaliação / comissão */
+.product-stats {
+  margin-top: 0 !important;
+  flex-shrink: 0;
+}
+
+/* Rodapé do card */
+.product-footer {
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+/* Evita que o ganho estimado fique espremido */
+.product-card-content > div:last-child {
+  flex-shrink: 0;
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  .product-card-content {
+    padding: 12px !important;
+  }
+
+  .product-name {
+    font-size: 15px !important;
+    line-height: 1.25 !important;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .product-shop {
+    font-size: 11px !important;
+    line-height: 18px !important;
+    min-height: 18px !important;
+  }
+}
