@@ -1,14 +1,23 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
-// Dados reais via Shopee + Supabase Edge Function
+// Shopee Affiliate API + Supabase Edge Function
+// Paginação + rolagem infinita + filtros
 // ======================================================
 
 const API_URL =
   "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-api";
 
+// ======================================================
+// ESTADO
+// ======================================================
+
 let produtos = [];
 let filtroAtual = "all";
 let ultimaBusca = "";
+
+let paginaAtual = 1;
+let temProximaPagina = true;
+let carregando = false;
 
 // ======================================================
 // ELEMENTOS
@@ -73,19 +82,33 @@ function formatarNumero(valor) {
 }
 
 function percentual(valor) {
-  return Number(valor || 0)
+  let numero = Number(valor || 0);
+
+  // A API pode retornar 0.15 = 15%
+  if (numero > 0 && numero <= 1) {
+    numero *= 100;
+  }
+
+  return numero
     .toFixed(2)
     .replace(".", ",") + "%";
 }
 
 // ======================================================
-// NORMALIZAR PRODUTO DA SHOPEE
+// NORMALIZAR PRODUTO
 // ======================================================
 
 function normalizarProduto(p) {
   return {
-    id: p.id || p.itemId || "",
-    name: p.nome || p.productName || "Produto Shopee",
+    id:
+      p.id ||
+      p.itemId ||
+      "",
+
+    name:
+      p.nome ||
+      p.productName ||
+      "Produto Shopee",
 
     image_url:
       p.imagem ||
@@ -122,9 +145,18 @@ function normalizarProduto(p) {
         0
       ),
 
-    commission_rate:
+    // VALOR DA COMISSÃO EM R$
+    commission_value:
       Number(
         p.comissao ??
+        p.commission ??
+        0
+      ),
+
+    // TAXA TOTAL DA COMISSÃO
+    commission_rate:
+      Number(
+        p.taxaComissao ??
         p.commissionRate ??
         0
       ),
@@ -140,6 +172,13 @@ function normalizarProduto(p) {
       Number(
         p.taxaComissaoShopee ??
         p.shopeeCommissionRate ??
+        0
+      ),
+
+    radar_score:
+      Number(
+        p.radarScore ??
+        p.radar_score ??
         0
       ),
 
@@ -173,17 +212,23 @@ function normalizarProduto(p) {
 }
 
 // ======================================================
-// SCORE DO RADAR
+// SCORE LOCAL DE SEGURANÇA
+// Usado somente se a API não enviar radarScore
 // ======================================================
 
 function calcularScore(produto) {
   const vendas = Number(produto.sold_count || 0);
   const avaliacao = Number(produto.rating || 0);
-  const comissao = Number(produto.commission_rate || 0);
+
+  let comissao = Number(produto.commission_rate || 0);
+
+  if (comissao > 0 && comissao <= 1) {
+    comissao *= 100;
+  }
 
   let score = 0;
 
-  // Vendas — até 50 pontos
+  // Vendas — 50 pontos
   if (vendas >= 10000) score += 50;
   else if (vendas >= 5000) score += 45;
   else if (vendas >= 1000) score += 38;
@@ -191,13 +236,13 @@ function calcularScore(produto) {
   else if (vendas >= 100) score += 20;
   else score += 10;
 
-  // Avaliação — até 25 pontos
+  // Avaliação — 25 pontos
   if (avaliacao >= 4.8) score += 25;
   else if (avaliacao >= 4.6) score += 22;
   else if (avaliacao >= 4.4) score += 18;
   else if (avaliacao >= 4) score += 12;
 
-  // Comissão — até 25 pontos
+  // Comissão — 25 pontos
   if (comissao >= 10) score += 25;
   else if (comissao >= 7) score += 22;
   else if (comissao >= 5) score += 18;
@@ -208,10 +253,12 @@ function calcularScore(produto) {
 }
 
 // ======================================================
-// CARREGAMENTO
+// LOADING INICIAL
 // ======================================================
 
-function mostrarCarregando() {
+function mostrarCarregandoInicial() {
+  if (!productsGrid) return;
+
   if (emptyState) {
     emptyState.hidden = true;
   }
@@ -219,14 +266,61 @@ function mostrarCarregando() {
   productsGrid.innerHTML = `
     <div class="loading">
       <div class="loader"></div>
-      <p>Buscando produtos na Shopee...</p>
+      <p>Buscando oportunidades na Shopee...</p>
     </div>
   `;
 }
 
+// ======================================================
+// LOADING DA PRÓXIMA PÁGINA
+// ======================================================
+
+function mostrarCarregandoMais() {
+  removerCarregandoMais();
+
+  const loading = document.createElement("div");
+
+  loading.id = "loadingMore";
+  loading.style.cssText = `
+    grid-column:1/-1;
+    text-align:center;
+    padding:25px;
+    font-weight:600;
+    opacity:.8;
+  `;
+
+  loading.innerHTML = `
+    <div class="loader" style="margin:0 auto 10px;"></div>
+    <p>Carregando mais produtos...</p>
+  `;
+
+  productsGrid.appendChild(loading);
+}
+
+function removerCarregandoMais() {
+  const loading =
+    document.getElementById("loadingMore");
+
+  if (loading) {
+    loading.remove();
+  }
+}
+
+// ======================================================
+// ERRO
+// ======================================================
+
 function mostrarErro(mensagem) {
+  if (!productsGrid) return;
+
   productsGrid.innerHTML = `
-    <div class="empty-state" style="display:block;">
+    <div
+      class="empty-state"
+      style="
+        display:block;
+        grid-column:1/-1;
+      "
+    >
       <div style="font-size:42px;">⚠️</div>
 
       <h3>Não foi possível carregar o radar</h3>
@@ -234,7 +328,7 @@ function mostrarErro(mensagem) {
       <p>${escapar(mensagem)}</p>
 
       <button
-        onclick="carregarProdutos(ultimaBusca)"
+        id="retryButton"
         style="
           margin-top:16px;
           padding:12px 18px;
@@ -243,29 +337,79 @@ function mostrarErro(mensagem) {
           background:#ff5a1f;
           color:#fff;
           font-weight:700;
+          cursor:pointer;
         "
       >
         Tentar novamente
       </button>
     </div>
   `;
+
+  const retry =
+    document.getElementById("retryButton");
+
+  if (retry) {
+    retry.addEventListener("click", () => {
+      novaBusca(ultimaBusca);
+    });
+  }
 }
 
 // ======================================================
-// BUSCAR NA EDGE FUNCTION
+// MONTAR URL
 // ======================================================
 
-async function carregarProdutos(keyword = "") {
-  ultimaBusca = keyword.trim();
+function montarURL(keyword, pagina) {
+  const url = new URL(API_URL);
 
-  mostrarCarregando();
+  url.searchParams.set(
+    "page",
+    String(pagina)
+  );
+
+  if (keyword) {
+    url.searchParams.set(
+      "keyword",
+      keyword
+    );
+  }
+
+  return url.toString();
+}
+
+// ======================================================
+// BUSCAR PRODUTOS
+// ======================================================
+
+async function carregarProdutos({
+  keyword = ultimaBusca,
+  pagina = paginaAtual,
+  adicionar = false
+} = {}) {
+
+  if (carregando) return;
+
+  if (adicionar && !temProximaPagina) {
+    return;
+  }
+
+  carregando = true;
+
+  if (adicionar) {
+    mostrarCarregandoMais();
+  } else {
+    mostrarCarregandoInicial();
+  }
 
   try {
-    let url = API_URL;
+    const url =
+      montarURL(keyword, pagina);
 
-    if (ultimaBusca) {
-      url += "?keyword=" + encodeURIComponent(ultimaBusca);
-    }
+    console.log(
+      "Buscando página:",
+      pagina,
+      url
+    );
 
     const resposta = await fetch(url, {
       method: "GET",
@@ -275,7 +419,8 @@ async function carregarProdutos(keyword = "") {
     });
 
     if (!resposta.ok) {
-      const texto = await resposta.text();
+      const texto =
+        await resposta.text();
 
       console.error(
         "ERRO API:",
@@ -288,9 +433,13 @@ async function carregarProdutos(keyword = "") {
       );
     }
 
-    const dados = await resposta.json();
+    const dados =
+      await resposta.json();
 
-    console.log("RESPOSTA SHOPEE:", dados);
+    console.log(
+      "RESPOSTA SHOPEE:",
+      dados
+    );
 
     if (dados.ok === false) {
       throw new Error(
@@ -302,48 +451,162 @@ async function carregarProdutos(keyword = "") {
 
     let lista = [];
 
-    // Formato novo da nossa função
     if (Array.isArray(dados.produtos)) {
       lista = dados.produtos;
     }
 
-    // Compatibilidade com resposta anterior
     else if (
-      dados.shopee &&
-      dados.shopee.data &&
-      dados.shopee.data.productOfferV2 &&
-      Array.isArray(dados.shopee.data.productOfferV2.nodes)
+      dados.shopee?.data?.productOfferV2?.nodes &&
+      Array.isArray(
+        dados.shopee.data.productOfferV2.nodes
+      )
     ) {
-      lista = dados.shopee.data.productOfferV2.nodes;
+      lista =
+        dados.shopee.data.productOfferV2.nodes;
     }
 
-    // Outro formato possível
     else if (
-      dados.data &&
-      dados.data.productOfferV2 &&
-      Array.isArray(dados.data.productOfferV2.nodes)
+      dados.data?.productOfferV2?.nodes &&
+      Array.isArray(
+        dados.data.productOfferV2.nodes
+      )
     ) {
-      lista = dados.data.productOfferV2.nodes;
+      lista =
+        dados.data.productOfferV2.nodes;
     }
 
-    produtos = lista.map(normalizarProduto);
+    let novosProdutos =
+      lista.map(normalizarProduto);
 
-    produtos = produtos.map(produto => ({
-      ...produto,
-      radar_score: calcularScore(produto)
-    }));
+    // Caso algum produto venha sem radarScore
+    novosProdutos =
+      novosProdutos.map(produto => ({
+        ...produto,
+
+        radar_score:
+          Number(produto.radar_score) > 0
+            ? Number(produto.radar_score)
+            : calcularScore(produto)
+      }));
+
+    // ==================================================
+    // EVITAR PRODUTOS DUPLICADOS
+    // ==================================================
+
+    if (adicionar) {
+      const idsExistentes =
+        new Set(
+          produtos.map(
+            produto =>
+              String(produto.id)
+          )
+        );
+
+      novosProdutos =
+        novosProdutos.filter(
+          produto =>
+            !idsExistentes.has(
+              String(produto.id)
+            )
+        );
+
+      produtos.push(
+        ...novosProdutos
+      );
+    } else {
+      produtos =
+        novosProdutos;
+    }
+
+    // ==================================================
+    // PAGINAÇÃO
+    // ==================================================
+
+    paginaAtual =
+      Number(
+        dados.paginaAtual ??
+        dados.pagina?.page ??
+        pagina
+      );
+
+    temProximaPagina =
+      Boolean(
+        dados.temProximaPagina ??
+        dados.pagina?.hasNextPage ??
+        false
+      );
+
+    console.log(
+      "Página atual:",
+      paginaAtual
+    );
+
+    console.log(
+      "Tem próxima:",
+      temProximaPagina
+    );
 
     atualizarContadores();
     aplicarFiltros();
 
   } catch (erro) {
-    console.error("ERRO SHOPEE RADAR:", erro);
-
-    mostrarErro(
-      erro.message ||
-      "Erro desconhecido ao consultar a Shopee."
+    console.error(
+      "ERRO SHOPEE RADAR:",
+      erro
     );
+
+    if (!adicionar) {
+      mostrarErro(
+        erro.message ||
+        "Erro desconhecido."
+      );
+    }
+
+  } finally {
+    carregando = false;
+    removerCarregandoMais();
   }
+}
+
+// ======================================================
+// NOVA BUSCA
+// ======================================================
+
+async function novaBusca(keyword = "") {
+  ultimaBusca =
+    String(keyword || "").trim();
+
+  paginaAtual = 1;
+  temProximaPagina = true;
+  produtos = [];
+
+  await carregarProdutos({
+    keyword: ultimaBusca,
+    pagina: 1,
+    adicionar: false
+  });
+}
+
+// ======================================================
+// PRÓXIMA PÁGINA
+// ======================================================
+
+async function carregarProximaPagina() {
+  if (
+    carregando ||
+    !temProximaPagina
+  ) {
+    return;
+  }
+
+  const proximaPagina =
+    paginaAtual + 1;
+
+  await carregarProdutos({
+    keyword: ultimaBusca,
+    pagina: proximaPagina,
+    adicionar: true
+  });
 }
 
 // ======================================================
@@ -351,12 +614,17 @@ async function carregarProdutos(keyword = "") {
 // ======================================================
 
 function atualizarContadores() {
-  const oportunidades = produtos.filter(
-    p => Number(p.radar_score || 0) >= 70
-  );
+  const oportunidades =
+    produtos.filter(
+      p =>
+        Number(
+          p.radar_score || 0
+        ) >= 70
+    );
 
   if (totalProdutos) {
-    totalProdutos.textContent = produtos.length;
+    totalProdutos.textContent =
+      produtos.length;
   }
 
   if (totalOportunidades) {
@@ -370,28 +638,35 @@ function atualizarContadores() {
 }
 
 // ======================================================
-// FILTROS
+// FILTROS / ORDENAÇÃO
 // ======================================================
 
 function aplicarFiltros() {
-  const categoria = categoryFilter
-    ? categoryFilter.value
-    : "all";
+  const categoria =
+    categoryFilter
+      ? categoryFilter.value
+      : "all";
 
-  let resultado = [...produtos];
+  let resultado =
+    [...produtos];
 
   if (categoria !== "all") {
-    resultado = resultado.filter(
-      p =>
-        String(p.category)
-          .toLowerCase()
-          .includes(
-            categoria.toLowerCase()
-          )
-    );
+    resultado =
+      resultado.filter(
+        p =>
+          String(p.category)
+            .toLowerCase()
+            .includes(
+              categoria.toLowerCase()
+            )
+      );
   }
 
-  if (filtroAtual === "all") {
+  // RELEVÂNCIA / RADAR SCORE
+  if (
+    filtroAtual === "all" ||
+    filtroAtual === "relevance"
+  ) {
     resultado.sort(
       (a, b) =>
         Number(b.radar_score || 0) -
@@ -399,7 +674,11 @@ function aplicarFiltros() {
     );
   }
 
-  if (filtroAtual === "hot") {
+  // MAIS VENDIDOS
+  else if (
+    filtroAtual === "hot" ||
+    filtroAtual === "sales"
+  ) {
     resultado.sort(
       (a, b) =>
         Number(b.sold_count || 0) -
@@ -407,21 +686,60 @@ function aplicarFiltros() {
     );
   }
 
-  if (filtroAtual === "videos") {
+  // MAIOR COMISSÃO %
+  else if (
+    filtroAtual === "commission"
+  ) {
+    resultado.sort(
+      (a, b) =>
+        Number(b.commission_rate || 0) -
+        Number(a.commission_rate || 0)
+    );
+  }
+
+  // MAIOR COMISSÃO EM R$
+  else if (
+    filtroAtual === "commission-value"
+  ) {
+    resultado.sort(
+      (a, b) =>
+        Number(b.commission_value || 0) -
+        Number(a.commission_value || 0)
+    );
+  }
+
+  // MELHOR AVALIAÇÃO
+  else if (
+    filtroAtual === "rating"
+  ) {
+    resultado.sort(
+      (a, b) =>
+        Number(b.rating || 0) -
+        Number(a.rating || 0)
+    );
+  }
+
+  else if (
+    filtroAtual === "videos"
+  ) {
     mostrarAreaEmConstrucao(
       "🎬",
       "Radar de vídeos",
       "Vamos conectar essa área depois."
     );
+
     return;
   }
 
-  if (filtroAtual === "favorites") {
+  else if (
+    filtroAtual === "favorites"
+  ) {
     mostrarAreaEmConstrucao(
       "♡",
       "Favoritos",
       "Aqui ficarão os produtos que você salvar."
     );
+
     return;
   }
 
@@ -434,20 +752,38 @@ function aplicarFiltros() {
 
 function criarCard(produto) {
   const score =
-    Number(produto.radar_score || 0);
+    Number(
+      produto.radar_score || 0
+    );
 
-  let status = "Em observação";
-  let emoji = "👀";
+  let status =
+    "Em observação";
+
+  let emoji =
+    "👀";
 
   if (score >= 85) {
-    status = "Oportunidade alta";
-    emoji = "🔥";
-  } else if (score >= 70) {
-    status = "Promissor";
-    emoji = "💎";
-  } else if (score >= 50) {
-    status = "Potencial";
-    emoji = "📈";
+    status =
+      "Oportunidade alta";
+
+    emoji =
+      "🔥";
+  }
+
+  else if (score >= 70) {
+    status =
+      "Promissor";
+
+    emoji =
+      "💎";
+  }
+
+  else if (score >= 50) {
+    status =
+      "Potencial";
+
+    emoji =
+      "📈";
   }
 
   return `
@@ -495,22 +831,31 @@ function criarCard(produto) {
 
           <div class="product-stat">
             <span>VENDIDOS</span>
+
             <strong>
-              ${formatarNumero(produto.sold_count)}
+              ${formatarNumero(
+                produto.sold_count
+              )}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>AVALIAÇÃO</span>
+
             <strong>
-              ⭐ ${Number(produto.rating).toFixed(1)}
+              ⭐ ${Number(
+                produto.rating
+              ).toFixed(1)}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>COMISSÃO</span>
+
             <strong>
-              ${percentual(produto.commission_rate)}
+              ${percentual(
+                produto.commission_rate
+              )}
             </strong>
           </div>
 
@@ -525,12 +870,36 @@ function criarCard(produto) {
 
           <div class="product-price">
             <small>PREÇO</small>
+
             <strong>
-              ${dinheiro(produto.price)}
+              ${dinheiro(
+                produto.price
+              )}
             </strong>
           </div>
 
         </div>
+
+        ${
+          produto.commission_value > 0
+            ? `
+            <div
+              style="
+                margin-top:10px;
+                font-size:13px;
+                opacity:.8;
+              "
+            >
+              💰 Comissão estimada:
+              <strong>
+                ${dinheiro(
+                  produto.commission_value
+                )}
+              </strong>
+            </div>
+            `
+            : ""
+        }
 
       </div>
     </article>
@@ -542,6 +911,8 @@ function criarCard(produto) {
 // ======================================================
 
 function renderizarProdutos(lista) {
+  if (!productsGrid) return;
+
   if (!lista.length) {
     productsGrid.innerHTML = "";
 
@@ -557,22 +928,32 @@ function renderizarProdutos(lista) {
   }
 
   productsGrid.innerHTML =
-    lista.map(criarCard).join("");
+    lista
+      .map(criarCard)
+      .join("");
 
   document
     .querySelectorAll(".product-card")
     .forEach(card => {
-      card.addEventListener("click", () => {
-        const produto = produtos.find(
-          p =>
-            String(p.id) ===
-            String(card.dataset.id)
-        );
 
-        if (produto) {
-          abrirModal(produto);
+      card.addEventListener(
+        "click",
+        () => {
+
+          const produto =
+            produtos.find(
+              p =>
+                String(p.id) ===
+                String(
+                  card.dataset.id
+                )
+            );
+
+          if (produto) {
+            abrirModal(produto);
+          }
         }
-      });
+      );
     });
 }
 
@@ -581,7 +962,12 @@ function renderizarProdutos(lista) {
 // ======================================================
 
 function abrirModal(produto) {
-  if (!productModal || !modalBody) return;
+  if (
+    !productModal ||
+    !modalBody
+  ) {
+    return;
+  }
 
   modalBody.innerHTML = `
 
@@ -589,7 +975,9 @@ function abrirModal(produto) {
       produto.image_url
         ? `
         <img
-          src="${escapar(produto.image_url)}"
+          src="${escapar(
+            produto.image_url
+          )}"
           style="
             width:100%;
             max-height:300px;
@@ -602,10 +990,14 @@ function abrirModal(produto) {
         : ""
     }
 
-    <h2>${escapar(produto.name)}</h2>
+    <h2>
+      ${escapar(produto.name)}
+    </h2>
 
     <p style="margin-top:8px;">
-      🏪 ${escapar(produto.shop_name)}
+      🏪 ${escapar(
+        produto.shop_name
+      )}
     </p>
 
     <div style="margin-top:20px;">
@@ -617,17 +1009,30 @@ function abrirModal(produto) {
 
       <p>
         <strong>Vendidos:</strong>
-        ${formatarNumero(produto.sold_count)}
+        ${formatarNumero(
+          produto.sold_count
+        )}
       </p>
 
       <p>
         <strong>Avaliação:</strong>
-        ⭐ ${Number(produto.rating).toFixed(1)}
+        ⭐ ${Number(
+          produto.rating
+        ).toFixed(1)}
       </p>
 
       <p>
-        <strong>Comissão:</strong>
-        ${percentual(produto.commission_rate)}
+        <strong>Taxa de comissão:</strong>
+        ${percentual(
+          produto.commission_rate
+        )}
+      </p>
+
+      <p>
+        <strong>Comissão estimada:</strong>
+        ${dinheiro(
+          produto.commission_value
+        )}
       </p>
 
       <p>
@@ -641,7 +1046,9 @@ function abrirModal(produto) {
       produto.affiliate_url
         ? `
         <a
-          href="${escapar(produto.affiliate_url)}"
+          href="${escapar(
+            produto.affiliate_url
+          )}"
           target="_blank"
           rel="noopener noreferrer"
           style="
@@ -685,18 +1092,27 @@ function mostrarAreaEmConstrucao(
     emptyState.hidden = true;
   }
 
+  if (!productsGrid) return;
+
   productsGrid.innerHTML = `
     <div
       class="empty-state"
-      style="display:block;"
+      style="
+        display:block;
+        grid-column:1/-1;
+      "
     >
       <div style="font-size:42px;">
         ${icone}
       </div>
 
-      <h3>${titulo}</h3>
+      <h3>
+        ${titulo}
+      </h3>
 
-      <p>${texto}</p>
+      <p>
+        ${texto}
+      </p>
     </div>
   `;
 }
@@ -709,8 +1125,11 @@ function selecionarFiltro(filtro) {
   filtroAtual = filtro;
 
   document
-    .querySelectorAll("[data-filter]")
+    .querySelectorAll(
+      "[data-filter]"
+    )
     .forEach(botao => {
+
       botao.classList.toggle(
         "active",
         botao.dataset.filter === filtro
@@ -721,22 +1140,26 @@ function selecionarFiltro(filtro) {
 }
 
 // ======================================================
-// EVENTOS
+// BUSCA
 // ======================================================
 
-// Pesquisa real na Shopee ao pressionar ENTER
 if (searchInput) {
   searchInput.addEventListener(
     "keydown",
     event => {
+
       if (event.key === "Enter") {
-        carregarProdutos(
+        novaBusca(
           searchInput.value
         );
       }
     }
   );
 }
+
+// ======================================================
+// CATEGORIA
+// ======================================================
 
 if (categoryFilter) {
   categoryFilter.addEventListener(
@@ -745,18 +1168,30 @@ if (categoryFilter) {
   );
 }
 
+// ======================================================
+// BOTÕES DE FILTRO
+// ======================================================
+
 document
-  .querySelectorAll("[data-filter]")
+  .querySelectorAll(
+    "[data-filter]"
+  )
   .forEach(botao => {
+
     botao.addEventListener(
       "click",
       () => {
+
         selecionarFiltro(
           botao.dataset.filter
         );
       }
     );
   });
+
+// ======================================================
+// MODAL
+// ======================================================
 
 if (closeModal) {
   closeModal.addEventListener(
@@ -780,7 +1215,44 @@ if (productModal) {
 }
 
 // ======================================================
-// INICIAR
+// ROLAGEM INFINITA
 // ======================================================
 
-carregarProdutos();
+window.addEventListener(
+  "scroll",
+  () => {
+
+    if (
+      filtroAtual === "videos" ||
+      filtroAtual === "favorites"
+    ) {
+      return;
+    }
+
+    const posicao =
+      window.innerHeight +
+      window.scrollY;
+
+    const altura =
+      document.documentElement
+        .scrollHeight;
+
+    // Quando estiver a 700px do fim
+    // busca a próxima página
+    if (
+      posicao >=
+      altura - 700
+    ) {
+      carregarProximaPagina();
+    }
+  },
+  {
+    passive: true
+  }
+);
+
+// ======================================================
+// INICIAR RADAR
+// ======================================================
+
+novaBusca();
