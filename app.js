@@ -1115,10 +1115,6 @@ function montarURL(pagina) {
   usandoRankingServidor =
     deveUsarRankingServidor();
 
-  // ==================================================
-  // RANKING PAGINADO
-  // ==================================================
-
   if (usandoRankingServidor) {
     url.searchParams.set(
       "action",
@@ -1137,10 +1133,6 @@ function montarURL(pagina) {
 
     return url.toString();
   }
-
-  // ==================================================
-  // BUSCA SHOPEE PAGINADA
-  // ==================================================
 
   url.searchParams.set(
     "page",
@@ -1374,10 +1366,6 @@ async function carregarProdutos(
             ).length > 0
         );
 
-    // ==================================================
-    // PROTEÇÃO CONTRA PRODUTOS REPETIDOS
-    // ==================================================
-
     novos =
       removerDuplicados(
         novos
@@ -1418,11 +1406,6 @@ async function carregarProdutos(
           novos
         );
     }
-
-    // ==================================================
-    // PAGINAÇÃO
-    // FUNCIONA TANTO NO RANKING QUANTO NA BUSCA
-    // ==================================================
 
     paginaAtual =
       Number(
@@ -2017,64 +2000,59 @@ function criarCard(produto) {
 
         </div>
 
-        ${
-          crescimento !== 0 ||
-          vendasHora > 0
-            ? `
-              <div
-                style="
-                  display:flex;
-                  justify-content:space-between;
-                  gap:10px;
-                  margin-top:12px;
-                  padding-top:12px;
-                  border-top:1px solid rgba(255,255,255,.07);
-                  font-size:12px;
-                "
-              >
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:10px;
+            margin-top:12px;
+            padding-top:12px;
+            border-top:1px solid rgba(255,255,255,.07);
+            font-size:12px;
+            min-height:58px;
+          "
+        >
 
-                <div>
-                  <small>
-                    CRESCIMENTO
-                  </small>
+          <div>
+            <small>
+              CRESCIMENTO
+            </small>
 
-                  <div
-                    style="
-                      margin-top:3px;
-                      font-weight:800;
-                    "
-                  >
-                    ${percentualCrescimento(
-                      crescimento
-                    )}
-                  </div>
-                </div>
+            <div
+              style="
+                margin-top:3px;
+                font-weight:800;
+              "
+            >
+              ${percentualCrescimento(
+                crescimento
+              )}
+            </div>
+          </div>
 
-                <div
-                  style="
-                    text-align:right;
-                  "
-                >
-                  <small>
-                    VENDAS/H
-                  </small>
+          <div
+            style="
+              text-align:right;
+            "
+          >
+            <small>
+              VENDAS/H
+            </small>
 
-                  <div
-                    style="
-                      margin-top:3px;
-                      font-weight:800;
-                    "
-                  >
-                    ${formatarDecimal(
-                      vendasHora
-                    )}
-                  </div>
-                </div>
+            <div
+              style="
+                margin-top:3px;
+                font-weight:800;
+              "
+            >
+              ${formatarDecimal(
+                vendasHora
+              )}
+            </div>
+          </div>
 
-              </div>
-            `
-            : ""
-        }
+        </div>
 
         <div class="product-footer">
 
@@ -2810,11 +2788,6 @@ document
         const filtro =
           botao.dataset.filter;
 
-        // ==============================================
-        // RADAR INFERIOR
-        // Apenas volta ao topo
-        // ==============================================
-
         if (
           botao.classList.contains(
             "bottom-item"
@@ -2831,10 +2804,6 @@ document
 
           return;
         }
-
-        // ==============================================
-        // FAVORITOS
-        // ==============================================
 
         if (
           filtro ===
@@ -2924,11 +2893,6 @@ document.addEventListener(
 
 // ======================================================
 // SCROLL INFINITO
-//
-// AGORA FUNCIONA:
-// - Ranking
-// - Busca
-// - Nichos
 // ======================================================
 
 window.addEventListener(
