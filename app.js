@@ -2816,5 +2816,6 @@ window.addEventListener(
 // ======================================================
 // INICIALIZAÇÃO
 // ======================================================
+// redeploy github pages
 
 reiniciarRadar(true);
