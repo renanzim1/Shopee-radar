@@ -1366,3 +1366,110 @@ select {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
+
+/* ======================================================
+   ORDENAÇÃO — VISUAL SHOPEE RADAR
+====================================================== */
+
+.radar-sort {
+  margin: 18px 0 24px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.radar-sort .sort-title {
+  display: block;
+  margin: 0 0 10px 2px;
+
+  color: #7f8798;
+  font-size: 11px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Linha horizontal */
+.radar-sort .sort-options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding: 2px 2px 7px;
+
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.radar-sort .sort-options::-webkit-scrollbar {
+  display: none;
+}
+
+/* Botões */
+.radar-sort .sort-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+
+  flex: 0 0 auto;
+
+  margin: 0 !important;
+  padding: 10px 14px !important;
+
+  border: 1px solid #272d3b !important;
+  border-radius: 14px !important;
+
+  background: #10141e !important;
+  color: #9097a8 !important;
+
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+  white-space: nowrap;
+
+  box-shadow: none !important;
+  outline: none !important;
+
+  cursor: pointer;
+}
+
+/* Selecionado */
+.radar-sort .sort-btn.active {
+  color: #ffffff !important;
+
+  border-color: rgba(255, 90, 31, 0.65) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 90, 31, 0.30),
+      rgba(255, 90, 31, 0.10)
+    ) !important;
+
+  box-shadow:
+    0 0 18px rgba(255, 90, 31, 0.08) !important;
+}
+
+/* Clique */
+.radar-sort .sort-btn:active {
+  transform: scale(0.97);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+
+  .radar-sort {
+    margin-top: 15px;
+    margin-bottom: 20px;
+  }
+
+  .radar-sort .sort-btn {
+    padding: 10px 13px !important;
+    font-size: 11px !important;
+  }
+}
