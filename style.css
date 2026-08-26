@@ -1275,6 +1275,91 @@ select {
   }
 }
 
+/* ======================================================
+   SHOPEE RADAR — BOTÕES DE ORDENAÇÃO
+====================================================== */
+
+.sort-section {
+  margin: 18px 0 22px;
+}
+
+.sort-section > span,
+.sort-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #8f95a3;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.sort-options {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+
+  scrollbar-width: none;
+}
+
+.sort-options::-webkit-scrollbar {
+  display: none;
+}
+
+.sort-options button,
+[data-sort] {
+  flex: 0 0 auto;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 1px solid #282d3a;
+  outline: none;
+
+  background: #11151f;
+  color: #9298a8;
+
+  padding: 10px 14px;
+
+  border-radius: 14px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background .2s ease,
+    border-color .2s ease,
+    color .2s ease;
+}
+
+.sort-options button.active,
+[data-sort].active {
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 90, 31, .28),
+      rgba(255, 90, 31, .10)
+    );
+
+  border-color:
+    rgba(255, 90, 31, .65);
+
+  box-shadow:
+    inset 0 0 18px
+    rgba(255, 90, 31, .08);
+}
+
+.sort-options button:active,
+[data-sort]:active {
+  transform: scale(.97);
+}
 /* 4 por linha no computador */
 @media (min-width: 900px) {
   #productsGrid.products-grid {
