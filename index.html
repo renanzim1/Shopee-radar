@@ -20,6 +20,7 @@
   <!-- TOPO -->
   <header class="topbar">
     <div class="brand">
+
       <div class="brand-icon">◉</div>
 
       <div>
@@ -30,6 +31,7 @@
           RADAR ATIVO
         </div>
       </div>
+
     </div>
 
     <div class="live-badge">
@@ -53,7 +55,7 @@
       </h2>
 
       <p>
-        Analise vendas, concorrência, comissão e
+        Analise vendas, comissão, avaliação e
         desempenho dos produtos em um único radar.
       </p>
 
@@ -84,10 +86,10 @@
 
 
       <div class="stat-card">
-        <span class="stat-icon">📈</span>
+        <span class="stat-icon">📦</span>
 
         <div>
-          <small>VÍDEOS 7D</small>
+          <small>CARREGADOS</small>
           <strong id="totalVideos">0</strong>
         </div>
       </div>
@@ -95,7 +97,7 @@
     </section>
 
 
-    <!-- ABAS -->
+    <!-- NAVEGAÇÃO PRINCIPAL -->
     <nav class="tabs">
 
       <button
@@ -109,21 +111,21 @@
         class="tab"
         data-filter="hot"
       >
-        🔥 Radar 7D
+        🔥 Mais vendidos
       </button>
 
       <button
         class="tab"
-        data-filter="videos"
+        data-filter="commission"
       >
-        🎬 Vídeos
+        💰 Comissão
       </button>
 
       <button
         class="tab"
-        data-filter="favorites"
+        data-filter="rating"
       >
-        ♡ Favoritos
+        ⭐ Avaliação
       </button>
 
     </nav>
@@ -146,30 +148,70 @@
       </div>
 
 
-      <select id="categoryFilter">
+      <!-- NICHO -->
+      <select
+        id="categoryFilter"
+        aria-label="Selecionar nicho"
+      >
 
         <option value="all">
-          Todas categorias
+          Todos os nichos
         </option>
 
-        <option value="Moda Feminina">
-          Moda Feminina
+        <option value="moda feminina">
+          👗 Moda Feminina
         </option>
 
-        <option value="Casa e Cozinha">
-          Casa e Cozinha
+        <option value="casa cozinha">
+          🏠 Casa e Cozinha
         </option>
 
-        <option value="Casa e Construção">
-          Casa e Construção
+        <option value="casa construcao">
+          🔨 Casa e Construção
         </option>
 
-        <option value="Beleza">
-          Beleza
+        <option value="beleza">
+          💄 Beleza
         </option>
 
-        <option value="Eletrônicos">
-          Eletrônicos
+        <option value="eletronicos">
+          📱 Eletrônicos
+        </option>
+
+        <option value="informatica">
+          💻 Informática
+        </option>
+
+        <option value="celular">
+          📲 Celulares
+        </option>
+
+        <option value="games">
+          🎮 Games
+        </option>
+
+        <option value="fitness">
+          🏋️ Fitness
+        </option>
+
+        <option value="pet">
+          🐶 Pet
+        </option>
+
+        <option value="bebe">
+          👶 Bebê
+        </option>
+
+        <option value="automotivo">
+          🚗 Automotivo
+        </option>
+
+        <option value="ferramentas">
+          🛠️ Ferramentas
+        </option>
+
+        <option value="papelaria">
+          ✏️ Papelaria
         </option>
 
       </select>
@@ -177,7 +219,56 @@
     </section>
 
 
-    <!-- CABEÇALHO RESULTADOS -->
+    <!-- ORDENAÇÃO -->
+    <section class="radar-sort">
+
+      <span class="sort-title">
+        Ordenar por
+      </span>
+
+      <div class="sort-options">
+
+        <button
+          class="sort-btn active"
+          data-sort="relevance"
+        >
+          🎯 Relevância
+        </button>
+
+        <button
+          class="sort-btn"
+          data-sort="sales"
+        >
+          🔥 Mais vendidos
+        </button>
+
+        <button
+          class="sort-btn"
+          data-sort="commission"
+        >
+          💰 Maior comissão
+        </button>
+
+        <button
+          class="sort-btn"
+          data-sort="rating"
+        >
+          ⭐ Melhor avaliação
+        </button>
+
+        <button
+          class="sort-btn"
+          data-sort="radar"
+        >
+          💎 Radar Score
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- CABEÇALHO -->
     <section class="section-heading">
 
       <div>
@@ -186,7 +277,7 @@
           ANÁLISE EM TEMPO REAL
         </span>
 
-        <h3>
+        <h3 id="resultsTitle">
           Melhores oportunidades
         </h3>
 
@@ -214,12 +305,33 @@
         <div class="loader"></div>
 
         <p>
-          Analisando produtos...
+          Consultando Shopee...
         </p>
 
       </div>
 
     </section>
+
+
+    <!-- CARREGAMENTO DA ROLAGEM -->
+    <div
+      id="infiniteLoader"
+      class="infinite-loader"
+      hidden
+    >
+      <div class="loader"></div>
+
+      <span>
+        Buscando mais oportunidades...
+      </span>
+    </div>
+
+
+    <!-- SENSOR DA ROLAGEM INFINITA -->
+    <div
+      id="scrollSentinel"
+      style="height: 20px;"
+    ></div>
 
 
     <!-- SEM RESULTADOS -->
@@ -236,7 +348,7 @@
       </h3>
 
       <p>
-        Tente mudar sua pesquisa ou categoria.
+        Tente mudar sua pesquisa ou selecionar outro nicho.
       </p>
 
     </section>
@@ -251,7 +363,7 @@
       class="bottom-item active"
       data-filter="all"
     >
-      <span>⌁</span>
+      <span>💎</span>
       Radar
     </button>
 
@@ -261,16 +373,16 @@
       data-filter="hot"
     >
       <span>🔥</span>
-      7 Dias
+      Vendidos
     </button>
 
 
     <button
       class="bottom-item"
-      data-filter="videos"
+      data-filter="commission"
     >
-      <span>🎬</span>
-      Vídeos
+      <span>💰</span>
+      Comissão
     </button>
 
 
@@ -285,7 +397,7 @@
   </nav>
 
 
-  <!-- MODAL DO PRODUTO -->
+  <!-- MODAL -->
   <div
     id="productModal"
     class="modal"
