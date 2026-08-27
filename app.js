@@ -709,62 +709,6 @@ function obterSinalProduto(
 }
 
 // ======================================================
-// TENDÊNCIA
-// ======================================================
-
-function obterTendencia(produto) {
-  if (
-    temDetector(produto)
-  ) {
-    const decisao =
-      obterDecisaoPost(
-        produto
-      );
-
-    return `${decisao.emoji} ${decisao.nome}`;
-  }
-
-  const crescimento =
-    numeroSeguro(
-      produto.crescimento_percentual
-    );
-
-  const novasVendas =
-    numeroSeguro(
-      produto.novas_vendas
-    );
-
-  const vendasHora =
-    numeroSeguro(
-      produto.vendas_por_hora
-    );
-
-  if (
-    crescimento >= 50 ||
-    novasVendas >= 50 ||
-    vendasHora >= 5
-  ) {
-    return "🔥 SUBINDO RÁPIDO";
-  }
-
-  if (
-    crescimento > 0 ||
-    novasVendas > 0 ||
-    vendasHora > 0
-  ) {
-    return "📈 CRESCENDO";
-  }
-
-  if (
-    crescimento < 0
-  ) {
-    return "📉 CAINDO";
-  }
-
-  return "⚪ ESTÁVEL";
-}
-
-// ======================================================
 // MOTIVO AMIGÁVEL
 // ======================================================
 
@@ -1534,10 +1478,6 @@ async function carregarProdutos(
         }
       );
 
-    // ================================================
-    // TOKEN EXPIRADO / ACESSO BLOQUEADO
-    // ================================================
-
     if (
       resposta.status === 401 ||
       resposta.status === 403
@@ -1709,35 +1649,11 @@ function reiniciarRadar() {
 }
 
 // ======================================================
-// ORDENAÇÃO LOCAL
-// ======================================================
-
-function aplicarOrdenacaoLocal() {
-// ======================================================
 // ORDENAÇÃO LOCAL — CORRIGIDA
 // ======================================================
 
-// Produto que apresentou vendas recentemente deve ter
-// prioridade sobre produto sem movimento.
-//
-// Ordem da RELEVÂNCIA:
-//
-// 1. Produto com movimento real
-// 2. Prioridade do detector
-// 3. Novas vendas
-// 4. Velocidade de vendas
-// 5. Vendas nas últimas 6h
-// 6. Aceleração
-// 7. Post Score
-// 8. Radar Score
-// 9. Total vendido
-//
-// Isso impede produto zerado de passar na frente
-// de uma oportunidade que acabou de vender.
-
 function produtoTemMovimento(produto) {
-
-  const novasVendas =
+  const novas =
     numeroSeguro(
       produto.novas_vendas
     );
@@ -1768,7 +1684,7 @@ function produtoTemMovimento(produto) {
     );
 
   return (
-    novasVendas > 0 ||
+    novas > 0 ||
     vendas6h > 0 ||
     velocidade > 0 ||
     crescimento > 0 ||
@@ -1776,15 +1692,9 @@ function produtoTemMovimento(produto) {
   );
 }
 
-
-// ======================================================
-// PESO DE MOVIMENTO
-// ======================================================
-
 function calcularPesoMovimento(
   produto
 ) {
-
   const novas =
     numeroSeguro(
       produto.novas_vendas
@@ -1823,16 +1733,6 @@ function calcularPesoMovimento(
       produto.post_score
     );
 
-  /*
-    NOVAS VENDAS recebem bastante peso.
-
-    Exemplo:
-
-    +29 vendas
-    terá vantagem enorme contra
-    produto com 0 vendas novas.
-  */
-
   return (
     novas * 10000 +
     vendas6h * 5000 +
@@ -1843,16 +1743,10 @@ function calcularPesoMovimento(
   );
 }
 
-
-// ======================================================
-// COMPARADOR DE RELEVÂNCIA
-// ======================================================
-
 function compararRelevancia(
   a,
   b
 ) {
-
   const movimentoA =
     produtoTemMovimento(a)
       ? 1
@@ -1863,12 +1757,6 @@ function compararRelevancia(
       ? 1
       : 0;
 
-
-  // ----------------------------------------------
-  // REGRA MAIS IMPORTANTE
-  // ----------------------------------------------
-  // Quem vendeu fica acima de quem não vendeu.
-
   if (
     movimentoA !==
     movimentoB
@@ -1878,11 +1766,6 @@ function compararRelevancia(
       movimentoA
     );
   }
-
-
-  // ----------------------------------------------
-  // PESO DE MOVIMENTO
-  // ----------------------------------------------
 
   const pesoA =
     calcularPesoMovimento(a);
@@ -1900,11 +1783,6 @@ function compararRelevancia(
     );
   }
 
-
-  // ----------------------------------------------
-  // PRIORIDADE DO DETECTOR
-  // ----------------------------------------------
-
   const prioridade =
     numeroSeguro(
       b.detector_prioridade
@@ -1919,11 +1797,6 @@ function compararRelevancia(
     return prioridade;
   }
 
-
-  // ----------------------------------------------
-  // NOVAS VENDAS
-  // ----------------------------------------------
-
   const novas =
     numeroSeguro(
       b.novas_vendas
@@ -1937,11 +1810,6 @@ function compararRelevancia(
   ) {
     return novas;
   }
-
-
-  // ----------------------------------------------
-  // VELOCIDADE
-  // ----------------------------------------------
 
   const velocidadeA =
     Math.max(
@@ -1973,11 +1841,6 @@ function compararRelevancia(
     );
   }
 
-
-  // ----------------------------------------------
-  // POST SCORE
-  // ----------------------------------------------
-
   const postScore =
     numeroSeguro(
       b.post_score
@@ -1991,11 +1854,6 @@ function compararRelevancia(
   ) {
     return postScore;
   }
-
-
-  // ----------------------------------------------
-  // RADAR SCORE
-  // ----------------------------------------------
 
   const radarScore =
     numeroSeguro(
@@ -2011,11 +1869,6 @@ function compararRelevancia(
     return radarScore;
   }
 
-
-  // ----------------------------------------------
-  // TOTAL DE VENDAS
-  // ----------------------------------------------
-
   return (
     numeroSeguro(
       b.sold_count
@@ -2026,15 +1879,8 @@ function compararRelevancia(
   );
 }
 
-
-// ======================================================
-// ORDENAÇÃO
-// ======================================================
-
 function aplicarOrdenacaoLocal() {
-
   if (modoFavoritos) {
-
     renderizarProdutos(
       favoritos
     );
@@ -2042,38 +1888,24 @@ function aplicarOrdenacaoLocal() {
     return;
   }
 
-
   const resultado =
     removerDuplicados(
       [...produtos]
     );
 
-
-  // ==================================================
-  // RELEVÂNCIA
-  // ==================================================
-
   if (
     ordenacaoAtual ===
     "relevance"
   ) {
-
     resultado.sort(
       compararRelevancia
     );
-
   }
-
-
-  // ==================================================
-  // MAIS VENDIDOS
-  // ==================================================
 
   else if (
     ordenacaoAtual ===
     "sales"
   ) {
-
     resultado.sort(
       (a, b) =>
         numeroSeguro(
@@ -2083,19 +1915,12 @@ function aplicarOrdenacaoLocal() {
           a.sold_count
         )
     );
-
   }
-
-
-  // ==================================================
-  // COMISSÃO
-  // ==================================================
 
   else if (
     ordenacaoAtual ===
     "commission"
   ) {
-
     resultado.sort(
       (a, b) =>
         numeroSeguro(
@@ -2105,19 +1930,12 @@ function aplicarOrdenacaoLocal() {
           a.commission_value
         )
     );
-
   }
-
-
-  // ==================================================
-  // AVALIAÇÃO
-  // ==================================================
 
   else if (
     ordenacaoAtual ===
     "rating"
   ) {
-
     resultado.sort(
       (a, b) =>
         numeroSeguro(
@@ -2127,44 +1945,23 @@ function aplicarOrdenacaoLocal() {
           a.rating
         )
     );
-
   }
-
-
-  // ==================================================
-  // CRESCIMENTO
-  // ==================================================
 
   else if (
     ordenacaoAtual ===
     "growth"
   ) {
-
     resultado.sort(
       compararRelevancia
     );
-
   }
-
-
-  // ==================================================
-  // RADAR SCORE
-  // ==================================================
 
   else if (
     ordenacaoAtual ===
     "radar"
   ) {
-
     resultado.sort(
       (a, b) => {
-
-        /*
-          Mesmo no Radar Score,
-          produto COM movimento fica
-          acima de produto zerado.
-        */
-
         const movimentoA =
           produtoTemMovimento(a)
             ? 1
@@ -2175,19 +1972,15 @@ function aplicarOrdenacaoLocal() {
             ? 1
             : 0;
 
-
         if (
           movimentoA !==
           movimentoB
         ) {
-
           return (
             movimentoB -
             movimentoA
           );
-
         }
-
 
         return (
           numeroSeguro(
@@ -2197,12 +1990,9 @@ function aplicarOrdenacaoLocal() {
             a.radar_score
           )
         );
-
       }
     );
-
   }
-
 
   renderizarProdutos(
     resultado
