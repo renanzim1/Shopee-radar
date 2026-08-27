@@ -1,11 +1,17 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
 //
-// MOMENTUM V3 + TREND SCORE
+// MOMENTUM + TREND SCORE
 // RANQUEAR SEUS VÍDEOS — ZERO VENDAS
+// CATEGORIAS INTELIGENTES
+// BUSCA AUTOMÁTICA EM MAIS PÁGINAS
 // SCROLL INFINITO
 // FAVORITOS
-// SEM COMISSÃO NA LÓGICA
+// ======================================================
+
+
+// ======================================================
+// APIS
 // ======================================================
 
 const MOMENTUM_API =
@@ -17,7 +23,18 @@ const ZERO_API =
 const RANKING_API =
   "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-ranking";
 
+
+// ======================================================
+// CONFIG
+// ======================================================
+
 const LIMITE_POR_PAGINA = 20;
+
+// Quando selecionar nicho, tenta encontrar pelo menos isso.
+const ALVO_PRODUTOS_NICHO = 24;
+
+// Limite de páginas automáticas para não sobrecarregar.
+const MAX_PAGINAS_NICHO = 25;
 
 
 // ======================================================
@@ -31,6 +48,8 @@ let paginaAtual = 1;
 let temProximaPagina = true;
 
 let carregando = false;
+
+let carregandoCategoria = false;
 
 let filtroAtual = "radar";
 
@@ -52,18 +71,15 @@ let resumoServidor = {};
 // ======================================================
 
 function obterTokenRadar() {
-
   return (
     localStorage.getItem(
       "shopeeRadarAccessToken"
     ) || ""
   );
-
 }
 
 
 function limparSessaoRadarApp() {
-
   localStorage.removeItem(
     "shopeeRadarAccessToken"
   );
@@ -75,23 +91,19 @@ function limparSessaoRadarApp() {
   localStorage.removeItem(
     "shopeeRadarUser"
   );
-
 }
 
 
 function redirecionarLogin() {
-
   limparSessaoRadarApp();
 
   window.location.replace(
     "login.html"
   );
-
 }
 
 
 function criarHeadersAPI() {
-
   const token =
     obterTokenRadar();
 
@@ -101,7 +113,6 @@ function criarHeadersAPI() {
     Authorization:
       `Bearer ${token}`
   };
-
 }
 
 
@@ -197,7 +208,6 @@ const closeModal =
 let favoritos = [];
 
 try {
-
   favoritos =
     JSON.parse(
       localStorage.getItem(
@@ -210,43 +220,34 @@ try {
       favoritos
     )
   ) {
-
     favoritos = [];
-
   }
 
 } catch {
-
   favoritos = [];
-
 }
 
 
 function salvarFavoritos() {
-
   localStorage.setItem(
     "shopeeRadarFavoritos",
     JSON.stringify(
       favoritos
     )
   );
-
 }
 
 
 function estaFavoritado(id) {
-
   return favoritos.some(
     produto =>
       String(produto.id) ===
       String(id)
   );
-
 }
 
 
 function encontrarProduto(id) {
-
   return (
     produtos.find(
       produto =>
@@ -259,21 +260,20 @@ function encontrarProduto(id) {
         String(id)
     )
   );
-
 }
 
 
 function alternarFavorito(id) {
-
   const produto =
     encontrarProduto(id);
 
-  if (!produto) return;
+  if (!produto) {
+    return;
+  }
 
   if (
     estaFavoritado(id)
   ) {
-
     favoritos =
       favoritos.filter(
         item =>
@@ -282,11 +282,9 @@ function alternarFavorito(id) {
       );
 
   } else {
-
     favoritos.unshift({
       ...produto
     });
-
   }
 
   salvarFavoritos();
@@ -294,26 +292,21 @@ function alternarFavorito(id) {
   if (
     modoFavoritos
   ) {
-
     renderizarProdutos(
       favoritos
     );
 
   } else {
-
     aplicarOrdenacao();
-
   }
-
 }
 
 
 // ======================================================
-// UTILIDADES
+// NÚMEROS
 // ======================================================
 
 function numeroSeguro(valor) {
-
   const numero =
     Number(
       valor ?? 0
@@ -324,12 +317,14 @@ function numeroSeguro(valor) {
   )
     ? numero
     : 0;
-
 }
 
 
-function escapar(valor) {
+// ======================================================
+// TEXTO
+// ======================================================
 
+function escapar(valor) {
   return String(
     valor ?? ""
   )
@@ -353,12 +348,36 @@ function escapar(valor) {
       "'",
       "&#039;"
     );
-
 }
 
 
-function dinheiro(valor) {
+function normalizarTexto(valor) {
+  return String(
+    valor ?? ""
+  )
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9\s]/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+}
 
+
+// ======================================================
+// FORMATAÇÃO
+// ======================================================
+
+function dinheiro(valor) {
   return numeroSeguro(
     valor
   ).toLocaleString(
@@ -371,12 +390,10 @@ function dinheiro(valor) {
         "BRL"
     }
   );
-
 }
 
 
 function formatarNumero(valor) {
-
   const numero =
     numeroSeguro(
       valor
@@ -385,7 +402,6 @@ function formatarNumero(valor) {
   if (
     numero >= 1000000
   ) {
-
     return (
       (
         numero /
@@ -398,14 +414,11 @@ function formatarNumero(valor) {
         ) +
       " mi"
     );
-
   }
-
 
   if (
     numero >= 1000
   ) {
-
     return (
       (
         numero /
@@ -422,14 +435,11 @@ function formatarNumero(valor) {
         ) +
       " mil"
     );
-
   }
-
 
   return numero.toLocaleString(
     "pt-BR"
   );
-
 }
 
 
@@ -437,7 +447,6 @@ function formatarDecimal(
   valor,
   casas = 1
 ) {
-
   return numeroSeguro(
     valor
   )
@@ -448,18 +457,15 @@ function formatarDecimal(
       ".",
       ","
     );
-
 }
 
 
 function formatarData(valor) {
-
   if (!valor) {
     return "";
   }
 
   try {
-
     return new Date(
       valor
     ).toLocaleString(
@@ -480,11 +486,485 @@ function formatarData(valor) {
     );
 
   } catch {
-
     return "";
+  }
+}
 
+
+function formatarFaixaPercentil(
+  valor
+) {
+  let numero =
+    numeroSeguro(
+      valor
+    );
+
+  numero =
+    Math.max(
+      1,
+      numero
+    );
+
+  if (
+    numero < 10
+  ) {
+    return (
+      formatarDecimal(
+        numero,
+        1
+      ) +
+      "%"
+    );
   }
 
+  return (
+    Math.round(
+      numero
+    ) +
+    "%"
+  );
+}
+
+
+// ======================================================
+// MAPA INTELIGENTE DE NICHOS
+// ======================================================
+
+const MAPA_NICHOS = {
+
+  moda: [
+    "vestido",
+    "blusa",
+    "camisa",
+    "camiseta",
+    "regata",
+    "cropped",
+    "calca",
+    "jeans",
+    "legging",
+    "short",
+    "bermuda",
+    "saia",
+    "macacao",
+    "conjunto",
+    "moda feminina",
+    "moda masculina",
+    "roupa",
+    "look",
+    "tenis",
+    "sapato",
+    "sandalia",
+    "chinelo",
+    "sapatilha",
+    "bolsa",
+    "mochila",
+    "carteira",
+    "cinto",
+    "oculos",
+    "bone",
+    "cueca",
+    "calcinha",
+    "sutia",
+    "pijama",
+    "meia"
+  ],
+
+  casa: [
+    "casa",
+    "lar",
+    "decoracao",
+    "decorativo",
+    "organizador",
+    "prateleira",
+    "toalha",
+    "lencol",
+    "fronha",
+    "cama",
+    "sofa",
+    "manta",
+    "tapete",
+    "cortina",
+    "almofada",
+    "travesseiro",
+    "banheiro",
+    "cabide",
+    "cesto",
+    "lixeira",
+    "limpeza",
+    "mop",
+    "vassoura",
+    "esfregao",
+    "rodo",
+    "escova limpeza",
+    "varal",
+    "porta objetos",
+    "suporte parede"
+  ],
+
+  cozinha: [
+    "panela",
+    "frigideira",
+    "caldeirao",
+    "assadeira",
+    "forma",
+    "talher",
+    "garfo",
+    "faca",
+    "colher",
+    "prato",
+    "copo",
+    "xicar",
+    "caneca",
+    "garrafa",
+    "jarra",
+    "pote",
+    "marmita",
+    "cozinha",
+    "escorredor",
+    "ralador",
+    "cortador",
+    "batedor",
+    "mixer",
+    "liquidificador",
+    "air fryer",
+    "airfryer",
+    "cafeteira",
+    "chaleira",
+    "termica",
+    "termico",
+    "tampa",
+    "tabua",
+    "peneira",
+    "espumadeira"
+  ],
+
+  beleza: [
+    "beleza",
+    "maquiagem",
+    "batom",
+    "rimel",
+    "mascara de cilios",
+    "base facial",
+    "corretivo",
+    "blush",
+    "sombra",
+    "delineador",
+    "skincare",
+    "skin care",
+    "hidratante",
+    "creme",
+    "locao",
+    "serum",
+    "sabonete",
+    "shampoo",
+    "condicionador",
+    "mascara capilar",
+    "cabelo",
+    "perfume",
+    "colonia",
+    "desodorante",
+    "body splash",
+    "protetor solar",
+    "unha",
+    "esmalte",
+    "pincel maquiagem",
+    "depilacao",
+    "depilador",
+    "natura",
+    "avon",
+    "boticario"
+  ],
+
+  eletronicos: [
+    "eletronico",
+    "eletronica",
+    "smartwatch",
+    "relogio inteligente",
+    "fone",
+    "fone bluetooth",
+    "headphone",
+    "earbuds",
+    "caixa de som",
+    "bluetooth",
+    "carregador",
+    "cabo usb",
+    "usb",
+    "power bank",
+    "camera",
+    "webcam",
+    "microfone",
+    "projetor",
+    "controle remoto",
+    "led",
+    "lampada",
+    "luminaria",
+    "adaptador",
+    "tomada",
+    "extensao",
+    "pilha",
+    "bateria"
+  ],
+
+  informatica: [
+    "computador",
+    "pc",
+    "notebook",
+    "laptop",
+    "monitor",
+    "teclado",
+    "mouse",
+    "mousepad",
+    "ssd",
+    "hd",
+    "memoria ram",
+    "ram",
+    "placa mae",
+    "placa de video",
+    "processador",
+    "cooler",
+    "gabinete",
+    "impressora",
+    "roteador",
+    "wifi",
+    "ethernet",
+    "pendrive",
+    "hub usb",
+    "informatica"
+  ],
+
+  celular: [
+    "celular",
+    "smartphone",
+    "iphone",
+    "android",
+    "samsung galaxy",
+    "xiaomi",
+    "motorola",
+    "redmi",
+    "poco",
+    "capa celular",
+    "pelicula",
+    "carregador celular",
+    "suporte celular",
+    "tripé celular",
+    "tripe celular"
+  ],
+
+  games: [
+    "gamer",
+    "gaming",
+    "game",
+    "jogo",
+    "joystick",
+    "controle gamer",
+    "controle ps",
+    "controle xbox",
+    "playstation",
+    "ps4",
+    "ps5",
+    "xbox",
+    "nintendo",
+    "switch",
+    "console",
+    "headset gamer",
+    "teclado gamer",
+    "mouse gamer",
+    "cadeira gamer",
+    "rgb"
+  ],
+
+  fitness: [
+    "fitness",
+    "academia",
+    "musculacao",
+    "halter",
+    "peso academia",
+    "elastico exercicio",
+    "faixa elastica",
+    "treino",
+    "yoga",
+    "pilates",
+    "crossfit",
+    "corrida",
+    "esporte",
+    "esportivo",
+    "squeeze",
+    "garrafa academia",
+    "tapete yoga",
+    "luva academia",
+    "cinta abdominal"
+  ],
+
+  pet: [
+    "pet",
+    "cachorro",
+    "cao",
+    "caes",
+    "gato",
+    "gatos",
+    "racao",
+    "petisco",
+    "coleira",
+    "peitoral",
+    "guia cachorro",
+    "comedouro",
+    "bebedouro pet",
+    "areia gato",
+    "areia sanitaria",
+    "brinquedo cachorro",
+    "brinquedo gato",
+    "casinha pet",
+    "cama pet",
+    "arranhador",
+    "aquario"
+  ],
+
+  bebe: [
+    "bebe",
+    "bebê",
+    "infantil",
+    "crianca",
+    "criancas",
+    "recem nascido",
+    "mamadeira",
+    "chupeta",
+    "fralda",
+    "berco",
+    "carrinho bebe",
+    "cadeira alimentacao",
+    "maternidade",
+    "mordedor",
+    "babador",
+    "banheira bebe",
+    "trocador",
+    "body bebe",
+    "roupa infantil"
+  ],
+
+  automotivo: [
+    "automotivo",
+    "automotiva",
+    "carro",
+    "veiculo",
+    "moto",
+    "motocicleta",
+    "pneu",
+    "volante",
+    "retrovisor",
+    "capacete",
+    "farol",
+    "lampada carro",
+    "limpa para brisa",
+    "limpador para brisa",
+    "tapete carro",
+    "capa banco",
+    "suporte celular carro",
+    "carregador veicular",
+    "lavagem automotiva",
+    "polimento",
+    "chave catraca",
+    "kit chave"
+  ],
+
+  ferramentas: [
+    "ferramenta",
+    "furadeira",
+    "parafusadeira",
+    "serra",
+    "martelo",
+    "alicate",
+    "chave philips",
+    "chave fenda",
+    "chave catraca",
+    "soquete",
+    "broca",
+    "trena",
+    "nivel",
+    "solda",
+    "ferro de solda",
+    "compressor",
+    "esmerilhadeira",
+    "lixadeira",
+    "multimetro",
+    "caixa ferramentas"
+  ],
+
+  papelaria: [
+    "papelaria",
+    "caneta",
+    "lapis",
+    "lapiseira",
+    "borracha",
+    "caderno",
+    "agenda",
+    "planner",
+    "estojo",
+    "marca texto",
+    "marcador",
+    "papel",
+    "adesivo",
+    "etiqueta",
+    "tesoura",
+    "grampeador",
+    "cola",
+    "escolar",
+    "material escolar"
+  ]
+
+};
+
+
+// ======================================================
+// IDENTIFICAR NICHO
+// ======================================================
+
+function textoProdutoParaNicho(
+  produto
+) {
+  return normalizarTexto(
+    [
+      produto.name,
+      produto.shop_name
+    ].join(" ")
+  );
+}
+
+
+function produtoPertenceNicho(
+  produto,
+  nicho
+) {
+  if (
+    !nicho ||
+    nicho === "all"
+  ) {
+    return true;
+  }
+
+  const palavras =
+    MAPA_NICHOS[
+      nicho
+    ] || [];
+
+  if (
+    !palavras.length
+  ) {
+    return true;
+  }
+
+  const texto =
+    textoProdutoParaNicho(
+      produto
+    );
+
+  return palavras.some(
+    palavra =>
+      texto.includes(
+        normalizarTexto(
+          palavra
+        )
+      )
+  );
 }
 
 
@@ -493,9 +973,7 @@ function formatarData(valor) {
 // ======================================================
 
 function normalizarMomentum(p) {
-
   return {
-
     id:
       String(
         p.product_id ??
@@ -553,8 +1031,11 @@ function normalizarMomentum(p) {
       ),
 
     percentil_top:
-      numeroSeguro(
-        p.percentil_top
+      Math.max(
+        1,
+        numeroSeguro(
+          p.percentil_top
+        )
       ),
 
     momentum_nivel:
@@ -608,20 +1089,16 @@ function normalizarMomentum(p) {
       numeroSeguro(
         p.sinais_reais
       )
-
   };
-
 }
 
 
 // ======================================================
-// NORMALIZAÇÃO ZERO VENDAS
+// NORMALIZAÇÃO ZERO
 // ======================================================
 
 function normalizarZero(p) {
-
   return {
-
     id:
       String(
         p.product_id ??
@@ -692,20 +1169,16 @@ function normalizarZero(p) {
     motivo:
       p.motivo ??
       "Produto com 0 vendas totais registradas."
-
   };
-
 }
 
 
 // ======================================================
-// NORMALIZAÇÃO RANKING NORMAL
+// NORMALIZAÇÃO RANKING
 // ======================================================
 
 function normalizarRanking(p) {
-
   return {
-
     id:
       String(
         p.product_id ??
@@ -751,10 +1224,13 @@ function normalizarRanking(p) {
     rating:
       numeroSeguro(
         p.rating
-      )
+      ),
 
+    ultima_captura:
+      p.captured_at ??
+      p.last_seen_at ??
+      null
   };
-
 }
 
 
@@ -763,7 +1239,6 @@ function normalizarRanking(p) {
 // ======================================================
 
 function removerDuplicados(lista) {
-
   const mapa =
     new Map();
 
@@ -771,40 +1246,43 @@ function removerDuplicados(lista) {
     const produto
     of lista
   ) {
-
     if (!produto.id) {
       continue;
     }
 
-    mapa.set(
-      String(
-        produto.id
-      ),
-      produto
-    );
-
+    if (
+      !mapa.has(
+        String(
+          produto.id
+        )
+      )
+    ) {
+      mapa.set(
+        String(
+          produto.id
+        ),
+        produto
+      );
+    }
   }
 
   return [
     ...mapa.values()
   ];
-
 }
 
 
 // ======================================================
-// URL
+// MONTAR URL
 // ======================================================
 
 function montarURL(
   pagina
 ) {
-
   if (
     filtroAtual ===
     "zero"
   ) {
-
     const url =
       new URL(
         ZERO_API
@@ -824,61 +1302,38 @@ function montarURL(
       )
     );
 
-
     if (
       buscaDigitada
     ) {
-
       url.searchParams.set(
         "q",
         buscaDigitada
       );
-
     }
-
 
     let sort =
       "recent";
-
 
     if (
       ordenacaoAtual ===
       "rating"
     ) {
-
       sort =
         "rating";
-
     }
-
-
-    if (
-      ordenacaoAtual ===
-      "recent"
-    ) {
-
-      sort =
-        "recent";
-
-    }
-
 
     if (
       ordenacaoAtual ===
       "trend"
     ) {
-
       sort =
         "seen";
-
     }
-
 
     url.searchParams.set(
       "sort",
       sort
     );
-
 
     return {
       url:
@@ -887,7 +1342,6 @@ function montarURL(
       tipo:
         "zero"
     };
-
   }
 
 
@@ -897,7 +1351,6 @@ function montarURL(
     filtroAtual ===
       "rating"
   ) {
-
     const url =
       new URL(
         RANKING_API
@@ -925,7 +1378,6 @@ function montarURL(
           : "rating"
     );
 
-
     return {
       url:
         url.toString(),
@@ -933,7 +1385,6 @@ function montarURL(
       tipo:
         "ranking"
     };
-
   }
 
 
@@ -956,7 +1407,6 @@ function montarURL(
     )
   );
 
-
   return {
     url:
       url.toString(),
@@ -964,529 +1414,240 @@ function montarURL(
     tipo:
       "momentum"
   };
-
 }
 
 
 // ======================================================
-// CARREGAR
+// BUSCAR UMA PÁGINA
 // ======================================================
 
-async function carregarProdutos(
-  pagina = 1,
-  adicionar = false
+async function buscarPaginaAPI(
+  pagina
 ) {
-
-  if (
-    carregando ||
-    modoFavoritos
-  ) {
-
-    return;
-
-  }
-
-
-  if (
-    adicionar &&
-    !temProximaPagina
-  ) {
-
-    return;
-
-  }
-
-
   const token =
     obterTokenRadar();
 
-
   if (!token) {
-
     redirecionarLogin();
-    return;
 
+    throw new Error(
+      "Sessão expirada."
+    );
   }
 
+  const config =
+    montarURL(
+      pagina
+    );
 
-  carregando =
-    true;
+  const resposta =
+    await fetch(
+      config.url,
+      {
+        headers:
+          criarHeadersAPI(),
 
+        cache:
+          "no-store"
+      }
+    );
 
   if (
-    adicionar
+    resposta.status === 401 ||
+    resposta.status === 403
   ) {
+    redirecionarLogin();
 
-    if (
-      infiniteLoader
-    ) {
-
-      infiniteLoader.hidden =
-        false;
-
-    }
-
-  } else {
-
-    mostrarLoading();
-
+    throw new Error(
+      "Acesso expirado."
+    );
   }
 
+  let dados;
 
   try {
-
-    const config =
-      montarURL(
-        pagina
-      );
-
-
-    const resposta =
-      await fetch(
-        config.url,
-        {
-          headers:
-            criarHeadersAPI(),
-
-          cache:
-            "no-store"
-        }
-      );
-
-
-    if (
-      resposta.status === 401 ||
-      resposta.status === 403
-    ) {
-
-      redirecionarLogin();
-      return;
-
-    }
-
-
-    const dados =
+    dados =
       await resposta.json();
 
+  } catch {
+    throw new Error(
+      "Resposta inválida da API."
+    );
+  }
 
-    if (
-      !resposta.ok ||
-      dados.ok === false
-    ) {
+  if (
+    !resposta.ok ||
+    dados.ok === false
+  ) {
+    throw new Error(
+      dados.erro ||
+      dados.message ||
+      "Não foi possível carregar os produtos."
+    );
+  }
 
-      throw new Error(
-        dados.erro ||
-        "Não foi possível carregar os produtos."
+  let lista =
+    [];
+
+  if (
+    config.tipo ===
+    "momentum"
+  ) {
+    lista =
+      (
+        dados.produtos ||
+        []
+      ).map(
+        normalizarMomentum
       );
+  }
 
-    }
+  if (
+    config.tipo ===
+    "zero"
+  ) {
+    lista =
+      (
+        dados.produtos ||
+        []
+      ).map(
+        normalizarZero
+      );
+  }
 
+  if (
+    config.tipo ===
+    "ranking"
+  ) {
+    lista =
+      (
+        dados.produtos ||
+        []
+      ).map(
+        normalizarRanking
+      );
+  }
 
-    let novos =
-      [];
-
-
-    if (
-      config.tipo ===
-      "momentum"
-    ) {
-
-      novos =
-        (
-          dados.produtos ||
-          []
-        ).map(
-          normalizarMomentum
-        );
-
-    }
-
-
-    if (
-      config.tipo ===
-      "zero"
-    ) {
-
-      novos =
-        (
-          dados.produtos ||
-          []
-        ).map(
-          normalizarZero
-        );
-
-    }
-
-
-    if (
-      config.tipo ===
-      "ranking"
-    ) {
-
-      novos =
-        (
-          dados.produtos ||
-          []
-        ).map(
-          normalizarRanking
-        );
-
-    }
-
-
-    novos =
+  return {
+    produtos:
       removerDuplicados(
-        novos
-      );
+        lista
+      ),
 
-
-    if (
-      adicionar
-    ) {
-
-      produtos =
-        removerDuplicados(
-          [
-            ...produtos,
-            ...novos
-          ]
-        );
-
-    } else {
-
-      produtos =
-        novos;
-
-    }
-
-
-    paginaAtual =
+    paginaAtual:
       numeroSeguro(
         dados.paginaAtual ??
         pagina
-      );
+      ),
 
-
-    temProximaPagina =
+    temProximaPagina:
       Boolean(
         dados.temProximaPagina
-      );
+      ),
 
-
-    totalServidor =
+    total:
       numeroSeguro(
         dados.total
-      );
+      ),
 
-
-    resumoServidor =
+    resumo:
       dados.resumo ||
-      {};
-
-
-    atualizarInterfaceModo();
-
-    atualizarContadores();
-
-    aplicarOrdenacao();
-
-
-  } catch (erro) {
-
-    console.error(
-      erro
-    );
-
-    mostrarErro(
-      erro instanceof Error
-        ? erro.message
-        : String(
-            erro
-          )
-    );
-
-  } finally {
-
-    carregando =
-      false;
-
-
-    if (
-      infiniteLoader
-    ) {
-
-      infiniteLoader.hidden =
-        true;
-
-    }
-
-  }
-
+      {}
+  };
 }
 
 
 // ======================================================
-// CONTADORES
+// FILTRAR LISTA
 // ======================================================
 
-function atualizarContadores() {
-
-  if (
-    totalProdutos
-  ) {
-
-    totalProdutos.textContent =
-      totalServidor ||
-      produtos.length;
-
-  }
-
-
-  if (
-    totalVideos
-  ) {
-
-    totalVideos.textContent =
-      produtos.length;
-
-  }
-
-
-  if (
-    totalOportunidades
-  ) {
-
-    if (
-      filtroAtual ===
-      "zero"
-    ) {
-
-      totalOportunidades.textContent =
-        produtos.filter(
-          produto =>
-            produto.times_seen >= 2
-        ).length;
-
-    }
-
-    else if (
-      filtroAtual ===
-      "radar"
-    ) {
-
-      totalOportunidades.textContent =
-        numeroSeguro(
-          resumoServidor
-            .postar_agora
-        ) +
-        numeroSeguro(
-          resumoServidor
-            .forte_candidato
-        );
-
-    }
-
-    else {
-
-      totalOportunidades.textContent =
-        produtos.length;
-
-    }
-
-  }
-
-}
-
-
-// ======================================================
-// INTERFACE POR MODO
-// ======================================================
-
-function atualizarInterfaceModo() {
-
-  const zero =
-    filtroAtual ===
-    "zero";
-
-
-  if (
-    zeroStrategyBox
-  ) {
-
-    zeroStrategyBox.classList.toggle(
-      "active",
-      zero
-    );
-
-  }
-
-
-  if (
-    totalProdutosLabel
-  ) {
-
-    totalProdutosLabel.textContent =
-      zero
-        ? "PRODUTOS 0 VENDAS"
-        : "NO RADAR";
-
-  }
-
-
-  if (
-    totalOportunidadesLabel
-  ) {
-
-    totalOportunidadesLabel.textContent =
-      zero
-        ? "RECORRENTES"
-        : "DESTAQUES";
-
-  }
-
-
-  if (
-    heroDescription
-  ) {
-
-    heroDescription.textContent =
-      zero
-        ? "Encontre produtos ainda sem nenhuma venda e tente posicionar seu vídeo antes da concorrência."
-        : "Acompanhe momentum, tendência, ranking e movimento dos produtos em um único Radar.";
-
-  }
-
-
-  if (
-    resultsTitle
-  ) {
-
-    if (
-      filtroAtual ===
-      "zero"
-    ) {
-
-      resultsTitle.textContent =
-        "🎯 Ranquear seus vídeos";
-
-    }
-
-    else if (
-      filtroAtual ===
-      "hot"
-    ) {
-
-      resultsTitle.textContent =
-        "🔥 Mais vendidos";
-
-    }
-
-    else if (
-      filtroAtual ===
-      "rating"
-    ) {
-
-      resultsTitle.textContent =
-        "⭐ Melhor avaliação";
-
-    }
-
-    else {
-
-      resultsTitle.textContent =
-        "🔥 O que está ganhando força";
-
-    }
-
-  }
-
-}
-
-
-// ======================================================
-// ORDENAÇÃO LOCAL
-// ======================================================
-
-function aplicarOrdenacao() {
-
+function obterListaFiltrada(
+  origem = produtos
+) {
   let lista =
     removerDuplicados(
       [
-        ...produtos
+        ...origem
       ]
     );
 
-
   const busca =
-    buscaDigitada
-      .trim()
-      .toLowerCase();
-
+    normalizarTexto(
+      buscaDigitada
+    );
 
   if (
-    busca &&
-    filtroAtual !==
-      "zero"
+    busca
   ) {
-
     lista =
       lista.filter(
-        produto =>
-          String(
-            produto.name
-          )
-            .toLowerCase()
-            .includes(
-              busca
-            )
+        produto => {
+          const texto =
+            normalizarTexto(
+              [
+                produto.name,
+                produto.shop_name
+              ].join(" ")
+            );
+
+          return texto.includes(
+            busca
+          );
+        }
       );
-
   }
-
 
   if (
     nichoAtual !==
     "all"
   ) {
-
-    const termo =
-      nichoAtual
-        .toLowerCase();
-
-
     lista =
       lista.filter(
         produto =>
-          String(
-            produto.name
+          produtoPertenceNicho(
+            produto,
+            nichoAtual
           )
-            .toLowerCase()
-            .includes(
-              termo
-            )
       );
-
   }
 
+  return lista;
+}
+
+
+// ======================================================
+// ORDENAÇÃO
+// ======================================================
+
+function ordenarLista(
+  lista
+) {
+  const resultado =
+    [
+      ...lista
+    ];
 
   if (
     ordenacaoAtual ===
     "relevance"
   ) {
-
-    lista.sort(
-      (
-        a,
-        b
-      ) =>
-        numeroSeguro(
-          b.momentum_score
-        ) -
-        numeroSeguro(
-          a.momentum_score
-        )
-    );
-
+    if (
+      filtroAtual ===
+      "radar"
+    ) {
+      resultado.sort(
+        (
+          a,
+          b
+        ) =>
+          numeroSeguro(
+            b.momentum_score
+          ) -
+          numeroSeguro(
+            a.momentum_score
+          )
+      );
+    }
   }
 
 
@@ -1494,8 +1655,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "trend"
   ) {
-
-    lista.sort(
+    resultado.sort(
       (
         a,
         b
@@ -1509,7 +1669,6 @@ function aplicarOrdenacao() {
           a.times_seen
         )
     );
-
   }
 
 
@@ -1517,8 +1676,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "sales"
   ) {
-
-    lista.sort(
+    resultado.sort(
       (
         a,
         b
@@ -1530,7 +1688,6 @@ function aplicarOrdenacao() {
           a.sold_count
         )
     );
-
   }
 
 
@@ -1538,8 +1695,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "rating"
   ) {
-
-    lista.sort(
+    resultado.sort(
       (
         a,
         b
@@ -1551,7 +1707,6 @@ function aplicarOrdenacao() {
           a.rating
         )
     );
-
   }
 
 
@@ -1559,8 +1714,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "recent"
   ) {
-
-    lista.sort(
+    resultado.sort(
       (
         a,
         b
@@ -1574,57 +1728,477 @@ function aplicarOrdenacao() {
           0
         ).getTime()
     );
-
   }
 
+  return resultado;
+}
+
+
+function aplicarOrdenacao() {
+  const lista =
+    ordenarLista(
+      obterListaFiltrada()
+    );
+
+  atualizarContadores();
 
   renderizarProdutos(
     lista
   );
-
 }
 
 
 // ======================================================
-// COR DO MOMENTUM
+// COMPLETAR NICHO AUTOMATICAMENTE
+// ======================================================
+
+async function completarNicho() {
+  if (
+    nichoAtual === "all" ||
+    carregandoCategoria ||
+    modoFavoritos
+  ) {
+    return;
+  }
+
+  let encontrados =
+    obterListaFiltrada()
+      .length;
+
+  if (
+    encontrados >=
+    ALVO_PRODUTOS_NICHO
+  ) {
+    return;
+  }
+
+  carregandoCategoria =
+    true;
+
+  if (
+    infiniteLoader
+  ) {
+    infiniteLoader.hidden =
+      false;
+
+    const texto =
+      infiniteLoader.querySelector(
+        "span"
+      );
+
+    if (texto) {
+      texto.textContent =
+        "Buscando mais produtos deste nicho...";
+    }
+  }
+
+  try {
+    while (
+      encontrados <
+        ALVO_PRODUTOS_NICHO &&
+      temProximaPagina &&
+      paginaAtual <
+        MAX_PAGINAS_NICHO
+    ) {
+      const proxima =
+        paginaAtual + 1;
+
+      const dados =
+        await buscarPaginaAPI(
+          proxima
+        );
+
+      produtos =
+        removerDuplicados(
+          [
+            ...produtos,
+            ...dados.produtos
+          ]
+        );
+
+      paginaAtual =
+        dados.paginaAtual;
+
+      temProximaPagina =
+        dados.temProximaPagina;
+
+      if (
+        dados.total > 0
+      ) {
+        totalServidor =
+          dados.total;
+      }
+
+      if (
+        dados.resumo &&
+        Object.keys(
+          dados.resumo
+        ).length
+      ) {
+        resumoServidor =
+          dados.resumo;
+      }
+
+      encontrados =
+        obterListaFiltrada()
+          .length;
+
+      aplicarOrdenacao();
+    }
+
+  } catch (erro) {
+    console.error(
+      "Erro ao completar nicho:",
+      erro
+    );
+
+  } finally {
+    carregandoCategoria =
+      false;
+
+    if (
+      infiniteLoader
+    ) {
+      infiniteLoader.hidden =
+        true;
+
+      const texto =
+        infiniteLoader.querySelector(
+          "span"
+        );
+
+      if (texto) {
+        texto.textContent =
+          "Buscando mais produtos...";
+      }
+    }
+  }
+}
+
+
+// ======================================================
+// CARREGAR
+// ======================================================
+
+async function carregarProdutos(
+  pagina = 1,
+  adicionar = false
+) {
+  if (
+    carregando ||
+    modoFavoritos
+  ) {
+    return;
+  }
+
+  if (
+    adicionar &&
+    !temProximaPagina
+  ) {
+    return;
+  }
+
+  carregando =
+    true;
+
+  if (
+    adicionar
+  ) {
+    if (
+      infiniteLoader
+    ) {
+      infiniteLoader.hidden =
+        false;
+    }
+
+  } else {
+    mostrarLoading();
+  }
+
+  try {
+    const dados =
+      await buscarPaginaAPI(
+        pagina
+      );
+
+    if (
+      adicionar
+    ) {
+      produtos =
+        removerDuplicados(
+          [
+            ...produtos,
+            ...dados.produtos
+          ]
+        );
+
+    } else {
+      produtos =
+        dados.produtos;
+    }
+
+    paginaAtual =
+      dados.paginaAtual;
+
+    temProximaPagina =
+      dados.temProximaPagina;
+
+    totalServidor =
+      dados.total;
+
+    resumoServidor =
+      dados.resumo;
+
+    atualizarInterfaceModo();
+
+    aplicarOrdenacao();
+
+  } catch (erro) {
+    console.error(
+      "Erro Shopee Radar:",
+      erro
+    );
+
+    if (
+      !adicionar
+    ) {
+      mostrarErro(
+        erro instanceof Error
+          ? erro.message
+          : String(
+              erro
+            )
+      );
+    }
+
+  } finally {
+    carregando =
+      false;
+
+    if (
+      infiniteLoader
+    ) {
+      infiniteLoader.hidden =
+        true;
+    }
+  }
+
+  if (
+    !adicionar &&
+    nichoAtual !== "all"
+  ) {
+    await completarNicho();
+  }
+}
+
+
+// ======================================================
+// CONTADORES
+// ======================================================
+
+function atualizarContadores() {
+  const listaVisivel =
+    obterListaFiltrada();
+
+  const usandoFiltro =
+    nichoAtual !==
+      "all" ||
+    Boolean(
+      buscaDigitada
+    );
+
+  if (
+    totalProdutos
+  ) {
+    totalProdutos.textContent =
+      usandoFiltro
+        ? listaVisivel.length
+        : (
+            totalServidor ||
+            produtos.length
+          );
+  }
+
+
+  if (
+    totalVideos
+  ) {
+    totalVideos.textContent =
+      listaVisivel.length;
+  }
+
+
+  if (
+    !totalOportunidades
+  ) {
+    return;
+  }
+
+
+  if (
+    filtroAtual ===
+    "zero"
+  ) {
+    totalOportunidades.textContent =
+      listaVisivel.filter(
+        produto =>
+          numeroSeguro(
+            produto.times_seen
+          ) >= 2
+      ).length;
+
+    return;
+  }
+
+
+  if (
+    filtroAtual ===
+    "radar"
+  ) {
+    if (
+      usandoFiltro
+    ) {
+      totalOportunidades.textContent =
+        listaVisivel.filter(
+          produto =>
+            produto.momentum_nivel ===
+              "em_alta" ||
+            produto.momentum_nivel ===
+              "ganhando_forca"
+        ).length;
+
+    } else {
+      totalOportunidades.textContent =
+        numeroSeguro(
+          resumoServidor
+            .postar_agora
+        ) +
+        numeroSeguro(
+          resumoServidor
+            .forte_candidato
+        );
+    }
+
+    return;
+  }
+
+
+  totalOportunidades.textContent =
+    listaVisivel.length;
+}
+
+
+// ======================================================
+// INTERFACE
+// ======================================================
+
+function atualizarInterfaceModo() {
+  const zero =
+    filtroAtual ===
+    "zero";
+
+
+  if (
+    zeroStrategyBox
+  ) {
+    zeroStrategyBox.classList.toggle(
+      "active",
+      zero
+    );
+  }
+
+
+  if (
+    totalProdutosLabel
+  ) {
+    totalProdutosLabel.textContent =
+      zero
+        ? "PRODUTOS 0 VENDAS"
+        : "NO RADAR";
+  }
+
+
+  if (
+    totalOportunidadesLabel
+  ) {
+    totalOportunidadesLabel.textContent =
+      zero
+        ? "RECORRENTES"
+        : "DESTAQUES";
+  }
+
+
+  if (
+    heroDescription
+  ) {
+    heroDescription.textContent =
+      zero
+        ? "Encontre produtos ainda sem nenhuma venda e tente posicionar seu vídeo antes da concorrência."
+        : "Acompanhe momentum, tendência, ranking e movimento dos produtos em um único Radar.";
+  }
+
+
+  if (
+    resultsTitle
+  ) {
+    if (
+      filtroAtual ===
+      "zero"
+    ) {
+      resultsTitle.textContent =
+        "🎯 Ranquear seus vídeos";
+
+    } else if (
+      filtroAtual ===
+      "hot"
+    ) {
+      resultsTitle.textContent =
+        "🔥 Mais vendidos";
+
+    } else if (
+      filtroAtual ===
+      "rating"
+    ) {
+      resultsTitle.textContent =
+        "⭐ Melhor avaliação";
+
+    } else {
+      resultsTitle.textContent =
+        "🔥 O que está ganhando força";
+    }
+  }
+}
+
+
+// ======================================================
+// COR MOMENTUM
 // ======================================================
 
 function obterCorMomentum(
   produto
 ) {
-
   if (
     produto.momentum_nivel ===
     "em_alta"
   ) {
-
     return "#ff4d4d";
-
   }
-
 
   if (
     produto.momentum_nivel ===
     "ganhando_forca"
   ) {
-
     return "#ff8a3d";
-
   }
-
 
   if (
     produto.momentum_nivel ===
     "acompanhar"
   ) {
-
     return "#32d583";
-
   }
 
-
   return "#9299a8";
-
 }
 
 
@@ -1635,18 +2209,15 @@ function obterCorMomentum(
 function criarCardMomentum(
   produto
 ) {
-
   const favoritado =
     estaFavoritado(
       produto.id
     );
 
-
   const cor =
     obterCorMomentum(
       produto
     );
-
 
   const vendas =
     numeroSeguro(
@@ -1654,12 +2225,10 @@ function criarCardMomentum(
         .vendas_confirmadas_24h
     );
 
-
   const rankChange =
     numeroSeguro(
       produto.rank_change
     );
-
 
   return `
     <article
@@ -1719,10 +2288,13 @@ function criarCardMomentum(
       }
 
 
-      <div class="product-card-content">
+      <div
+        class="product-card-content"
+      >
 
-
-        <div class="product-card-top">
+        <div
+          class="product-card-top"
+        >
 
           <span
             class="opportunity-badge"
@@ -1737,7 +2309,9 @@ function criarCardMomentum(
           </span>
 
 
-          <span class="score-badge">
+          <span
+            class="score-badge"
+          >
             ${Math.round(
               produto.momentum_score
             )}
@@ -1746,14 +2320,18 @@ function criarCardMomentum(
         </div>
 
 
-        <h3 class="product-name">
+        <h3
+          class="product-name"
+        >
           ${escapar(
             produto.name
           )}
         </h3>
 
 
-        <div class="product-shop">
+        <div
+          class="product-shop"
+        >
           🏪 ${escapar(
             produto.shop_name
           )}
@@ -1796,11 +2374,13 @@ function criarCardMomentum(
         </div>
 
 
-        <div class="product-stats">
+        <div
+          class="product-stats"
+        >
 
-
-          <div class="product-stat">
-
+          <div
+            class="product-stat"
+          >
             <span>
               VENDIDOS
             </span>
@@ -1810,12 +2390,12 @@ function criarCardMomentum(
                 produto.sold_count
               )}
             </strong>
-
           </div>
 
 
-          <div class="product-stat">
-
+          <div
+            class="product-stat"
+          >
             <span>
               + VENDAS 24H
             </span>
@@ -1829,12 +2409,12 @@ function criarCardMomentum(
                 vendas
               )}
             </strong>
-
           </div>
 
 
-          <div class="product-stat">
-
+          <div
+            class="product-stat"
+          >
             <span>
               CAPTURAS
             </span>
@@ -1844,12 +2424,12 @@ function criarCardMomentum(
                 produto.capturas_24h
               )}
             </strong>
-
           </div>
 
 
-          <div class="product-stat">
-
+          <div
+            class="product-stat"
+          >
             <span>
               RANKING
             </span>
@@ -1861,9 +2441,7 @@ function criarCardMomentum(
                   : "—"
               }
             </strong>
-
           </div>
-
 
         </div>
 
@@ -1878,7 +2456,6 @@ function criarCardMomentum(
           "
         >
 
-
           <div
             style="
               padding:8px;
@@ -1887,1645 +2464,4 @@ function criarCardMomentum(
             "
           >
 
-            <small
-              style="
-                display:block;
-                color:#737b8b;
-                font-size:7px;
-              "
-            >
-              POSIÇÃO MOMENTUM
-            </small>
-
-            <strong>
-              #${Math.round(
-                produto.momentum_posicao
-              )}
-            </strong>
-
-          </div>
-
-
-          <div
-            style="
-              padding:8px;
-              border-radius:9px;
-              background:#0b0e14;
-            "
-          >
-
-            <small
-              style="
-                display:block;
-                color:#737b8b;
-                font-size:7px;
-              "
-            >
-              FAIXA
-            </small>
-
-            <strong>
-              Top ${formatarDecimal(
-                produto.percentil_top,
-                0
-              )}%
-            </strong>
-
-          </div>
-
-
-        </div>
-
-
-        ${
-          rankChange > 0
-            ? `
-              <div
-                style="
-                  margin-top:8px;
-                  color:#32d583;
-                  font-size:10px;
-                  font-weight:800;
-                "
-              >
-                📈 Subiu ${rankChange} posições
-              </div>
-            `
-            : ""
-        }
-
-
-        <div class="product-footer">
-
-          <div>
-
-            <small>
-              MOMENTUM
-            </small>
-
-            <strong>
-              ${Math.round(
-                produto.momentum_score
-              )}
-            </strong>
-
-          </div>
-
-
-          <div class="product-price">
-
-            <small>
-              PREÇO
-            </small>
-
-            <strong>
-              ${dinheiro(
-                produto.price
-              )}
-            </strong>
-
-          </div>
-
-        </div>
-
-
-      </div>
-
-    </article>
-  `;
-
-}
-
-
-// ======================================================
-// CARD ZERO VENDAS
-// ======================================================
-
-function criarCardZero(
-  produto
-) {
-
-  const favoritado =
-    estaFavoritado(
-      produto.id
-    );
-
-
-  return `
-    <article
-      class="product-card"
-      data-id="${escapar(
-        produto.id
-      )}"
-      style="position:relative;"
-    >
-
-      <button
-        class="favorite-btn"
-        data-favorite-id="${escapar(
-          produto.id
-        )}"
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:40px;
-          height:40px;
-          border:1px solid rgba(255,255,255,.12);
-          border-radius:50%;
-          background:rgba(10,12,18,.88);
-          color:${
-            favoritado
-              ? "#ff5a1f"
-              : "#fff"
-          };
-          font-size:24px;
-        "
-      >
-        ${
-          favoritado
-            ? "♥"
-            : "♡"
-        }
-      </button>
-
-
-      ${
-        produto.image_url
-          ? `
-            <img
-              class="product-image"
-              src="${escapar(
-                produto.image_url
-              )}"
-              alt="${escapar(
-                produto.name
-              )}"
-              loading="lazy"
-            >
-          `
-          : ""
-      }
-
-
-      <div class="product-card-content">
-
-
-        <div class="product-card-top">
-
-          <span
-            class="opportunity-badge"
-            style="
-              color:#c084fc;
-              background:rgba(192,132,252,.10);
-            "
-          >
-            🎯 0 VENDAS
-          </span>
-
-
-          <span class="score-badge">
-            ENTRAR CEDO
-          </span>
-
-        </div>
-
-
-        <h3 class="product-name">
-          ${escapar(
-            produto.name
-          )}
-        </h3>
-
-
-        <div class="product-shop">
-          🏪 ${escapar(
-            produto.shop_name
-          )}
-        </div>
-
-
-        <div
-          style="
-            margin:9px 0;
-            padding:9px;
-            border-radius:10px;
-            background:rgba(192,132,252,.06);
-            border:1px solid rgba(192,132,252,.12);
-            color:#c9ced8;
-            font-size:9px;
-            line-height:1.45;
-          "
-        >
-          Produto ainda sem venda registrada.
-          Estratégia: publicar o vídeo antes
-          da concorrência.
-        </div>
-
-
-        <div class="product-stats">
-
-
-          <div class="product-stat">
-
-            <span>
-              VENDIDOS
-            </span>
-
-            <strong>
-              0
-            </strong>
-
-          </div>
-
-
-          <div class="product-stat">
-
-            <span>
-              DETECÇÕES
-            </span>
-
-            <strong>
-              ${formatarNumero(
-                produto.times_seen
-              )}
-            </strong>
-
-          </div>
-
-
-          <div class="product-stat">
-
-            <span>
-              AVALIAÇÃO
-            </span>
-
-            <strong>
-              ⭐ ${numeroSeguro(
-                produto.rating
-              ).toFixed(1)}
-            </strong>
-
-          </div>
-
-
-          <div class="product-stat">
-
-            <span>
-              ÚLTIMA VEZ
-            </span>
-
-            <strong
-              style="
-                font-size:9px;
-              "
-            >
-              ${escapar(
-                formatarData(
-                  produto.ultima_captura
-                )
-              )}
-            </strong>
-
-          </div>
-
-
-        </div>
-
-
-        <div class="product-footer">
-
-
-          <div>
-
-            <small>
-              ESTRATÉGIA
-            </small>
-
-            <strong>
-              ENTRAR CEDO
-            </strong>
-
-          </div>
-
-
-          <div class="product-price">
-
-            <small>
-              PREÇO
-            </small>
-
-            <strong>
-              ${dinheiro(
-                produto.price
-              )}
-            </strong>
-
-          </div>
-
-
-        </div>
-
-
-      </div>
-
-    </article>
-  `;
-
-}
-
-
-// ======================================================
-// CARD NORMAL
-// ======================================================
-
-function criarCardRanking(
-  produto
-) {
-
-  const favoritado =
-    estaFavoritado(
-      produto.id
-    );
-
-
-  return `
-    <article
-      class="product-card"
-      data-id="${escapar(
-        produto.id
-      )}"
-      style="position:relative;"
-    >
-
-      <button
-        class="favorite-btn"
-        data-favorite-id="${escapar(
-          produto.id
-        )}"
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:40px;
-          height:40px;
-          border:1px solid rgba(255,255,255,.12);
-          border-radius:50%;
-          background:rgba(10,12,18,.88);
-          color:${
-            favoritado
-              ? "#ff5a1f"
-              : "#fff"
-          };
-          font-size:24px;
-        "
-      >
-        ${
-          favoritado
-            ? "♥"
-            : "♡"
-        }
-      </button>
-
-
-      ${
-        produto.image_url
-          ? `
-            <img
-              class="product-image"
-              src="${escapar(
-                produto.image_url
-              )}"
-              alt="${escapar(
-                produto.name
-              )}"
-              loading="lazy"
-            >
-          `
-          : ""
-      }
-
-
-      <div class="product-card-content">
-
-        <h3 class="product-name">
-          ${escapar(
-            produto.name
-          )}
-        </h3>
-
-
-        <div class="product-shop">
-          🏪 ${escapar(
-            produto.shop_name
-          )}
-        </div>
-
-
-        <div class="product-stats">
-
-
-          <div class="product-stat">
-
-            <span>
-              VENDIDOS
-            </span>
-
-            <strong>
-              ${formatarNumero(
-                produto.sold_count
-              )}
-            </strong>
-
-          </div>
-
-
-          <div class="product-stat">
-
-            <span>
-              AVALIAÇÃO
-            </span>
-
-            <strong>
-              ⭐ ${numeroSeguro(
-                produto.rating
-              ).toFixed(1)}
-            </strong>
-
-          </div>
-
-
-        </div>
-
-
-        <div class="product-footer">
-
-
-          <div>
-
-            <small>
-              PRODUTO
-            </small>
-
-            <strong>
-              SHOPEE
-            </strong>
-
-          </div>
-
-
-          <div class="product-price">
-
-            <small>
-              PREÇO
-            </small>
-
-            <strong>
-              ${dinheiro(
-                produto.price
-              )}
-            </strong>
-
-          </div>
-
-
-        </div>
-
-      </div>
-
-    </article>
-  `;
-
-}
-
-
-// ======================================================
-// RENDER
-// ======================================================
-
-function renderizarProdutos(
-  lista
-) {
-
-  if (!productsGrid) {
-    return;
-  }
-
-
-  if (
-    !lista.length
-  ) {
-
-    productsGrid.innerHTML =
-      "";
-
-
-    if (
-      emptyState
-    ) {
-
-      emptyState.hidden =
-        false;
-
-    }
-
-
-    return;
-
-  }
-
-
-  if (
-    emptyState
-  ) {
-
-    emptyState.hidden =
-      true;
-
-  }
-
-
-  productsGrid.innerHTML =
-    lista.map(
-      produto => {
-
-        if (
-          produto.tipo ===
-          "zero"
-        ) {
-
-          return criarCardZero(
-            produto
-          );
-
-        }
-
-
-        if (
-          produto.tipo ===
-          "momentum"
-        ) {
-
-          return criarCardMomentum(
-            produto
-          );
-
-        }
-
-
-        return criarCardRanking(
-          produto
-        );
-
-      }
-    ).join("");
-
-
-  ativarEventosCards();
-
-}
-
-
-// ======================================================
-// EVENTOS DOS CARDS
-// ======================================================
-
-function ativarEventosCards() {
-
-  document
-    .querySelectorAll(
-      ".product-card"
-    )
-    .forEach(
-      card => {
-
-        card.addEventListener(
-          "click",
-          () => {
-
-            const produto =
-              encontrarProduto(
-                card.dataset.id
-              );
-
-
-            if (
-              produto
-            ) {
-
-              abrirModal(
-                produto
-              );
-
-            }
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      ".favorite-btn"
-    )
-    .forEach(
-      botao => {
-
-        botao.addEventListener(
-          "click",
-          event => {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-
-            alternarFavorito(
-              botao.dataset
-                .favoriteId
-            );
-
-          }
-        );
-
-      }
-    );
-
-}
-
-
-// ======================================================
-// MODAL
-// ======================================================
-
-function abrirModal(
-  produto
-) {
-
-  if (
-    !productModal ||
-    !modalBody
-  ) {
-
-    return;
-
-  }
-
-
-  const link =
-    produto.affiliate_url ||
-    produto.product_url ||
-    "";
-
-
-  let extra =
-    "";
-
-
-  if (
-    produto.tipo ===
-    "momentum"
-  ) {
-
-    extra = `
-
-      <div
-        style="
-          margin-top:16px;
-          padding:14px;
-          background:#11151f;
-          border-radius:12px;
-        "
-      >
-
-        <strong>
-          📊 Inteligência do Radar
-        </strong>
-
-        <p>
-          Momentum:
-          <strong>
-            ${Math.round(
-              produto.momentum_score
-            )}
-          </strong>
-        </p>
-
-        <p>
-          Tendência:
-          <strong>
-            ${escapar(
-              produto.trend_nivel
-            )}
-          </strong>
-        </p>
-
-        <p>
-          Trend Score:
-          ${Math.round(
-            produto.trend_score
-          )}
-        </p>
-
-        <p>
-          Vendas confirmadas 24h:
-          +${formatarNumero(
-            produto
-              .vendas_confirmadas_24h
-          )}
-        </p>
-
-        <p>
-          Capturas:
-          ${formatarNumero(
-            produto.capturas_24h
-          )}
-        </p>
-
-        <p>
-          Ranking:
-          ${
-            produto.rank_atual > 0
-              ? "#" +
-                produto.rank_atual
-              : "Sem posição"
-          }
-        </p>
-
-        <p>
-          Faixa:
-          Top ${formatarDecimal(
-            produto.percentil_top,
-            1
-          )}%
-        </p>
-
-      </div>
-
-    `;
-
-  }
-
-
-  if (
-    produto.tipo ===
-    "zero"
-  ) {
-
-    extra = `
-
-      <div
-        style="
-          margin-top:16px;
-          padding:14px;
-          background:rgba(192,132,252,.07);
-          border:1px solid rgba(192,132,252,.18);
-          border-radius:12px;
-        "
-      >
-
-        <strong>
-          🎯 Estratégia de ranqueamento
-        </strong>
-
-        <p
-          style="
-            margin-top:8px;
-            color:#b5bac5;
-            line-height:1.5;
-          "
-        >
-          Este produto está com 0 vendas totais
-          registradas. A estratégia é publicar
-          conteúdo cedo para tentar posicionar
-          o vídeo antes de outros afiliados.
-        </p>
-
-        <p>
-          Detectado pelo Radar:
-          ${formatarNumero(
-            produto.times_seen
-          )}
-          vezes.
-        </p>
-
-      </div>
-
-    `;
-
-  }
-
-
-  modalBody.innerHTML = `
-
-    ${
-      produto.image_url
-        ? `
-          <img
-            src="${escapar(
-              produto.image_url
-            )}"
-            alt="${escapar(
-              produto.name
-            )}"
-            style="
-              width:100%;
-              max-height:300px;
-              object-fit:contain;
-              border-radius:14px;
-              margin-bottom:16px;
-            "
-          >
-        `
-        : ""
-    }
-
-
-    <h2>
-      ${escapar(
-        produto.name
-      )}
-    </h2>
-
-
-    <p
-      style="
-        margin-top:8px;
-      "
-    >
-      🏪 ${escapar(
-        produto.shop_name
-      )}
-    </p>
-
-
-    <p
-      style="
-        margin-top:15px;
-      "
-    >
-      <strong>
-        Preço:
-      </strong>
-
-      ${dinheiro(
-        produto.price
-      )}
-    </p>
-
-
-    <p>
-      <strong>
-        Vendidos:
-      </strong>
-
-      ${formatarNumero(
-        produto.sold_count
-      )}
-    </p>
-
-
-    <p>
-      <strong>
-        Avaliação:
-      </strong>
-
-      ⭐ ${numeroSeguro(
-        produto.rating
-      ).toFixed(1)}
-    </p>
-
-
-    ${extra}
-
-
-    <button
-      id="modalFavoriteButton"
-      data-id="${escapar(
-        produto.id
-      )}"
-      style="
-        width:100%;
-        margin-top:18px;
-        padding:14px;
-        border-radius:12px;
-        border:1px solid rgba(255,255,255,.15);
-        background:#151821;
-        color:#fff;
-        font-weight:800;
-      "
-    >
-
-      ${
-        estaFavoritado(
-          produto.id
-        )
-          ? "♥ Remover dos favoritos"
-          : "♡ Salvar nos favoritos"
-      }
-
-    </button>
-
-
-    ${
-      link
-        ? `
-          <a
-            href="${escapar(
-              link
-            )}"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="
-              display:block;
-              margin-top:12px;
-              padding:15px;
-              text-align:center;
-              background:#ff5a1f;
-              color:#fff;
-              border-radius:12px;
-              text-decoration:none;
-              font-weight:800;
-            "
-          >
-            🛒 Abrir na Shopee
-          </a>
-        `
-        : ""
-    }
-
-  `;
-
-
-  document
-    .getElementById(
-      "modalFavoriteButton"
-    )
-    ?.addEventListener(
-      "click",
-      event => {
-
-        const id =
-          event.currentTarget
-            .dataset.id;
-
-
-        alternarFavorito(
-          id
-        );
-
-
-        const atualizado =
-          encontrarProduto(
-            id
-          );
-
-
-        if (
-          atualizado
-        ) {
-
-          abrirModal(
-            atualizado
-          );
-
-        }
-
-      }
-    );
-
-
-  productModal.hidden =
-    false;
-
-}
-
-
-function fecharModal() {
-
-  if (
-    productModal
-  ) {
-
-    productModal.hidden =
-      true;
-
-  }
-
-}
-
-
-// ======================================================
-// LOADING
-// ======================================================
-
-function mostrarLoading() {
-
-  if (
-    emptyState
-  ) {
-
-    emptyState.hidden =
-      true;
-
-  }
-
-
-  productsGrid.innerHTML = `
-
-    <div
-      class="loading"
-      style="
-        grid-column:1/-1;
-      "
-    >
-
-      <div class="loader"></div>
-
-      <p>
-        Analisando produtos...
-      </p>
-
-    </div>
-
-  `;
-
-}
-
-
-function mostrarErro(
-  mensagem
-) {
-
-  productsGrid.innerHTML = `
-
-    <div
-      class="empty-state"
-      style="
-        display:block;
-        grid-column:1/-1;
-      "
-    >
-
-      <div>
-        ⚠️
-      </div>
-
-      <h3>
-        Não foi possível carregar
-      </h3>
-
-      <p>
-        ${escapar(
-          mensagem
-        )}
-      </p>
-
-    </div>
-
-  `;
-
-}
-
-
-// ======================================================
-// REINICIAR
-// ======================================================
-
-function reiniciarRadar() {
-
-  produtos =
-    [];
-
-  paginaAtual =
-    1;
-
-  totalServidor =
-    0;
-
-  resumoServidor =
-    {};
-
-  temProximaPagina =
-    true;
-
-  carregando =
-    false;
-
-  modoFavoritos =
-    false;
-
-
-  atualizarInterfaceModo();
-
-  atualizarContadores();
-
-
-  carregarProdutos(
-    1,
-    false
-  );
-
-}
-
-
-// ======================================================
-// FILTROS PRINCIPAIS
-// ======================================================
-
-function trocarFiltro(
-  filtro
-) {
-
-  if (
-    filtro ===
-    "all"
-  ) {
-
-    filtro =
-      "radar";
-
-  }
-
-
-  filtroAtual =
-    filtro;
-
-
-  if (
-    filtroAtual ===
-    "hot"
-  ) {
-
-    ordenacaoAtual =
-      "sales";
-
-  }
-
-  else if (
-    filtroAtual ===
-    "rating"
-  ) {
-
-    ordenacaoAtual =
-      "rating";
-
-  }
-
-  else if (
-    filtroAtual ===
-    "zero"
-  ) {
-
-    ordenacaoAtual =
-      "recent";
-
-  }
-
-  else {
-
-    ordenacaoAtual =
-      "relevance";
-
-  }
-
-
-  document
-    .querySelectorAll(
-      "[data-filter]:not(.bottom-item)"
-    )
-    .forEach(
-      botao => {
-
-        botao.classList.toggle(
-          "active",
-          botao.dataset.filter ===
-            filtroAtual
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      ".bottom-item"
-    )
-    .forEach(
-      botao => {
-
-        const valor =
-          botao.dataset.filter;
-
-
-        const ativo =
-          (
-            filtroAtual ===
-              "radar" &&
-            valor ===
-              "all"
-          ) ||
-          valor ===
-            filtroAtual;
-
-
-        botao.classList.toggle(
-          "active",
-          ativo
-        );
-
-      }
-    );
-
-
-  reiniciarRadar();
-
-
-  window.scrollTo({
-    top:
-      0,
-
-    behavior:
-      "smooth"
-  });
-
-}
-
-
-// ======================================================
-// CLIQUES FILTROS
-// ======================================================
-
-document
-  .querySelectorAll(
-    "[data-filter]"
-  )
-  .forEach(
-    botao => {
-
-      botao.addEventListener(
-        "click",
-        event => {
-
-          const filtro =
-            botao.dataset.filter;
-
-
-          if (
-            filtro ===
-            "favorites"
-          ) {
-
-            event.preventDefault();
-
-            modoFavoritos =
-              true;
-
-
-            if (
-              resultsTitle
-            ) {
-
-              resultsTitle.textContent =
-                `♡ Favoritos (${favoritos.length})`;
-
-            }
-
-
-            renderizarProdutos(
-              favoritos
-            );
-
-
-            return;
-
-          }
-
-
-          trocarFiltro(
-            filtro
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-// ======================================================
-// ORDENAÇÃO
-// ======================================================
-
-document
-  .querySelectorAll(
-    "[data-sort]"
-  )
-  .forEach(
-    botao => {
-
-      botao.addEventListener(
-        "click",
-        () => {
-
-          ordenacaoAtual =
-            botao.dataset.sort ||
-            "relevance";
-
-
-          document
-            .querySelectorAll(
-              "[data-sort]"
-            )
-            .forEach(
-              item => {
-
-                item.classList.toggle(
-                  "active",
-                  item ===
-                    botao
-                );
-
-              }
-            );
-
-
-          if (
-            filtroAtual ===
-            "zero"
-          ) {
-
-            reiniciarRadar();
-
-          } else {
-
-            aplicarOrdenacao();
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-// ======================================================
-// PESQUISA
-// ======================================================
-
-if (
-  searchInput
-) {
-
-  searchInput.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key ===
-        "Enter"
-      ) {
-
-        buscaDigitada =
-          searchInput
-            .value
-            .trim();
-
-
-        if (
-          filtroAtual ===
-          "zero"
-        ) {
-
-          reiniciarRadar();
-
-        } else {
-
-          aplicarOrdenacao();
-
-        }
-
-      }
-
-    }
-  );
-
-
-  searchInput.addEventListener(
-    "search",
-    () => {
-
-      if (
-        !searchInput.value
-      ) {
-
-        buscaDigitada =
-          "";
-
-
-        if (
-          filtroAtual ===
-          "zero"
-        ) {
-
-          reiniciarRadar();
-
-        } else {
-
-          aplicarOrdenacao();
-
-        }
-
-      }
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// NICHO
-// ======================================================
-
-if (
-  categoryFilter
-) {
-
-  categoryFilter.addEventListener(
-    "change",
-    () => {
-
-      nichoAtual =
-        categoryFilter.value;
-
-
-      aplicarOrdenacao();
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// SCROLL INFINITO
-// ======================================================
-
-async function carregarProximaPagina() {
-
-  if (
-    carregando ||
-    modoFavoritos ||
-    !temProximaPagina
-  ) {
-
-    return;
-
-  }
-
-
-  await carregarProdutos(
-    paginaAtual + 1,
-    true
-  );
-
-}
-
-
-window.addEventListener(
-  "scroll",
-  () => {
-
-    if (
-      carregando ||
-      modoFavoritos ||
-      !temProximaPagina
-    ) {
-
-      return;
-
-    }
-
-
-    const posicao =
-      window.innerHeight +
-      window.scrollY;
-
-
-    const altura =
-      document
-        .documentElement
-        .scrollHeight;
-
-
-    if (
-      posicao >=
-      altura - 900
-    ) {
-
-      carregarProximaPagina();
-
-    }
-
-  },
-  {
-    passive:
-      true
-  }
-);
-
-
-// ======================================================
-// ATUALIZAÇÃO SILENCIOSA
-// ======================================================
-
-setInterval(
-  () => {
-
-    if (
-      document.visibilityState ===
-        "visible" &&
-      !modoFavoritos &&
-      paginaAtual === 1
-    ) {
-
-      carregarProdutos(
-        1,
-        false
-      );
-
-    }
-
-  },
-  2 * 60 * 1000
-);
-
-
-// ======================================================
-// MODAL
-// ======================================================
-
-if (
-  closeModal
-) {
-
-  closeModal.addEventListener(
-    "click",
-    fecharModal
-  );
-
-}
-
-
-if (
-  productModal
-) {
-
-  productModal
-    .querySelector(
-      ".modal-overlay"
-    )
-    ?.addEventListener(
-      "click",
-      fecharModal
-    );
-
-}
-
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    if (
-      event.key ===
-        "Escape" &&
-      productModal &&
-      !productModal.hidden
-    ) {
-
-      fecharModal();
-
-    }
-
-  }
-);
-
-
-// ======================================================
-// INICIALIZAÇÃO
-// ======================================================
-
-filtroAtual =
-  "radar";
-
-ordenacaoAtual =
-  "relevance";
-
-reiniciarRadar();
+           
