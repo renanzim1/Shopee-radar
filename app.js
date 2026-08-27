@@ -517,45 +517,13 @@ function temDetector(produto) {
   );
 }
 
-function obterRotuloDetector(
-  produto
-) {
-  const nivel =
-    String(
-      produto.detector_nivel ||
-        ""
-    ).toLowerCase();
-
-  if (
-    nivel ===
-    "explodindo"
-  ) {
-    return "🚨 EXPLODINDO";
-  }
-
-  if (
-    nivel ===
-    "acelerando"
-  ) {
-    return "🔥 ACELERANDO";
-  }
-
-  if (
-    nivel ===
-    "crescendo"
-  ) {
-    return "📈 CRESCENDO";
-  }
-
-  if (
-    nivel ===
-    "observando"
-  ) {
-    return "👀 OBSERVAR";
-  }
-
-  return "👀 OBSERVAR";
-}
+// ======================================================
+// DECISÃO DO POST
+//
+// AGORA É O POST SCORE QUE MANDA.
+// Não deixamos detector_nivel antigo
+// forçar uma classificação errada.
+// ======================================================
 
 function obterDecisaoPost(
   produto
@@ -565,83 +533,129 @@ function obterDecisaoPost(
       produto.post_score
     );
 
-  const nivel =
-    String(
-      produto.detector_nivel ||
-        ""
-    ).toLowerCase();
-
-  if (
-    nivel === "explodindo" ||
-    score >= 85
-  ) {
+  if (score >= 85) {
     return {
       emoji: "🔥",
       nome: "POSTAR AGORA",
-      cor: "#ff4d4d"
+      cor: "#ff4d4d",
+      nivel: "explodindo"
     };
   }
 
-  if (
-    nivel === "acelerando" ||
-    score >= 65
-  ) {
+  if (score >= 60) {
     return {
       emoji: "🚀",
       nome: "FORTE CANDIDATO",
-      cor: "#ff8a3d"
+      cor: "#ff8a3d",
+      nivel: "acelerando"
     };
   }
 
-  if (
-    nivel === "crescendo" ||
-    score >= 35
-  ) {
+  if (score >= 35) {
     return {
       emoji: "📈",
       nome: "ACOMPANHAR",
-      cor: "#32d583"
+      cor: "#32d583",
+      nivel: "crescendo"
     };
   }
 
   return {
     emoji: "👀",
     nome: "AGUARDAR",
-    cor: "#9299a8"
+    cor: "#9299a8",
+    nivel: "observando"
   };
 }
 
-function obterTextoAceleracao(
+// ======================================================
+// SINAL DO PRODUTO
+// ======================================================
+
+function obterSinalProduto(
   produto
 ) {
-  const iniciou =
-    Boolean(
-      produto.aceleracao_iniciada
-    );
-
-  const anterior =
+  const score =
     numeroSeguro(
-      produto.vendas_hora_anterior
+      produto.post_score
     );
 
-  const atual =
-    numeroSeguro(
-      produto.vendas_hora_6h
-    );
-
-  if (
-    iniciou ||
-    (
-      anterior <= 0 &&
-      atual > 0
-    )
-  ) {
-    return "Começou a acelerar";
+  if (score >= 85) {
+    return {
+      label: "ACELERAÇÃO",
+      texto: "Aceleração forte"
+    };
   }
 
-  return percentualCrescimento(
-    produto.aceleracao_percentual
-  );
+  if (score >= 60) {
+    const iniciou =
+      Boolean(
+        produto.aceleracao_iniciada
+      );
+
+    const anterior =
+      numeroSeguro(
+        produto.vendas_hora_anterior
+      );
+
+    const atual =
+      numeroSeguro(
+        produto.vendas_hora_6h
+      );
+
+    if (
+      iniciou ||
+      (
+        anterior <= 0 &&
+        atual > 0
+      )
+    ) {
+      return {
+        label: "ACELERAÇÃO",
+        texto: "Começou a acelerar"
+      };
+    }
+
+    return {
+      label: "ACELERAÇÃO",
+      texto:
+        percentualCrescimento(
+          produto
+            .aceleracao_percentual
+        )
+    };
+  }
+
+  if (score >= 35) {
+    return {
+      label: "SINAL",
+      texto:
+        produto.sinal_detector ||
+        "Movimento confirmado"
+    };
+  }
+
+  const temMovimento =
+    numeroSeguro(
+      produto.novas_vendas
+    ) > 0 ||
+    numeroSeguro(
+      produto.vendas_por_hora
+    ) > 0 ||
+    numeroSeguro(
+      produto.vendas_hora_6h
+    ) > 0 ||
+    numeroSeguro(
+      produto.crescimento_percentual
+    ) > 0;
+
+  return {
+    label: "SINAL",
+    texto:
+      temMovimento
+        ? "Movimento inicial"
+        : "Sem movimento"
+  };
 }
 
 // ======================================================
@@ -650,11 +664,14 @@ function obterTextoAceleracao(
 
 function obterTendencia(produto) {
   if (
-    produto.detector_nivel
+    temDetector(produto)
   ) {
-    return obterRotuloDetector(
-      produto
-    );
+    const decisao =
+      obterDecisaoPost(
+        produto
+      );
+
+    return `${decisao.emoji} ${decisao.nome}`;
   }
 
   const crescimento =
@@ -694,17 +711,6 @@ function obterTendencia(produto) {
     return "📉 CAINDO";
   }
 
-  if (
-    produto.tendencia &&
-    String(
-      produto.tendencia
-    ).trim()
-  ) {
-    return String(
-      produto.tendencia
-    ).trim();
-  }
-
   return "⚪ ESTÁVEL";
 }
 
@@ -715,6 +721,11 @@ function obterTendencia(produto) {
 function obterMotivoAmigavel(
   produto
 ) {
+  const score =
+    numeroSeguro(
+      produto.post_score
+    );
+
   const novas =
     numeroSeguro(
       produto.novas_vendas
@@ -730,90 +741,40 @@ function obterMotivoAmigavel(
       )
     );
 
-  const aceleracao =
-    numeroSeguro(
-      produto.aceleracao_percentual
-    );
-
-  const iniciou =
-    Boolean(
-      produto.aceleracao_iniciada
-    ) ||
-    (
-      numeroSeguro(
-        produto.vendas_hora_anterior
-      ) <= 0 &&
-      numeroSeguro(
-        produto.vendas_hora_6h
-      ) > 0
-    );
-
-  const nivel =
-    String(
-      produto.detector_nivel ||
-        ""
-    ).toLowerCase();
-
-  if (
-    nivel === "explodindo"
-  ) {
+  if (score >= 85) {
     return (
-      "As vendas estão subindo muito rápido. " +
-      "O produto apresenta forte aceleração agora."
+      "O produto está vendendo em ritmo muito forte " +
+      "e apresenta um dos melhores sinais do Radar agora."
     );
   }
 
-  if (iniciou) {
+  if (score >= 60) {
     return (
-      "O produto começou a ganhar velocidade " +
-      "nas últimas horas."
+      "As vendas estão ganhando velocidade e o produto " +
+      "já atingiu força suficiente para ser considerado."
+    );
+  }
+
+  if (score >= 35) {
+    return (
+      "Existe crescimento real nas últimas capturas, " +
+      "mas vale acompanhar antes de priorizar."
     );
   }
 
   if (
-    nivel === "acelerando"
-  ) {
-    return (
-      "As vendas estão ganhando velocidade " +
-      "e o ritmo atual está acima do anterior."
-    );
-  }
-
-  if (
-    nivel === "crescendo"
-  ) {
-    return (
-      "O produto apresentou novas vendas " +
-      "e crescimento real entre as capturas."
-    );
-  }
-
-  if (
-    novas > 0 &&
+    novas > 0 ||
     vendasHora > 0
   ) {
     return (
-      `O produto ganhou +${formatarNumero(
-        novas
-      )} vendas e está vendendo em ritmo de ` +
-      `${formatarDecimal(
-        vendasHora
-      )}/h.`
-    );
-  }
-
-  if (
-    aceleracao > 0
-  ) {
-    return (
-      "O ritmo de vendas está melhorando, " +
-      "mas ainda precisa de mais histórico."
+      "O produto começou a mostrar movimento, " +
+      "mas o sinal ainda é fraco para recomendar postagem."
     );
   }
 
   return (
-    produto.motivo_principal ||
-    "O Radar ainda está coletando dados para confirmar o movimento."
+    "O Radar ainda está coletando dados " +
+    "para confirmar um movimento relevante."
   );
 }
 
@@ -970,6 +931,10 @@ function normalizarProduto(p) {
       p.motivo_principal ??
       "",
 
+    sinal_detector:
+      p.sinal_detector ??
+      "",
+
     capturas_analisadas:
       numeroSeguro(
         p.capturas_analisadas
@@ -998,10 +963,6 @@ function normalizarProduto(p) {
 
     ranking_origem:
       p.ranking_origem ??
-      "",
-
-    tendencia:
-      p.tendencia ??
       "",
 
     captura_anterior:
@@ -1056,11 +1017,6 @@ function normalizarProduto(p) {
     produto.radar_score =
       calcularScore(produto);
   }
-
-  produto.tendencia =
-    obterTendencia(
-      produto
-    );
 
   return produto;
 }
@@ -1353,29 +1309,24 @@ function atualizarContadores() {
   }
 
   if (totalOportunidades) {
+    const fortes =
+      produtos.filter(
+        produto =>
+          numeroSeguro(
+            produto.post_score
+          ) >= 35
+      ).length;
+
     if (
       usandoRankingServidor &&
-      filtroAtual === "radar"
+      filtroAtual === "radar" &&
+      totalRecomendadosServidor > 0
     ) {
       totalOportunidades.textContent =
         totalRecomendadosServidor;
     } else {
-      const movimento =
-        produtos.filter(
-          produto =>
-            numeroSeguro(
-              produto.novas_vendas
-            ) > 0 ||
-            numeroSeguro(
-              produto.vendas_por_hora
-            ) > 0 ||
-            numeroSeguro(
-              produto.crescimento_percentual
-            ) > 0
-        ).length;
-
       totalOportunidades.textContent =
-        movimento;
+        fortes;
     }
   }
 
@@ -1632,8 +1583,7 @@ async function carregarProdutos(
         numeroSeguro(
           dados.detector
             ?.recomendados ??
-          dados.total ??
-          produtos.length
+          0
         );
     }
 
@@ -1703,13 +1653,6 @@ function aplicarOrdenacaoLocal() {
     removerDuplicados(
       [...produtos]
     );
-
-  if (
-    ordenacaoAtual ===
-    "relevance"
-  ) {
-    // mantém ordem do servidor
-  }
 
   if (
     ordenacaoAtual ===
@@ -1848,6 +1791,11 @@ function criarCard(produto) {
 
   const decisao =
     obterDecisaoPost(
+      produto
+    );
+
+  const sinal =
+    obterSinalProduto(
       produto
     );
 
@@ -2084,7 +2032,8 @@ function criarCard(produto) {
               <div
                 style="
                   display:grid;
-                  grid-template-columns:repeat(2,minmax(0,1fr));
+                  grid-template-columns:
+                    repeat(2,minmax(0,1fr));
                   gap:6px;
                   margin-top:8px;
                 "
@@ -2105,7 +2054,9 @@ function criarCard(produto) {
                       font-weight:800;
                     "
                   >
-                    ACELERAÇÃO
+                    ${escapar(
+                      sinal.label
+                    )}
                   </small>
 
                   <strong
@@ -2117,9 +2068,7 @@ function criarCard(produto) {
                     "
                   >
                     ${escapar(
-                      obterTextoAceleracao(
-                        produto
-                      )
+                      sinal.texto
                     )}
                   </strong>
                 </div>
@@ -2393,7 +2342,8 @@ function montarHistorico(
           font-size:13px;
         "
       >
-        Ainda não há histórico suficiente para mostrar a evolução.
+        Ainda não há histórico suficiente
+        para mostrar a evolução.
       </p>
     `;
   }
@@ -2409,7 +2359,8 @@ function montarHistorico(
             align-items:center;
             gap:10px;
             padding:8px 0;
-            border-bottom:1px solid rgba(255,255,255,.06);
+            border-bottom:
+              1px solid rgba(255,255,255,.06);
           "
         >
           <span
@@ -2486,6 +2437,11 @@ function abrirModal(produto) {
 
   const decisao =
     obterDecisaoPost(
+      produto
+    );
+
+  const sinal =
+    obterSinalProduto(
       produto
     );
 
@@ -2608,7 +2564,8 @@ function abrirModal(produto) {
             style="
               margin-top:12px;
               display:grid;
-              grid-template-columns:repeat(2,minmax(0,1fr));
+              grid-template-columns:
+                repeat(2,minmax(0,1fr));
               gap:8px;
             "
           >
@@ -2667,7 +2624,9 @@ function abrirModal(produto) {
               "
             >
               <small>
-                ACELERAÇÃO
+                ${escapar(
+                  sinal.label
+                )}
               </small>
 
               <strong
@@ -2677,9 +2636,7 @@ function abrirModal(produto) {
                 "
               >
                 ${escapar(
-                  obterTextoAceleracao(
-                    produto
-                  )
+                  sinal.texto
                 )}
               </strong>
             </div>
@@ -2858,7 +2815,8 @@ function abrirModal(produto) {
         margin-top:20px;
         padding:14px;
         border-radius:12px;
-        border:1px solid rgba(255,255,255,.15);
+        border:
+          1px solid rgba(255,255,255,.15);
         background:#151821;
         color:white;
         font-weight:800;
@@ -2950,14 +2908,14 @@ function atualizarFiltroSuperior(
       "[data-filter]:not(.bottom-item)"
     )
     .forEach(item => {
-      const deveAtivar =
+      const ativo =
         filtro === "radar"
           ? item.dataset.filter === "all"
           : item.dataset.filter === filtro;
 
       item.classList.toggle(
         "active",
-        deveAtivar
+        ativo
       );
     });
 }
@@ -3202,7 +3160,6 @@ document
 
         // ==============================================
         // RADAR INFERIOR
-        // AGORA VOLTA PARA O RADAR DE VERDADE
         // ==============================================
 
         if (
@@ -3213,9 +3170,6 @@ document
         ) {
           event.preventDefault();
           event.stopPropagation();
-
-          filtroAtual =
-            "radar";
 
           buscaDigitada = "";
           nichoAtual = "all";
