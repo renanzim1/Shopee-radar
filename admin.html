@@ -61,6 +61,10 @@
         sans-serif;
     }
 
+    body.auth-checking {
+      visibility: hidden;
+    }
+
     button,
     input,
     select {
@@ -336,12 +340,6 @@
       font-size: 12px;
     }
 
-    .field input:focus,
-    .field select:focus {
-      border-color:
-        rgba(255,90,31,.75);
-    }
-
     .create-button {
       width: 100%;
 
@@ -608,18 +606,9 @@
       color: #ff9a6f;
     }
 
-    .loading {
-      padding: 35px 10px;
-
-      text-align: center;
-
-      color: var(--muted);
-
-      font-size: 12px;
-    }
-
+    .loading,
     .empty {
-      padding: 30px 10px;
+      padding: 35px 10px;
 
       text-align: center;
 
@@ -684,7 +673,7 @@
   </style>
 </head>
 
-<body>
+<body class="auth-checking">
 
   <header class="topbar">
 
@@ -978,14 +967,9 @@
   </main>
 
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  ></script>
-
-
   <script>
     // ==================================================
-    // CONFIGURAÇÃO
+    // CONFIG
     // ==================================================
 
     const SUPABASE_URL =
@@ -997,11 +981,8 @@
     const ADMIN_API =
       `${SUPABASE_URL}/functions/v1/shopee-radar-admin`;
 
-    const supabaseClient =
-      window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
+    const LOGIN_ADMIN_URL =
+      "https://renanzim1.github.io/Shopee-radar/login.html?next=admin";
 
 
     // ==================================================
@@ -1047,7 +1028,7 @@
 
 
     // ==================================================
-    // SEGURANÇA HTML
+    // SEGURANÇA
     // ==================================================
 
     function escapar(valor) {
@@ -1081,44 +1062,59 @@
     // SESSÃO
     // ==================================================
 
-    async function obterSessao() {
+    function obterToken() {
 
-      const {
-        data: {
-          session
-        }
-      } =
-        await supabaseClient
-          .auth
-          .getSession();
-
-      return session;
+      return (
+        localStorage.getItem(
+          "shopeeRadarAccessToken"
+        ) || ""
+      );
     }
 
 
-    async function headersAdmin() {
+    function obterAccessLocal() {
 
-      const session =
-        await obterSessao();
+      try {
 
-      if (!session) {
-
-        window.location.replace(
-          "login.html"
+        return JSON.parse(
+          localStorage.getItem(
+            "shopeeRadarAccess"
+          ) || "{}"
         );
 
-        throw new Error(
-          "Sessão não encontrada."
-        );
+      } catch {
+
+        return {};
+
       }
+    }
 
-      return {
-        "Content-Type":
-          "application/json",
 
-        "Authorization":
-          `Bearer ${session.access_token}`
-      };
+    function limparSessao() {
+
+      localStorage.removeItem(
+        "shopeeRadarAccessToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarRefreshToken"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarUser"
+      );
+
+      localStorage.removeItem(
+        "shopeeRadarAccess"
+      );
+    }
+
+
+    function irLoginAdmin() {
+
+      window.location.replace(
+        LOGIN_ADMIN_URL
+      );
     }
 
 
@@ -1131,8 +1127,19 @@
       dados = {}
     ) {
 
-      const headers =
-        await headersAdmin();
+      const token =
+        obterToken();
+
+
+      if (!token) {
+
+        irLoginAdmin();
+
+        throw new Error(
+          "Sessão não encontrada."
+        );
+      }
+
 
       const resposta =
         await fetch(
@@ -1140,7 +1147,16 @@
           {
             method: "POST",
 
-            headers,
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "apikey":
+                SUPABASE_KEY,
+
+              "Authorization":
+                `Bearer ${token}`
+            },
 
             body:
               JSON.stringify({
@@ -1150,19 +1166,36 @@
           }
         );
 
+
       let resultado = {};
 
       try {
+
         resultado =
           await resposta.json();
+
       } catch {
+
         throw new Error(
           "Resposta inválida do servidor."
         );
       }
 
+
       if (
-        resposta.status === 401 ||
+        resposta.status === 401
+      ) {
+
+        limparSessao();
+        irLoginAdmin();
+
+        throw new Error(
+          "Sua sessão expirou."
+        );
+      }
+
+
+      if (
         resposta.status === 403
       ) {
 
@@ -1171,6 +1204,7 @@
           "Você não possui permissão de administrador."
         );
       }
+
 
       if (
         !resposta.ok ||
@@ -1182,6 +1216,7 @@
           "Não foi possível concluir a operação."
         );
       }
+
 
       return resultado;
     }
@@ -1251,15 +1286,30 @@
     ) {
 
       if (
+        usuario.status === "expired"
+      ) {
+
+        return {
+          classe: "expired",
+          texto: "VENCIDO"
+        };
+      }
+
+
+      if (
         usuario.status !==
         "active"
       ) {
 
         return {
           classe: "blocked",
-          texto: "BLOQUEADO"
+          texto:
+            usuario.status === "pending"
+              ? "PENDENTE"
+              : "BLOQUEADO"
         };
       }
+
 
       if (
         usuario.expires_at &&
@@ -1274,6 +1324,7 @@
           texto: "VENCIDO"
         };
       }
+
 
       return {
         classe: "active",
@@ -1292,6 +1343,7 @@
       let vencidos = 0;
       let bloqueados = 0;
 
+
       usuarios.forEach(
         usuario => {
 
@@ -1300,12 +1352,14 @@
               usuario
             );
 
+
           if (
             status.classe ===
             "active"
           ) {
             ativos++;
           }
+
 
           if (
             status.classe ===
@@ -1314,14 +1368,17 @@
             vencidos++;
           }
 
+
           if (
             status.classe ===
             "blocked"
           ) {
             bloqueados++;
           }
+
         }
       );
+
 
       document
         .getElementById(
@@ -1330,6 +1387,7 @@
         .textContent =
         usuarios.length;
 
+
       document
         .getElementById(
           "statActive"
@@ -1337,12 +1395,14 @@
         .textContent =
         ativos;
 
+
       document
         .getElementById(
           "statExpired"
         )
         .textContent =
         vencidos;
+
 
       document
         .getElementById(
@@ -1354,7 +1414,7 @@
 
 
     // ==================================================
-    // RENDER USUÁRIOS
+    // RENDER
     // ==================================================
 
     function renderizarUsuarios() {
@@ -1363,6 +1423,7 @@
         searchUser.value
           .trim()
           .toLowerCase();
+
 
       const lista =
         usuarios.filter(
@@ -1375,12 +1436,14 @@
               )
                 .toLowerCase();
 
+
             const email =
               String(
                 usuario.email ||
                 ""
               )
                 .toLowerCase();
+
 
             return (
               !termo ||
@@ -1417,15 +1480,12 @@
                   usuario
                 );
 
+
               const dispositivo =
                 usuario.device_id
                   ? "Vinculado"
-                  : "Não vinculado";
+                  : "Livre";
 
-              const dias =
-                diasRestantes(
-                  usuario.expires_at
-                );
 
               return `
                 <article
@@ -1451,7 +1511,8 @@
                         class="user-email"
                       >
                         ${escapar(
-                          usuario.email
+                          usuario.email ||
+                          ""
                         )}
                       </div>
 
@@ -1499,7 +1560,9 @@
 
                       <strong>
                         ${escapar(
-                          dias
+                          diasRestantes(
+                            usuario.expires_at
+                          )
                         )}
                       </strong>
 
@@ -1561,10 +1624,7 @@
                         >
 
                           <button
-                            class="
-                              action
-                              green
-                            "
+                            class="action green"
                             onclick="
                               renovarUsuario(
                                 '${usuario.id}',
@@ -1577,10 +1637,7 @@
 
 
                           <button
-                            class="
-                              action
-                              green
-                            "
+                            class="action green"
                             onclick="
                               renovarUsuario(
                                 '${usuario.id}',
@@ -1593,10 +1650,7 @@
 
 
                           <button
-                            class="
-                              action
-                              green
-                            "
+                            class="action green"
                             onclick="
                               renovarUsuario(
                                 '${usuario.id}',
@@ -1609,10 +1663,7 @@
 
 
                           <button
-                            class="
-                              action
-                              orange
-                            "
+                            class="action orange"
                             onclick="
                               liberarDispositivo(
                                 '${usuario.id}'
@@ -1628,10 +1679,7 @@
                             "active"
                               ? `
                                 <button
-                                  class="
-                                    action
-                                    yellow
-                                  "
+                                  class="action yellow"
                                   onclick="
                                     alterarStatus(
                                       '${usuario.id}',
@@ -1644,10 +1692,7 @@
                               `
                               : `
                                 <button
-                                  class="
-                                    action
-                                    green
-                                  "
+                                  class="action green"
                                   onclick="
                                     alterarStatus(
                                       '${usuario.id}',
@@ -1674,10 +1719,7 @@
 
 
                           <button
-                            class="
-                              action
-                              red
-                            "
+                            class="action red"
                             onclick="
                               excluirUsuario(
                                 '${usuario.id}'
@@ -1700,7 +1742,7 @@
 
 
     // ==================================================
-    // CARREGAR USUÁRIOS
+    // CARREGAR
     // ==================================================
 
     async function carregarUsuarios() {
@@ -1711,12 +1753,14 @@
         </div>
       `;
 
+
       try {
 
         const resultado =
           await chamarAdmin(
             "list"
           );
+
 
         usuarios =
           Array.isArray(
@@ -1725,8 +1769,10 @@
             ? resultado.users
             : [];
 
+
         atualizarStats();
         renderizarUsuarios();
+
 
       } catch (erro) {
 
@@ -1738,12 +1784,13 @@
             )}
           </div>
         `;
+
       }
     }
 
 
     // ==================================================
-    // CRIAR USUÁRIO
+    // CRIAR
     // ==================================================
 
     createForm.addEventListener(
@@ -1752,14 +1799,18 @@
 
         event.preventDefault();
 
+
         createMessage.className =
           "message";
+
 
         createButton.disabled =
           true;
 
+
         createButton.textContent =
           "Criando acesso...";
+
 
         try {
 
@@ -1771,13 +1822,16 @@
               .value
               .trim();
 
+
           const email =
             document
               .getElementById(
                 "email"
               )
               .value
-              .trim();
+              .trim()
+              .toLowerCase();
+
 
           const password =
             document
@@ -1785,6 +1839,7 @@
                 "password"
               )
               .value;
+
 
           const days =
             Number(
@@ -1810,11 +1865,13 @@
           createMessage.textContent =
             `Acesso criado por ${days} dias.`;
 
+
           createMessage.className =
             "message success";
 
 
           createForm.reset();
+
 
           document
             .getElementById(
@@ -1826,28 +1883,34 @@
 
           await carregarUsuarios();
 
+
         } catch (erro) {
 
           createMessage.textContent =
             erro.message;
 
+
           createMessage.className =
             "message error";
+
 
         } finally {
 
           createButton.disabled =
             false;
 
+
           createButton.textContent =
             "Criar acesso";
+
         }
+
       }
     );
 
 
     // ==================================================
-    // RENOVAR
+    // AÇÕES
     // ==================================================
 
     async function renovarUsuario(
@@ -1865,20 +1928,19 @@
           }
         );
 
+
         await carregarUsuarios();
+
 
       } catch (erro) {
 
         alert(
           erro.message
         );
+
       }
     }
 
-
-    // ==================================================
-    // STATUS
-    // ==================================================
 
     async function alterarStatus(
       id,
@@ -1895,20 +1957,19 @@
           }
         );
 
+
         await carregarUsuarios();
+
 
       } catch (erro) {
 
         alert(
           erro.message
         );
+
       }
     }
 
-
-    // ==================================================
-    // LIBERAR DISPOSITIVO
-    // ==================================================
 
     async function liberarDispositivo(
       id
@@ -1916,12 +1977,14 @@
 
       const confirmar =
         confirm(
-          "Liberar o aparelho desta conta? O próximo dispositivo que fizer login ficará vinculado."
+          "Liberar esta conta para um novo aparelho?"
         );
+
 
       if (!confirmar) {
         return;
       }
+
 
       try {
 
@@ -1932,20 +1995,19 @@
           }
         );
 
+
         await carregarUsuarios();
+
 
       } catch (erro) {
 
         alert(
           erro.message
         );
+
       }
     }
 
-
-    // ==================================================
-    // TROCAR SENHA
-    // ==================================================
 
     async function trocarSenha(
       id
@@ -1953,12 +2015,14 @@
 
       const password =
         prompt(
-          "Digite a nova senha (mínimo 6 caracteres):"
+          "Digite a nova senha:"
         );
+
 
       if (!password) {
         return;
       }
+
 
       if (
         password.length < 6
@@ -1971,6 +2035,7 @@
         return;
       }
 
+
       try {
 
         await chamarAdmin(
@@ -1981,22 +2046,21 @@
           }
         );
 
+
         alert(
           "Senha alterada."
         );
+
 
       } catch (erro) {
 
         alert(
           erro.message
         );
+
       }
     }
 
-
-    // ==================================================
-    // EXCLUIR
-    // ==================================================
 
     async function excluirUsuario(
       id
@@ -2004,12 +2068,14 @@
 
       const confirmar =
         confirm(
-          "Tem certeza que deseja excluir este usuário? Essa ação remove o acesso."
+          "Tem certeza que deseja excluir este usuário?"
         );
+
 
       if (!confirmar) {
         return;
       }
+
 
       try {
 
@@ -2020,19 +2086,22 @@
           }
         );
 
+
         await carregarUsuarios();
+
 
       } catch (erro) {
 
         alert(
           erro.message
         );
+
       }
     }
 
 
     // ==================================================
-    // BUSCA
+    // BUSCA / REFRESH
     // ==================================================
 
     searchUser.addEventListener(
@@ -2040,10 +2109,6 @@
       renderizarUsuarios
     );
 
-
-    // ==================================================
-    // ATUALIZAR
-    // ==================================================
 
     refreshButton.addEventListener(
       "click",
@@ -2057,27 +2122,14 @@
 
     logoutButton.addEventListener(
       "click",
-      async () => {
+      () => {
 
-        await supabaseClient
-          .auth
-          .signOut();
-
-        localStorage.removeItem(
-          "shopeeRadarAccessToken"
-        );
-
-        localStorage.removeItem(
-          "shopeeRadarRefreshToken"
-        );
-
-        localStorage.removeItem(
-          "shopeeRadarUser"
-        );
+        limparSessao();
 
         window.location.replace(
-          "login.html"
+          LOGIN_ADMIN_URL
         );
+
       }
     );
 
@@ -2088,17 +2140,52 @@
 
     async function iniciarAdmin() {
 
-      const session =
-        await obterSessao();
+      const token =
+        obterToken();
 
-      if (!session) {
 
-        window.location.replace(
-          "login.html"
-        );
+      if (!token) {
+
+        irLoginAdmin();
 
         return;
+
       }
+
+
+      const access =
+        obterAccessLocal();
+
+
+      if (
+        access.role !== "admin"
+      ) {
+
+        // Mesmo que o localStorage esteja errado,
+        // a API também vai bloquear.
+        // Aqui só evitamos mostrar o painel antes.
+        try {
+
+          await chamarAdmin(
+            "list"
+          );
+
+        } catch {
+
+          limparSessao();
+          irLoginAdmin();
+
+          return;
+
+        }
+
+      }
+
+
+      document.body.classList.remove(
+        "auth-checking"
+      );
+
 
       await carregarUsuarios();
     }
