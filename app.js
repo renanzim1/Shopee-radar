@@ -1,13 +1,11 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
 //
-// O QUE POSTAR HOJE
-// Detector de Explosão + Post Score
-// Ranking Shopee + Nichos + Busca + Favoritos
-// Scroll infinito + Histórico + Crescimento
-//
-// PROTEÇÃO:
-// APIs autenticadas por token do usuário
+// VERSÃO:
+// Movimento primeiro
+// Oportunidades dinâmicas no scroll
+// Comissão fora da lógica de oportunidade
+// Atualização silenciosa da primeira página
 // ======================================================
 
 const API_URL =
@@ -22,8 +20,16 @@ const RANKING_API_URL =
 
 const LIMITE_POR_PAGINA = 20;
 
+// Mesmo limite usado pelo backend.
+// 30 ou mais = oportunidade.
+const LIMITE_OPORTUNIDADE = 30;
+
+// Evita disparar atualização silenciosa várias vezes
+// ao mesmo tempo.
+let atualizandoSilenciosamente = false;
+
 // ======================================================
-// AUTENTICAÇÃO DAS APIS
+// AUTENTICAÇÃO
 // ======================================================
 
 function obterTokenRadar() {
@@ -61,8 +67,7 @@ function criarHeadersAPI() {
     obterTokenRadar();
 
   const headers = {
-    Accept:
-      "application/json"
+    Accept: "application/json"
   };
 
   if (token) {
@@ -80,19 +85,22 @@ function criarHeadersAPI() {
 let produtos = [];
 
 let paginaAtual = 1;
+
 let temProximaPagina = true;
+
 let carregando = false;
 
 let buscaDigitada = "";
+
 let nichoAtual = "all";
 
 let filtroAtual = "radar";
+
 let ordenacaoAtual = "relevance";
 
 let modoFavoritos = false;
-let usandoRankingServidor = true;
 
-let totalRecomendadosServidor = 0;
+let usandoRankingServidor = true;
 
 // ======================================================
 // FAVORITOS
@@ -124,7 +132,9 @@ function salvarFavoritos() {
   try {
     localStorage.setItem(
       "shopeeRadarFavoritos",
-      JSON.stringify(favoritos)
+      JSON.stringify(
+        favoritos
+      )
     );
   } catch (erro) {
     console.error(
@@ -161,9 +171,13 @@ function alternarFavorito(id) {
   const produto =
     encontrarProduto(id);
 
-  if (!produto) return;
+  if (!produto) {
+    return;
+  }
 
-  if (estaFavoritado(id)) {
+  if (
+    estaFavoritado(id)
+  ) {
     favoritos =
       favoritos.filter(
         item =>
@@ -258,12 +272,29 @@ const infiniteLoader =
 // ======================================================
 
 function escapar(valor) {
-  return String(valor ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(
+    valor ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 }
 
 // ======================================================
@@ -271,11 +302,15 @@ function escapar(valor) {
 // ======================================================
 
 function numeroSeguro(valor) {
-  const n =
-    Number(valor ?? 0);
+  const numero =
+    Number(
+      valor ?? 0
+    );
 
-  return Number.isFinite(n)
-    ? n
+  return Number.isFinite(
+    numero
+  )
+    ? numero
     : 0;
 }
 
@@ -289,58 +324,84 @@ function dinheiro(valor) {
   ).toLocaleString(
     "pt-BR",
     {
-      style: "currency",
-      currency: "BRL"
+      style:
+        "currency",
+
+      currency:
+        "BRL"
     }
   );
 }
 
 function formatarNumero(valor) {
-  const n =
-    numeroSeguro(valor);
+  const numero =
+    numeroSeguro(
+      valor
+    );
 
-  if (n >= 1000000) {
+  if (
+    numero >= 1000000
+  ) {
     return (
-      (n / 1000000)
+      (
+        numero /
+        1000000
+      )
         .toFixed(1)
-        .replace(".", ",") +
+        .replace(
+          ".",
+          ","
+        ) +
       " mi"
     );
   }
 
-  if (n >= 1000) {
+  if (
+    numero >= 1000
+  ) {
     return (
-      (n / 1000)
+      (
+        numero /
+        1000
+      )
         .toFixed(
-          n >= 10000
+          numero >= 10000
             ? 0
             : 1
         )
-        .replace(".", ",") +
+        .replace(
+          ".",
+          ","
+        ) +
       " mil"
     );
   }
 
-  return n.toLocaleString(
+  return numero.toLocaleString(
     "pt-BR"
   );
 }
 
 function percentual(valor) {
-  let n =
-    numeroSeguro(valor);
+  let numero =
+    numeroSeguro(
+      valor
+    );
 
   if (
-    n > 0 &&
-    n <= 1
+    numero > 0 &&
+    numero <= 1
   ) {
-    n *= 100;
+    numero *= 100;
   }
 
   return (
-    n
+    numero
       .toFixed(2)
-      .replace(".", ",") +
+      .replace(
+        ".",
+        ","
+      ) +
     "%"
   );
 }
@@ -348,37 +409,26 @@ function percentual(valor) {
 function percentualCrescimento(
   valor
 ) {
-  const n =
-    numeroSeguro(valor);
+  const numero =
+    numeroSeguro(
+      valor
+    );
 
   const sinal =
-    n > 0
+    numero > 0
       ? "+"
       : "";
 
   return (
     sinal +
-    n
+    numero
       .toFixed(2)
-      .replace(".", ",") +
+      .replace(
+        ".",
+        ","
+      ) +
     "%"
   );
-}
-
-function normalizarPercentual(
-  valor
-) {
-  let n =
-    numeroSeguro(valor);
-
-  if (
-    n > 0 &&
-    n <= 1
-  ) {
-    n *= 100;
-  }
-
-  return n;
 }
 
 function formatarDecimal(
@@ -388,8 +438,13 @@ function formatarDecimal(
   return numeroSeguro(
     valor
   )
-    .toFixed(casas)
-    .replace(".", ",");
+    .toFixed(
+      casas
+    )
+    .replace(
+      ".",
+      ","
+    );
 }
 
 function formatarDataCurta(
@@ -405,10 +460,17 @@ function formatarDataCurta(
     ).toLocaleString(
       "pt-BR",
       {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
+        day:
+          "2-digit",
+
+        month:
+          "2-digit",
+
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit"
       }
     );
   } catch {
@@ -418,9 +480,17 @@ function formatarDataCurta(
 
 // ======================================================
 // RADAR SCORE LOCAL
+//
+// IMPORTANTE:
+//
+// Comissão NÃO participa.
+// Este é apenas fallback visual.
+// A oportunidade real é decidida pelo POST SCORE.
 // ======================================================
 
-function calcularScore(produto) {
+function calcularScore(
+  produto
+) {
   const vendas =
     numeroSeguro(
       produto.sold_count
@@ -431,128 +501,64 @@ function calcularScore(produto) {
       produto.rating
     );
 
-  const preco =
-    numeroSeguro(
-      produto.price
-    );
+  let demanda = 0;
 
-  const ganho =
-    numeroSeguro(
-      produto.commission_value
-    );
+  let qualidade = 0;
 
-  const comissao =
-    normalizarPercentual(
-      produto.commission_rate
-    );
-
-  let demandaPts = 0;
-  let avaliacaoPts = 0;
-  let comissaoPts = 0;
-  let ganhoPts = 0;
-  let precoPts = 0;
-
-  if (vendas >= 10000) {
-    demandaPts = 30;
-  } else if (vendas >= 5000) {
-    demandaPts = 27;
-  } else if (vendas >= 1000) {
-    demandaPts = 23;
-  } else if (vendas >= 500) {
-    demandaPts = 19;
-  } else if (vendas >= 100) {
-    demandaPts = 14;
-  } else if (vendas >= 20) {
-    demandaPts = 8;
+  if (
+    vendas >= 10000
+  ) {
+    demanda = 60;
+  } else if (
+    vendas >= 5000
+  ) {
+    demanda = 55;
+  } else if (
+    vendas >= 1000
+  ) {
+    demanda = 48;
+  } else if (
+    vendas >= 500
+  ) {
+    demanda = 40;
+  } else if (
+    vendas >= 100
+  ) {
+    demanda = 30;
+  } else if (
+    vendas >= 20
+  ) {
+    demanda = 20;
   } else {
-    demandaPts = 3;
-  }
-
-  if (avaliacao >= 4.9) {
-    avaliacaoPts = 20;
-  } else if (avaliacao >= 4.8) {
-    avaliacaoPts = 19;
-  } else if (avaliacao >= 4.6) {
-    avaliacaoPts = 17;
-  } else if (avaliacao >= 4.4) {
-    avaliacaoPts = 14;
-  } else if (avaliacao >= 4.0) {
-    avaliacaoPts = 10;
-  } else if (avaliacao > 0) {
-    avaliacaoPts = 5;
-  }
-
-  if (comissao >= 15) {
-    comissaoPts = 25;
-  } else if (comissao >= 12) {
-    comissaoPts = 23;
-  } else if (comissao >= 10) {
-    comissaoPts = 21;
-  } else if (comissao >= 7) {
-    comissaoPts = 17;
-  } else if (comissao >= 5) {
-    comissaoPts = 13;
-  } else if (comissao >= 3) {
-    comissaoPts = 8;
-  } else if (comissao > 0) {
-    comissaoPts = 4;
-  }
-
-  if (ganho >= 30) {
-    ganhoPts = 15;
-  } else if (ganho >= 20) {
-    ganhoPts = 13;
-  } else if (ganho >= 10) {
-    ganhoPts = 11;
-  } else if (ganho >= 5) {
-    ganhoPts = 8;
-  } else if (ganho >= 2) {
-    ganhoPts = 5;
-  } else if (ganho > 0) {
-    ganhoPts = 2;
+    demanda = 10;
   }
 
   if (
-    preco >= 20 &&
-    preco <= 100
+    avaliacao >= 4.9
   ) {
-    precoPts = 10;
+    qualidade = 20;
   } else if (
-    preco > 100 &&
-    preco <= 200
+    avaliacao >= 4.8
   ) {
-    precoPts = 8;
+    qualidade = 18;
   } else if (
-    preco > 200 &&
-    preco <= 400
+    avaliacao >= 4.6
   ) {
-    precoPts = 6;
+    qualidade = 15;
   } else if (
-    preco > 0 &&
-    preco < 20
+    avaliacao >= 4.4
   ) {
-    precoPts = 7;
+    qualidade = 12;
   } else if (
-    preco > 400 &&
-    preco <= 800
+    avaliacao >= 4
   ) {
-    precoPts = 4;
-  } else if (
-    preco > 800
-  ) {
-    precoPts = 2;
+    qualidade = 8;
   }
 
   return Math.min(
     100,
-    Math.max(
-      0,
-      demandaPts +
-        avaliacaoPts +
-        comissaoPts +
-        ganhoPts +
-        precoPts
-    )
+    demanda +
+      qualidade
   );
 }
 
@@ -560,7 +566,9 @@ function calcularScore(produto) {
 // DETECTOR
 // ======================================================
 
-function temDetector(produto) {
+function temDetector(
+  produto
+) {
   return Boolean(
     produto.detector_nivel ||
     numeroSeguro(
@@ -572,7 +580,22 @@ function temDetector(produto) {
 }
 
 // ======================================================
-// DECISÃO DO POST
+// PRODUTO É OPORTUNIDADE?
+// ======================================================
+
+function produtoEhOportunidade(
+  produto
+) {
+  return (
+    numeroSeguro(
+      produto.post_score
+    ) >=
+    LIMITE_OPORTUNIDADE
+  );
+}
+
+// ======================================================
+// DECISÃO
 // ======================================================
 
 function obterDecisaoPost(
@@ -583,43 +606,78 @@ function obterDecisaoPost(
       produto.post_score
     );
 
-  if (score >= 85) {
+  if (
+    score >= 85
+  ) {
     return {
-      emoji: "🔥",
-      nome: "POSTAR AGORA",
-      cor: "#ff4d4d",
-      nivel: "explodindo"
+      emoji:
+        "🔥",
+
+      nome:
+        "POSTAR AGORA",
+
+      cor:
+        "#ff4d4d",
+
+      nivel:
+        "explodindo"
     };
   }
 
-  if (score >= 60) {
+  if (
+    score >= 60
+  ) {
     return {
-      emoji: "🚀",
-      nome: "FORTE CANDIDATO",
-      cor: "#ff8a3d",
-      nivel: "acelerando"
+      emoji:
+        "🚀",
+
+      nome:
+        "FORTE CANDIDATO",
+
+      cor:
+        "#ff8a3d",
+
+      nivel:
+        "acelerando"
     };
   }
 
-  if (score >= 35) {
+  if (
+    score >=
+    LIMITE_OPORTUNIDADE
+  ) {
     return {
-      emoji: "📈",
-      nome: "ACOMPANHAR",
-      cor: "#32d583",
-      nivel: "crescendo"
+      emoji:
+        "📈",
+
+      nome:
+        "ACOMPANHAR",
+
+      cor:
+        "#32d583",
+
+      nivel:
+        "crescendo"
     };
   }
 
   return {
-    emoji: "👀",
-    nome: "AGUARDAR",
-    cor: "#9299a8",
-    nivel: "observando"
+    emoji:
+      "👀",
+
+    nome:
+      "AGUARDAR",
+
+    cor:
+      "#9299a8",
+
+    nivel:
+      "observando"
   };
 }
 
 // ======================================================
-// SINAL DO PRODUTO
+// SINAL
 // ======================================================
 
 function obterSinalProduto(
@@ -630,14 +688,21 @@ function obterSinalProduto(
       produto.post_score
     );
 
-  if (score >= 85) {
+  if (
+    score >= 85
+  ) {
     return {
-      label: "ACELERAÇÃO",
-      texto: "Aceleração forte"
+      label:
+        "ACELERAÇÃO",
+
+      texto:
+        "Aceleração forte"
     };
   }
 
-  if (score >= 60) {
+  if (
+    score >= 60
+  ) {
     const iniciou =
       Boolean(
         produto.aceleracao_iniciada
@@ -661,13 +726,18 @@ function obterSinalProduto(
       )
     ) {
       return {
-        label: "ACELERAÇÃO",
-        texto: "Começou a acelerar"
+        label:
+          "ACELERAÇÃO",
+
+        texto:
+          "Começou a acelerar"
       };
     }
 
     return {
-      label: "ACELERAÇÃO",
+      label:
+        "ACELERAÇÃO",
+
       texto:
         percentualCrescimento(
           produto
@@ -676,16 +746,21 @@ function obterSinalProduto(
     };
   }
 
-  if (score >= 35) {
+  if (
+    score >=
+    LIMITE_OPORTUNIDADE
+  ) {
     return {
-      label: "SINAL",
+      label:
+        "SINAL",
+
       texto:
         produto.sinal_detector ||
         "Movimento confirmado"
     };
   }
 
-  const temMovimento =
+  const movimento =
     numeroSeguro(
       produto.novas_vendas
     ) > 0 ||
@@ -700,16 +775,18 @@ function obterSinalProduto(
     ) > 0;
 
   return {
-    label: "SINAL",
+    label:
+      "SINAL",
+
     texto:
-      temMovimento
+      movimento
         ? "Movimento inicial"
         : "Sem movimento"
   };
 }
 
 // ======================================================
-// MOTIVO AMIGÁVEL
+// MOTIVO
 // ======================================================
 
 function obterMotivoAmigavel(
@@ -725,31 +802,39 @@ function obterMotivoAmigavel(
       produto.novas_vendas
     );
 
-  const vendasHora =
+  const velocidade =
     Math.max(
       numeroSeguro(
         produto.vendas_por_hora
       ),
+
       numeroSeguro(
         produto.vendas_hora_6h
       )
     );
 
-  if (score >= 85) {
+  if (
+    score >= 85
+  ) {
     return (
       "O produto está vendendo em ritmo muito forte " +
       "e apresenta um dos melhores sinais do Radar agora."
     );
   }
 
-  if (score >= 60) {
+  if (
+    score >= 60
+  ) {
     return (
       "As vendas estão ganhando velocidade e o produto " +
       "já atingiu força suficiente para ser considerado."
     );
   }
 
-  if (score >= 35) {
+  if (
+    score >=
+    LIMITE_OPORTUNIDADE
+  ) {
     return (
       "Existe crescimento real nas últimas capturas, " +
       "mas vale acompanhar antes de priorizar."
@@ -758,7 +843,7 @@ function obterMotivoAmigavel(
 
   if (
     novas > 0 ||
-    vendasHora > 0
+    velocidade > 0
   ) {
     return (
       "O produto começou a mostrar movimento, " +
@@ -776,8 +861,11 @@ function obterMotivoAmigavel(
 // NORMALIZAÇÃO
 // ======================================================
 
-function normalizarProduto(p) {
+function normalizarProduto(
+  p
+) {
   const produto = {
+
     id:
       p.product_id ??
       p.id ??
@@ -799,77 +887,79 @@ function normalizarProduto(p) {
     price:
       numeroSeguro(
         p.price ??
-          p.precoMin ??
-          p.priceMin
+        p.precoMin ??
+        p.priceMin
       ),
 
     price_max:
       numeroSeguro(
         p.price_max ??
-          p.precoMax ??
-          p.priceMax ??
-          p.price ??
-          p.precoMin
+        p.precoMax ??
+        p.priceMax ??
+        p.price ??
+        p.precoMin
       ),
 
     sold_count:
       numeroSeguro(
         p.sold_count ??
-          p.vendidos ??
-          p.sales
+        p.vendidos ??
+        p.sales
       ),
 
     vendas_anterior:
       numeroSeguro(
         p.vendas_anterior ??
-          p.previous_sales ??
-          p.previous_sold_count
+        p.previous_sales ??
+        p.previous_sold_count
       ),
 
     novas_vendas:
       numeroSeguro(
         p.novas_vendas ??
-          p.new_sales ??
-          p.sales_growth
+        p.new_sales ??
+        p.sales_growth
       ),
 
     vendas_por_hora:
       numeroSeguro(
         p.vendas_por_hora ??
-          p.sales_per_hour
+        p.sales_per_hour
       ),
 
     crescimento_percentual:
       numeroSeguro(
         p.crescimento_percentual ??
-          p.growth_percentage
+        p.growth_percentage
       ),
 
     rating:
       numeroSeguro(
         p.rating ??
-          p.avaliacao ??
-          p.ratingStar
+        p.avaliacao ??
+        p.ratingStar
       ),
 
+    // Comissão continua disponível
+    // apenas para exibição.
     commission_value:
       numeroSeguro(
         p.commission_value ??
-          p.comissao ??
-          p.commission
+        p.comissao ??
+        p.commission
       ),
 
     commission_rate:
       numeroSeguro(
         p.commission_rate ??
-          p.taxaComissao ??
-          p.commissionRate
+        p.taxaComissao ??
+        p.commissionRate
       ),
 
     radar_score:
       numeroSeguro(
         p.radar_score ??
-          p.radarScore
+        p.radarScore
       ),
 
     opportunity_score:
@@ -1009,7 +1099,9 @@ function normalizarProduto(p) {
     produto.radar_score <= 0
   ) {
     produto.radar_score =
-      calcularScore(produto);
+      calcularScore(
+        produto
+      );
   }
 
   return produto;
@@ -1019,7 +1111,9 @@ function normalizarProduto(p) {
 // DUPLICADOS
 // ======================================================
 
-function removerDuplicados(lista) {
+function removerDuplicados(
+  lista
+) {
   const mapa =
     new Map();
 
@@ -1027,15 +1121,51 @@ function removerDuplicados(lista) {
     produto => {
       const id =
         String(
-          produto.id || ""
+          produto.id ||
+          ""
         );
 
-      if (!id) return;
+      if (!id) {
+        return;
+      }
 
-      if (!mapa.has(id)) {
+      const existente =
+        mapa.get(id);
+
+      if (!existente) {
         mapa.set(
           id,
           produto
+        );
+
+        return;
+      }
+
+      // Se o produto aparecer novamente,
+      // ficamos com a versão mais nova/forte.
+
+      const dataExistente =
+        new Date(
+          existente.captured_at ||
+          0
+        ).getTime();
+
+      const dataNova =
+        new Date(
+          produto.captured_at ||
+          0
+        ).getTime();
+
+      if (
+        dataNova >=
+        dataExistente
+      ) {
+        mapa.set(
+          id,
+          {
+            ...existente,
+            ...produto
+          }
         );
       }
     }
@@ -1044,6 +1174,64 @@ function removerDuplicados(lista) {
   return [
     ...mapa.values()
   ];
+}
+
+// ======================================================
+// MESCLAR PRODUTOS ATUALIZADOS
+// ======================================================
+
+function mesclarProdutos(
+  novos
+) {
+  const mapa =
+    new Map(
+      produtos.map(
+        produto => [
+          String(
+            produto.id
+          ),
+          produto
+        ]
+      )
+    );
+
+  novos.forEach(
+    novo => {
+      const id =
+        String(
+          novo.id
+        );
+
+      if (!id) {
+        return;
+      }
+
+      const antigo =
+        mapa.get(id);
+
+      if (antigo) {
+        mapa.set(
+          id,
+          {
+            ...antigo,
+            ...novo
+          }
+        );
+      } else {
+        mapa.set(
+          id,
+          novo
+        );
+      }
+    }
+  );
+
+  produtos =
+    removerDuplicados(
+      [
+        ...mapa.values()
+      ]
+    );
 }
 
 // ======================================================
@@ -1063,7 +1251,7 @@ let indiceKeywordPadrao = 0;
 function obterKeywordPadrao() {
   return KEYWORDS_RADAR[
     indiceKeywordPadrao %
-      KEYWORDS_RADAR.length
+    KEYWORDS_RADAR.length
   ];
 }
 
@@ -1100,7 +1288,8 @@ function obterKeywordAtual() {
 
 function obterModoRanking() {
   if (
-    filtroAtual === "hot"
+    filtroAtual ===
+    "hot"
   ) {
     return "sales";
   }
@@ -1109,6 +1298,8 @@ function obterModoRanking() {
     filtroAtual ===
     "commission"
   ) {
+    // Só funciona se a pessoa clicar
+    // propositalmente em Comissão.
     return "commission";
   }
 
@@ -1136,7 +1327,8 @@ function deveUsarRankingServidor() {
       .length > 0;
 
   const temNicho =
-    nichoAtual !== "all";
+    nichoAtual !==
+    "all";
 
   return (
     !temBusca &&
@@ -1148,7 +1340,9 @@ function deveUsarRankingServidor() {
 // URL
 // ======================================================
 
-function montarURL(pagina) {
+function montarURL(
+  pagina
+) {
   usandoRankingServidor =
     deveUsarRankingServidor();
 
@@ -1162,7 +1356,9 @@ function montarURL(pagina) {
 
     url.searchParams.set(
       "page",
-      String(pagina)
+      String(
+        pagina
+      )
     );
 
     url.searchParams.set(
@@ -1181,11 +1377,15 @@ function montarURL(pagina) {
   }
 
   const url =
-    new URL(API_URL);
+    new URL(
+      API_URL
+    );
 
   url.searchParams.set(
     "page",
-    String(pagina)
+    String(
+      pagina
+    )
   );
 
   url.searchParams.set(
@@ -1208,21 +1408,30 @@ function montarURL(pagina) {
 // ======================================================
 
 function atualizarTituloFavoritos() {
-  if (!resultsTitle) return;
+  if (!resultsTitle) {
+    return;
+  }
 
   resultsTitle.textContent =
     `Meus favoritos (${favoritos.length})`;
 }
 
 function atualizarTitulo() {
-  if (!resultsTitle) return;
-
-  if (modoFavoritos) {
-    atualizarTituloFavoritos();
+  if (!resultsTitle) {
     return;
   }
 
-  if (buscaDigitada) {
+  if (
+    modoFavoritos
+  ) {
+    atualizarTituloFavoritos();
+
+    return;
+  }
+
+  if (
+    buscaDigitada
+  ) {
     resultsTitle.textContent =
       `Resultados para "${buscaDigitada}"`;
 
@@ -1250,7 +1459,8 @@ function atualizarTitulo() {
   }
 
   if (
-    filtroAtual === "hot"
+    filtroAtual ===
+    "hot"
   ) {
     resultsTitle.textContent =
       "Produtos mais vendidos";
@@ -1293,40 +1503,51 @@ function atualizarTitulo() {
 }
 
 // ======================================================
-// CONTADORES
+// CONTADORES DINÂMICOS
 // ======================================================
 
 function atualizarContadores() {
-  if (totalProdutos) {
+  const lista =
+    removerDuplicados(
+      produtos
+    );
+
+  if (
+    totalProdutos
+  ) {
     totalProdutos.textContent =
-      produtos.length;
+      lista.length;
   }
 
-  if (totalOportunidades) {
-    const fortes =
-      produtos.filter(
+  if (
+    totalOportunidades
+  ) {
+    const oportunidades =
+      lista.filter(
         produto =>
-          numeroSeguro(
-            produto.post_score
-          ) >= 35
+          produtoEhOportunidade(
+            produto
+          )
       ).length;
 
-    if (
-      usandoRankingServidor &&
-      filtroAtual === "radar" &&
-      totalRecomendadosServidor > 0
-    ) {
-      totalOportunidades.textContent =
-        totalRecomendadosServidor;
-    } else {
-      totalOportunidades.textContent =
-        fortes;
-    }
+    // IMPORTANTE:
+    // agora conta somente aquilo que
+    // realmente já foi carregado na tela.
+    //
+    // Ex:
+    // página 1 = 3 oportunidades
+    // scroll encontra +2
+    // contador vira 5.
+
+    totalOportunidades.textContent =
+      oportunidades;
   }
 
-  if (totalVideos) {
+  if (
+    totalVideos
+  ) {
     totalVideos.textContent =
-      produtos.length;
+      lista.length;
   }
 }
 
@@ -1335,37 +1556,48 @@ function atualizarContadores() {
 // ======================================================
 
 function mostrarCarregandoInicial() {
-  if (!productsGrid) return;
+  if (!productsGrid) {
+    return;
+  }
 
-  if (emptyState) {
-    emptyState.hidden = true;
+  if (
+    emptyState
+  ) {
+    emptyState.hidden =
+      true;
   }
 
   productsGrid.innerHTML = `
     <div
       class="loading"
-      style="
-        grid-column:1/-1;
-      "
+      style="grid-column:1/-1;"
     >
-      <div class="loader"></div>
+
+      <div
+        class="loader"
+      ></div>
 
       <p>
         Analisando o que vale postar agora...
       </p>
+
     </div>
   `;
 }
 
 function mostrarCarregandoMais() {
-  if (infiniteLoader) {
+  if (
+    infiniteLoader
+  ) {
     infiniteLoader.hidden =
       false;
   }
 }
 
 function esconderCarregandoMais() {
-  if (infiniteLoader) {
+  if (
+    infiniteLoader
+  ) {
     infiniteLoader.hidden =
       true;
   }
@@ -1375,8 +1607,12 @@ function esconderCarregandoMais() {
 // ERRO
 // ======================================================
 
-function mostrarErro(mensagem) {
-  if (!productsGrid) return;
+function mostrarErro(
+  mensagem
+) {
+  if (!productsGrid) {
+    return;
+  }
 
   productsGrid.innerHTML = `
     <div
@@ -1386,14 +1622,19 @@ function mostrarErro(mensagem) {
         grid-column:1/-1;
       "
     >
-      <div>⚠️</div>
+
+      <div>
+        ⚠️
+      </div>
 
       <h3>
         Não foi possível carregar
       </h3>
 
       <p>
-        ${escapar(mensagem)}
+        ${escapar(
+          mensagem
+        )}
       </p>
 
       <button
@@ -1410,6 +1651,7 @@ function mostrarErro(mensagem) {
       >
         Tentar novamente
       </button>
+
     </div>
   `;
 
@@ -1419,8 +1661,9 @@ function mostrarErro(mensagem) {
     )
     ?.addEventListener(
       "click",
-      () =>
-        reiniciarRadar()
+      () => {
+        reiniciarRadar();
+      }
     );
 }
 
@@ -1432,8 +1675,17 @@ async function carregarProdutos(
   pagina = 1,
   adicionar = false
 ) {
-  if (carregando) return;
-  if (modoFavoritos) return;
+  if (
+    carregando
+  ) {
+    return;
+  }
+
+  if (
+    modoFavoritos
+  ) {
+    return;
+  }
 
   if (
     adicionar &&
@@ -1447,12 +1699,16 @@ async function carregarProdutos(
 
   if (!token) {
     redirecionarLogin();
+
     return;
   }
 
-  carregando = true;
+  carregando =
+    true;
 
-  if (adicionar) {
+  if (
+    adicionar
+  ) {
     mostrarCarregandoMais();
   } else {
     mostrarCarregandoInicial();
@@ -1460,7 +1716,9 @@ async function carregarProdutos(
 
   try {
     const url =
-      montarURL(pagina);
+      montarURL(
+        pagina
+      );
 
     console.log(
       "Shopee Radar:",
@@ -1471,7 +1729,8 @@ async function carregarProdutos(
       await fetch(
         url,
         {
-          method: "GET",
+          method:
+            "GET",
 
           headers:
             criarHeadersAPI()
@@ -1498,11 +1757,13 @@ async function carregarProdutos(
       );
     }
 
-    if (!resposta.ok) {
+    if (
+      !resposta.ok
+    ) {
       throw new Error(
         dados?.erro ||
-          dados?.message ||
-          `Erro ${resposta.status}`
+        dados?.message ||
+        `Erro ${resposta.status}`
       );
     }
 
@@ -1511,7 +1772,7 @@ async function carregarProdutos(
     ) {
       throw new Error(
         dados.erro ||
-          "A API recusou a consulta."
+        "A API recusou a consulta."
       );
     }
 
@@ -1529,7 +1790,8 @@ async function carregarProdutos(
         .filter(
           produto =>
             String(
-              produto.id || ""
+              produto.id ||
+              ""
             ).length > 0
         );
 
@@ -1538,69 +1800,38 @@ async function carregarProdutos(
         novos
       );
 
-    if (adicionar) {
-      const existentes =
-        new Set(
-          produtos.map(
-            produto =>
-              String(
-                produto.id
-              )
-          )
-        );
-
-      novos =
-        novos.filter(
-          produto =>
-            !existentes.has(
-              String(
-                produto.id
-              )
-            )
-        );
-
-      produtos.push(
-        ...novos
+    if (
+      adicionar
+    ) {
+      mesclarProdutos(
+        novos
       );
-
-      produtos =
-        removerDuplicados(
-          produtos
-        );
     } else {
       produtos =
-        novos;
+        removerDuplicados(
+          novos
+        );
     }
 
     paginaAtual =
       numeroSeguro(
         dados.paginaAtual ??
-          dados.pagina?.page ??
-          pagina
+        dados.pagina?.page ??
+        pagina
       );
 
     temProximaPagina =
       Boolean(
         dados.temProximaPagina ??
-          dados.pagina
-            ?.hasNextPage ??
-          false
+        dados.pagina
+          ?.hasNextPage ??
+        false
       );
 
-    if (
-      usandoRankingServidor &&
-      filtroAtual === "radar"
-    ) {
-      totalRecomendadosServidor =
-        numeroSeguro(
-          dados.detector
-            ?.recomendados ??
-          0
-        );
-    }
-
     atualizarTitulo();
+
     atualizarContadores();
+
     aplicarOrdenacaoLocal();
 
   } catch (erro) {
@@ -1609,18 +1840,151 @@ async function carregarProdutos(
       erro
     );
 
-    if (!adicionar) {
+    if (
+      !adicionar
+    ) {
       mostrarErro(
         erro instanceof Error
           ? erro.message
-          : String(erro)
+          : String(
+              erro
+            )
       );
     }
-
   } finally {
-    carregando = false;
+    carregando =
+      false;
 
     esconderCarregandoMais();
+  }
+}
+
+// ======================================================
+// ATUALIZAÇÃO SILENCIOSA
+//
+// Toda vez que o usuário desce o scroll,
+// buscamos novamente a página 1.
+//
+// Assim, se durante esse tempo surgiu uma
+// nova oportunidade, ela entra na lista.
+// ======================================================
+
+async function atualizarPrimeiraPaginaSilenciosamente() {
+  if (
+    atualizandoSilenciosamente ||
+    modoFavoritos ||
+    filtroAtual !== "radar" ||
+    buscaDigitada ||
+    nichoAtual !== "all"
+  ) {
+    return;
+  }
+
+  const token =
+    obterTokenRadar();
+
+  if (!token) {
+    return;
+  }
+
+  atualizandoSilenciosamente =
+    true;
+
+  try {
+    const url =
+      new URL(
+        RANKING_API_URL
+      );
+
+    url.searchParams.set(
+      "page",
+      "1"
+    );
+
+    url.searchParams.set(
+      "limit",
+      String(
+        LIMITE_POR_PAGINA
+      )
+    );
+
+    url.searchParams.set(
+      "mode",
+      "opportunity"
+    );
+
+    const resposta =
+      await fetch(
+        url.toString(),
+        {
+          method:
+            "GET",
+
+          headers:
+            criarHeadersAPI(),
+
+          cache:
+            "no-store"
+        }
+      );
+
+    if (
+      resposta.status === 401 ||
+      resposta.status === 403
+    ) {
+      redirecionarLogin();
+
+      return;
+    }
+
+    if (
+      !resposta.ok
+    ) {
+      return;
+    }
+
+    const dados =
+      await resposta.json();
+
+    const atualizados =
+      (
+        Array.isArray(
+          dados.produtos
+        )
+          ? dados.produtos
+          : []
+      )
+        .map(
+          normalizarProduto
+        )
+        .filter(
+          produto =>
+            String(
+              produto.id ||
+              ""
+            ).length > 0
+        );
+
+    if (
+      atualizados.length
+    ) {
+      mesclarProdutos(
+        atualizados
+      );
+
+      atualizarContadores();
+
+      aplicarOrdenacaoLocal();
+    }
+
+  } catch (erro) {
+    console.warn(
+      "Atualização silenciosa:",
+      erro
+    );
+  } finally {
+    atualizandoSilenciosamente =
+      false;
   }
 }
 
@@ -1629,17 +1993,23 @@ async function carregarProdutos(
 // ======================================================
 
 function reiniciarRadar() {
-  modoFavoritos = false;
+  modoFavoritos =
+    false;
 
-  produtos = [];
+  produtos =
+    [];
 
-  paginaAtual = 1;
-  temProximaPagina = true;
-  carregando = false;
+  paginaAtual =
+    1;
 
-  totalRecomendadosServidor = 0;
+  temProximaPagina =
+    true;
+
+  carregando =
+    false;
 
   atualizarTitulo();
+
   atualizarContadores();
 
   carregarProdutos(
@@ -1649,10 +2019,12 @@ function reiniciarRadar() {
 }
 
 // ======================================================
-// ORDENAÇÃO LOCAL — CORRIGIDA
+// MOVIMENTO
 // ======================================================
 
-function produtoTemMovimento(produto) {
+function produtoTemMovimento(
+  produto
+) {
   const novas =
     numeroSeguro(
       produto.novas_vendas
@@ -1668,6 +2040,7 @@ function produtoTemMovimento(produto) {
       numeroSeguro(
         produto.vendas_por_hora
       ),
+
       numeroSeguro(
         produto.vendas_hora_6h
       )
@@ -1692,6 +2065,12 @@ function produtoTemMovimento(produto) {
   );
 }
 
+// ======================================================
+// PESO DE RELEVÂNCIA
+//
+// Comissão NÃO entra.
+// ======================================================
+
 function calcularPesoMovimento(
   produto
 ) {
@@ -1710,6 +2089,7 @@ function calcularPesoMovimento(
       numeroSeguro(
         produto.vendas_por_hora
       ),
+
       numeroSeguro(
         produto.vendas_hora_6h
       )
@@ -1734,26 +2114,73 @@ function calcularPesoMovimento(
     );
 
   return (
-    novas * 10000 +
-    vendas6h * 5000 +
-    velocidade * 3000 +
-    aceleracao * 20 +
-    prioridade * 1000 +
-    postScore * 10
+    prioridade *
+      1000000 +
+
+    novas *
+      10000 +
+
+    vendas6h *
+      6000 +
+
+    velocidade *
+      5000 +
+
+    aceleracao *
+      25 +
+
+    postScore *
+      100
   );
 }
+
+// ======================================================
+// COMPARADOR RELEVÂNCIA
+// ======================================================
 
 function compararRelevancia(
   a,
   b
 ) {
+  // 1. Oportunidade primeiro
+
+  const oportunidadeA =
+    produtoEhOportunidade(
+      a
+    )
+      ? 1
+      : 0;
+
+  const oportunidadeB =
+    produtoEhOportunidade(
+      b
+    )
+      ? 1
+      : 0;
+
+  if (
+    oportunidadeA !==
+    oportunidadeB
+  ) {
+    return (
+      oportunidadeB -
+      oportunidadeA
+    );
+  }
+
+  // 2. Movimento real
+
   const movimentoA =
-    produtoTemMovimento(a)
+    produtoTemMovimento(
+      a
+    )
       ? 1
       : 0;
 
   const movimentoB =
-    produtoTemMovimento(b)
+    produtoTemMovimento(
+      b
+    )
       ? 1
       : 0;
 
@@ -1767,11 +2194,17 @@ function compararRelevancia(
     );
   }
 
+  // 3. Peso de movimento
+
   const pesoA =
-    calcularPesoMovimento(a);
+    calcularPesoMovimento(
+      a
+    );
 
   const pesoB =
-    calcularPesoMovimento(b);
+    calcularPesoMovimento(
+      b
+    );
 
   if (
     pesoA !==
@@ -1783,19 +2216,7 @@ function compararRelevancia(
     );
   }
 
-  const prioridade =
-    numeroSeguro(
-      b.detector_prioridade
-    ) -
-    numeroSeguro(
-      a.detector_prioridade
-    );
-
-  if (
-    prioridade !== 0
-  ) {
-    return prioridade;
-  }
+  // 4. Novas vendas
 
   const novas =
     numeroSeguro(
@@ -1811,11 +2232,14 @@ function compararRelevancia(
     return novas;
   }
 
+  // 5. Velocidade
+
   const velocidadeA =
     Math.max(
       numeroSeguro(
         a.vendas_por_hora
       ),
+
       numeroSeguro(
         a.vendas_hora_6h
       )
@@ -1826,6 +2250,7 @@ function compararRelevancia(
       numeroSeguro(
         b.vendas_por_hora
       ),
+
       numeroSeguro(
         b.vendas_hora_6h
       )
@@ -1841,33 +2266,7 @@ function compararRelevancia(
     );
   }
 
-  const postScore =
-    numeroSeguro(
-      b.post_score
-    ) -
-    numeroSeguro(
-      a.post_score
-    );
-
-  if (
-    postScore !== 0
-  ) {
-    return postScore;
-  }
-
-  const radarScore =
-    numeroSeguro(
-      b.radar_score
-    ) -
-    numeroSeguro(
-      a.radar_score
-    );
-
-  if (
-    radarScore !== 0
-  ) {
-    return radarScore;
-  }
+  // 6. Total vendido somente como desempate.
 
   return (
     numeroSeguro(
@@ -1879,8 +2278,14 @@ function compararRelevancia(
   );
 }
 
+// ======================================================
+// ORDENAÇÃO
+// ======================================================
+
 function aplicarOrdenacaoLocal() {
-  if (modoFavoritos) {
+  if (
+    modoFavoritos
+  ) {
     renderizarProdutos(
       favoritos
     );
@@ -1890,7 +2295,9 @@ function aplicarOrdenacaoLocal() {
 
   const resultado =
     removerDuplicados(
-      [...produtos]
+      [
+        ...produtos
+      ]
     );
 
   if (
@@ -1921,6 +2328,10 @@ function aplicarOrdenacaoLocal() {
     ordenacaoAtual ===
     "commission"
   ) {
+    // Esta ordenação só é usada
+    // se a pessoa clicar manualmente
+    // em "Maior comissão".
+
     resultado.sort(
       (a, b) =>
         numeroSeguro(
@@ -1960,50 +2371,31 @@ function aplicarOrdenacaoLocal() {
     ordenacaoAtual ===
     "radar"
   ) {
+    // Radar Score agora também
+    // respeita movimento primeiro.
+
     resultado.sort(
-      (a, b) => {
-        const movimentoA =
-          produtoTemMovimento(a)
-            ? 1
-            : 0;
-
-        const movimentoB =
-          produtoTemMovimento(b)
-            ? 1
-            : 0;
-
-        if (
-          movimentoA !==
-          movimentoB
-        ) {
-          return (
-            movimentoB -
-            movimentoA
-          );
-        }
-
-        return (
-          numeroSeguro(
-            b.radar_score
-          ) -
-          numeroSeguro(
-            a.radar_score
-          )
-        );
-      }
+      compararRelevancia
     );
   }
 
   renderizarProdutos(
     resultado
   );
+
+  // Atualiza contador sempre depois
+  // de reorganizar a lista.
+
+  atualizarContadores();
 }
 
 // ======================================================
 // CARD
 // ======================================================
 
-function criarCard(produto) {
+function criarCard(
+  produto
+) {
   const score =
     numeroSeguro(
       produto.radar_score
@@ -2029,13 +2421,16 @@ function criarCard(produto) {
       numeroSeguro(
         produto.vendas_por_hora
       ),
+
       numeroSeguro(
         produto.vendas_hora_6h
       )
     );
 
   const detectorAtivo =
-    temDetector(produto);
+    temDetector(
+      produto
+    );
 
   const decisao =
     obterDecisaoPost(
@@ -2080,9 +2475,11 @@ function criarCard(produto) {
           z-index:20;
           width:40px;
           height:40px;
-          border:1px solid rgba(255,255,255,.12);
+          border:
+            1px solid rgba(255,255,255,.12);
           border-radius:50%;
-          background:rgba(10,12,18,.88);
+          background:
+            rgba(10,12,18,.88);
           color:${
             favoritado
               ? "#ff5a1f"
@@ -2193,8 +2590,10 @@ function criarCard(produto) {
                   margin-bottom:10px;
                   padding:8px 9px;
                   border-radius:9px;
-                  background:rgba(255,90,31,.07);
-                  border:1px solid rgba(255,90,31,.12);
+                  background:
+                    rgba(255,90,31,.07);
+                  border:
+                    1px solid rgba(255,90,31,.12);
                   color:#c9ced8;
                   font-size:9px;
                   line-height:1.35;
@@ -2294,6 +2693,7 @@ function criarCard(produto) {
                     background:#0b0e14;
                   "
                 >
+
                   <small
                     style="
                       display:block;
@@ -2319,6 +2719,7 @@ function criarCard(produto) {
                       sinal.texto
                     )}
                   </strong>
+
                 </div>
 
                 <div
@@ -2328,6 +2729,7 @@ function criarCard(produto) {
                     background:#0b0e14;
                   "
                 >
+
                   <small
                     style="
                       display:block;
@@ -2350,6 +2752,7 @@ function criarCard(produto) {
                       produto.vendas_24h
                     )}
                   </strong>
+
                 </div>
 
               </div>
@@ -2388,6 +2791,7 @@ function criarCard(produto) {
           <div
             class="product-price"
           >
+
             <small>
               PREÇO
             </small>
@@ -2397,6 +2801,7 @@ function criarCard(produto) {
                 produto.price
               )}
             </strong>
+
           </div>
 
         </div>
@@ -2450,7 +2855,9 @@ function criarCard(produto) {
 function renderizarProdutos(
   lista
 ) {
-  if (!productsGrid) return;
+  if (!productsGrid) {
+    return;
+  }
 
   const listaUnica =
     removerDuplicados(
@@ -2463,7 +2870,9 @@ function renderizarProdutos(
     productsGrid.innerHTML =
       "";
 
-    if (emptyState) {
+    if (
+      emptyState
+    ) {
       emptyState.hidden =
         false;
 
@@ -2477,37 +2886,35 @@ function renderizarProdutos(
           "p"
         );
 
-      if (modoFavoritos) {
-        if (titulo) {
+      if (
+        modoFavoritos
+      ) {
+        if (
+          titulo
+        ) {
           titulo.textContent =
             "Nenhum favorito ainda";
         }
 
-        if (texto) {
+        if (
+          texto
+        ) {
           texto.textContent =
             "Toque no coração de um produto para salvá-lo aqui.";
         }
-      } else if (
-        filtroAtual === "radar"
-      ) {
-        if (titulo) {
-          titulo.textContent =
-            "Radar ainda coletando sinais";
-        }
-
-        if (texto) {
-          texto.textContent =
-            "Ainda não há produtos com movimento suficiente para recomendar agora.";
-        }
       } else {
-        if (titulo) {
+        if (
+          titulo
+        ) {
           titulo.textContent =
             "Nenhum produto encontrado";
         }
 
-        if (texto) {
+        if (
+          texto
+        ) {
           texto.textContent =
-            "Tente novamente ou escolha outro filtro.";
+            "O Radar ainda está coletando sinais.";
         }
       }
     }
@@ -2515,60 +2922,71 @@ function renderizarProdutos(
     return;
   }
 
-  if (emptyState) {
+  if (
+    emptyState
+  ) {
     emptyState.hidden =
       true;
   }
 
   productsGrid.innerHTML =
     listaUnica
-      .map(criarCard)
+      .map(
+        criarCard
+      )
       .join("");
 
   document
     .querySelectorAll(
       ".product-card"
     )
-    .forEach(card => {
-      card.addEventListener(
-        "click",
-        () => {
-          const produto =
-            encontrarProduto(
-              card.dataset.id
-            );
+    .forEach(
+      card => {
+        card.addEventListener(
+          "click",
+          () => {
+            const produto =
+              encontrarProduto(
+                card.dataset.id
+              );
 
-          if (produto) {
-            abrirModal(
+            if (
               produto
-            );
+            ) {
+              abrirModal(
+                produto
+              );
+            }
           }
-        }
-      );
-    });
+        );
+      }
+    );
 
   document
     .querySelectorAll(
       ".favorite-btn"
     )
-    .forEach(botao => {
-      botao.addEventListener(
-        "click",
-        event => {
-          event.preventDefault();
-          event.stopPropagation();
+    .forEach(
+      botao => {
+        botao.addEventListener(
+          "click",
+          event => {
+            event.preventDefault();
 
-          alternarFavorito(
-            botao.dataset
-              .favoriteId
-          );
-        }
-      );
-    });
+            event.stopPropagation();
+
+            alternarFavorito(
+              botao.dataset
+                .favoriteId
+            );
+          }
+        );
+      }
+    );
 }
 
 // ======================================================
-// HISTÓRICO VISUAL
+// HISTÓRICO
 // ======================================================
 
 function montarHistorico(
@@ -2611,6 +3029,7 @@ function montarHistorico(
               1px solid rgba(255,255,255,.06);
           "
         >
+
           <span
             style="
               color:#9299a8;
@@ -2629,6 +3048,7 @@ function montarHistorico(
               ponto.sold_count
             )} vendas
           </strong>
+
         </div>
       `
     )
@@ -2644,18 +3064,22 @@ function obterTextoConfianca(
 ) {
   const confianca =
     String(
-      valor || ""
+      valor ||
+      ""
     ).toLowerCase();
 
   if (
-    confianca === "alta"
+    confianca ===
+    "alta"
   ) {
     return "Alta";
   }
 
   if (
-    confianca === "media" ||
-    confianca === "média"
+    confianca ===
+      "media" ||
+    confianca ===
+      "média"
   ) {
     return "Média";
   }
@@ -2667,7 +3091,9 @@ function obterTextoConfianca(
 // MODAL
 // ======================================================
 
-function abrirModal(produto) {
+function abrirModal(
+  produto
+) {
   if (
     !productModal ||
     !modalBody
@@ -2681,7 +3107,9 @@ function abrirModal(produto) {
     );
 
   const detectorAtivo =
-    temDetector(produto);
+    temDetector(
+      produto
+    );
 
   const decisao =
     obterDecisaoPost(
@@ -2751,7 +3179,8 @@ function abrirModal(produto) {
               margin-top:18px;
               padding:16px;
               background:#11151f;
-              border:1px solid ${decisao.cor}55;
+              border:
+                1px solid ${decisao.cor}55;
               border-radius:14px;
             "
           >
@@ -2871,6 +3300,7 @@ function abrirModal(produto) {
                 border-radius:11px;
               "
             >
+
               <small>
                 ${escapar(
                   sinal.label
@@ -2887,6 +3317,7 @@ function abrirModal(produto) {
                   sinal.texto
                 )}
               </strong>
+
             </div>
 
             <div
@@ -2896,6 +3327,7 @@ function abrirModal(produto) {
                 border-radius:11px;
               "
             >
+
               <small>
                 RITMO 24H
               </small>
@@ -2910,6 +3342,7 @@ function abrirModal(produto) {
                   produto.vendas_24h
                 )}
               </strong>
+
             </div>
 
           </div>
@@ -2924,21 +3357,30 @@ function abrirModal(produto) {
     >
 
       <p>
-        <strong>Preço:</strong>
+        <strong>
+          Preço:
+        </strong>
+
         ${dinheiro(
           produto.price
         )}
       </p>
 
       <p>
-        <strong>Vendidos:</strong>
+        <strong>
+          Vendidos:
+        </strong>
+
         ${formatarNumero(
           produto.sold_count
         )}
       </p>
 
       <p>
-        <strong>Novas vendas:</strong>
+        <strong>
+          Novas vendas:
+        </strong>
+
         ${
           produto.novas_vendas > 0
             ? "+"
@@ -2949,7 +3391,10 @@ function abrirModal(produto) {
       </p>
 
       <p>
-        <strong>Crescimento:</strong>
+        <strong>
+          Crescimento:
+        </strong>
+
         ${percentualCrescimento(
           produto
             .crescimento_percentual
@@ -2957,28 +3402,40 @@ function abrirModal(produto) {
       </p>
 
       <p>
-        <strong>Vendas/h:</strong>
+        <strong>
+          Vendas/h:
+        </strong>
+
         ${formatarDecimal(
           produto.vendas_por_hora
         )}
       </p>
 
       <p>
-        <strong>Avaliação:</strong>
+        <strong>
+          Avaliação:
+        </strong>
+
         ⭐ ${numeroSeguro(
           produto.rating
         ).toFixed(1)}
       </p>
 
       <p>
-        <strong>Comissão:</strong>
+        <strong>
+          Comissão:
+        </strong>
+
         ${percentual(
           produto.commission_rate
         )}
       </p>
 
       <p>
-        <strong>Ganho estimado:</strong>
+        <strong>
+          Ganho estimado:
+        </strong>
+
         ${dinheiro(
           produto.commission_value
         )}
@@ -3011,12 +3468,16 @@ function abrirModal(produto) {
               ${obterTextoConfianca(
                 produto.confianca_detector
               )}
+
               •
+
               ${formatarNumero(
                 produto.capturas_analisadas
               )}
               capturas
+
               •
+
               ${formatarDecimal(
                 produto.horas_historico,
                 1
@@ -3125,7 +3586,9 @@ function abrirModal(produto) {
             id
           );
 
-        if (atualizado) {
+        if (
+          atualizado
+        ) {
           abrirModal(
             atualizado
           );
@@ -3138,14 +3601,16 @@ function abrirModal(produto) {
 }
 
 function fecharModal() {
-  if (productModal) {
+  if (
+    productModal
+  ) {
     productModal.hidden =
       true;
   }
 }
 
 // ======================================================
-// FILTROS VISUAIS
+// FILTROS
 // ======================================================
 
 function atualizarFiltroSuperior(
@@ -3155,23 +3620,25 @@ function atualizarFiltroSuperior(
     .querySelectorAll(
       "[data-filter]:not(.bottom-item)"
     )
-    .forEach(item => {
-      const ativo =
-        filtro === "radar"
-          ? (
-              item.dataset.filter ===
-                "radar" ||
-              item.dataset.filter ===
-                "all"
-            )
-          : item.dataset.filter ===
+    .forEach(
+      item => {
+        const ativo =
+          filtro === "radar"
+            ? (
+                item.dataset.filter ===
+                  "radar" ||
+                item.dataset.filter ===
+                  "all"
+              )
+            : item.dataset.filter ===
               filtro;
 
-      item.classList.toggle(
-        "active",
-        ativo
-      );
-    });
+        item.classList.toggle(
+          "active",
+          ativo
+        );
+      }
+    );
 }
 
 function atualizarFiltroInferior(
@@ -3181,73 +3648,93 @@ function atualizarFiltroInferior(
     .querySelectorAll(
       ".bottom-item"
     )
-    .forEach(item => {
-      let ativo = false;
+    .forEach(
+      item => {
+        let ativo =
+          false;
 
-      if (
-        filtro === "radar" &&
-        item.dataset.filter ===
+        if (
+          filtro === "radar" &&
+          item.dataset.filter ===
           "all"
-      ) {
-        ativo = true;
-      }
+        ) {
+          ativo =
+            true;
+        }
 
-      if (
-        item.dataset.filter ===
-        filtro
-      ) {
-        ativo = true;
-      }
+        if (
+          item.dataset.filter ===
+          filtro
+        ) {
+          ativo =
+            true;
+        }
 
-      item.classList.toggle(
-        "active",
-        ativo
-      );
-    });
+        item.classList.toggle(
+          "active",
+          ativo
+        );
+      }
+    );
 }
 
 // ======================================================
 // TROCAR FILTRO
 // ======================================================
 
-function trocarFiltro(filtro) {
-  if (!filtro) return;
+function trocarFiltro(
+  filtro
+) {
+  if (!filtro) {
+    return;
+  }
 
   if (
     filtro === "all"
   ) {
-    filtro = "radar";
+    filtro =
+      "radar";
   }
 
-  modoFavoritos = false;
+  modoFavoritos =
+    false;
 
   filtroAtual =
     filtro;
 
   if (
-    filtro === "hot"
+    filtro ===
+    "hot"
   ) {
     ordenacaoAtual =
       "sales";
-  } else if (
+  }
+
+  else if (
     filtro ===
     "commission"
   ) {
     ordenacaoAtual =
       "commission";
-  } else if (
+  }
+
+  else if (
     filtro ===
     "rating"
   ) {
     ordenacaoAtual =
       "rating";
-  } else if (
+  }
+
+  else if (
     filtro ===
     "growth"
   ) {
     ordenacaoAtual =
       "growth";
-  } else {
+  }
+
+  else {
     ordenacaoAtual =
       "relevance";
   }
@@ -3264,19 +3751,24 @@ function trocarFiltro(filtro) {
     .querySelectorAll(
       "[data-sort]"
     )
-    .forEach(item => {
-      item.classList.toggle(
-        "active",
-        item.dataset.sort ===
+    .forEach(
+      item => {
+        item.classList.toggle(
+          "active",
+          item.dataset.sort ===
           ordenacaoAtual
-      );
-    });
+        );
+      }
+    );
 
   reiniciarRadar();
 
   window.scrollTo({
-    top: 0,
-    behavior: "smooth"
+    top:
+      0,
+
+    behavior:
+      "smooth"
   });
 }
 
@@ -3284,15 +3776,20 @@ function trocarFiltro(filtro) {
 // PESQUISA
 // ======================================================
 
-if (searchInput) {
+if (
+  searchInput
+) {
   searchInput.addEventListener(
     "keydown",
     event => {
       if (
-        event.key === "Enter"
+        event.key ===
+        "Enter"
       ) {
         buscaDigitada =
-          searchInput.value.trim();
+          searchInput
+            .value
+            .trim();
 
         reiniciarRadar();
       }
@@ -3305,7 +3802,8 @@ if (searchInput) {
       if (
         !searchInput.value
       ) {
-        buscaDigitada = "";
+        buscaDigitada =
+          "";
 
         reiniciarRadar();
       }
@@ -3317,7 +3815,9 @@ if (searchInput) {
 // NICHO
 // ======================================================
 
-if (categoryFilter) {
+if (
+  categoryFilter
+) {
   categoryFilter.addEventListener(
     "change",
     () => {
@@ -3337,29 +3837,34 @@ document
   .querySelectorAll(
     "[data-sort]"
   )
-  .forEach(botao => {
-    botao.addEventListener(
-      "click",
-      () => {
-        ordenacaoAtual =
-          botao.dataset.sort ||
-          "relevance";
+  .forEach(
+    botao => {
+      botao.addEventListener(
+        "click",
+        () => {
+          ordenacaoAtual =
+            botao.dataset.sort ||
+            "relevance";
 
-        document
-          .querySelectorAll(
-            "[data-sort]"
-          )
-          .forEach(item => {
-            item.classList.toggle(
-              "active",
-              item === botao
+          document
+            .querySelectorAll(
+              "[data-sort]"
+            )
+            .forEach(
+              item => {
+                item.classList.toggle(
+                  "active",
+                  item ===
+                    botao
+                );
+              }
             );
-          });
 
-        aplicarOrdenacaoLocal();
-      }
-    );
-  });
+          aplicarOrdenacaoLocal();
+        }
+      );
+    }
+  );
 
 // ======================================================
 // BOTÕES PRINCIPAIS
@@ -3369,85 +3874,101 @@ document
   .querySelectorAll(
     "[data-filter]"
   )
-  .forEach(botao => {
-    botao.addEventListener(
-      "click",
-      event => {
-        const filtro =
-          botao.dataset.filter;
+  .forEach(
+    botao => {
+      botao.addEventListener(
+        "click",
+        event => {
+          const filtro =
+            botao.dataset.filter;
 
-        if (
-          filtro ===
-          "favorites"
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
+          if (
+            filtro ===
+            "favorites"
+          ) {
+            event.preventDefault();
 
-          modoFavoritos = true;
+            event.stopPropagation();
 
-          esconderCarregandoMais();
+            modoFavoritos =
+              true;
 
-          document
-            .querySelectorAll(
-              ".bottom-item"
-            )
-            .forEach(item => {
-              item.classList.toggle(
-                "active",
-                item.dataset.filter ===
-                  "favorites"
+            esconderCarregandoMais();
+
+            document
+              .querySelectorAll(
+                ".bottom-item"
+              )
+              .forEach(
+                item => {
+                  item.classList.toggle(
+                    "active",
+                    item.dataset.filter ===
+                      "favorites"
+                  );
+                }
               );
-            });
 
-          atualizarTituloFavoritos();
+            atualizarTituloFavoritos();
 
-          renderizarProdutos(
-            favoritos
-          );
+            renderizarProdutos(
+              favoritos
+            );
 
-          return;
-        }
-
-        if (
-          botao.classList.contains(
-            "bottom-item"
-          ) &&
-          filtro === "all"
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          buscaDigitada = "";
-          nichoAtual = "all";
-
-          if (searchInput) {
-            searchInput.value = "";
+            return;
           }
 
-          if (categoryFilter) {
-            categoryFilter.value =
+          if (
+            botao.classList.contains(
+              "bottom-item"
+            ) &&
+            filtro ===
+              "all"
+          ) {
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            buscaDigitada =
+              "";
+
+            nichoAtual =
               "all";
+
+            if (
+              searchInput
+            ) {
+              searchInput.value =
+                "";
+            }
+
+            if (
+              categoryFilter
+            ) {
+              categoryFilter.value =
+                "all";
+            }
+
+            trocarFiltro(
+              "radar"
+            );
+
+            return;
           }
 
           trocarFiltro(
-            "radar"
+            filtro
           );
-
-          return;
         }
-
-        trocarFiltro(
-          filtro
-        );
-      }
-    );
-  });
+      );
+    }
+  );
 
 // ======================================================
 // PRÓXIMA PÁGINA
 // ======================================================
 
-function carregarProximaPagina() {
+async function carregarProximaPagina() {
   if (
     carregando ||
     modoFavoritos ||
@@ -3456,10 +3977,18 @@ function carregarProximaPagina() {
     return;
   }
 
-  carregarProdutos(
+  await carregarProdutos(
     paginaAtual + 1,
     true
   );
+
+  // Depois que encontrou mais produtos,
+  // verifica novamente o topo.
+  //
+  // Se surgiu nova oportunidade nesse meio tempo,
+  // ela entra e sobe automaticamente.
+
+  atualizarPrimeiraPaginaSilenciosamente();
 }
 
 // ======================================================
@@ -3494,22 +4023,53 @@ window.addEventListener(
     }
   },
   {
-    passive: true
+    passive:
+      true
   }
+);
+
+// ======================================================
+// ATUALIZAÇÃO AUTOMÁTICA LEVE
+//
+// A cada 2 minutos, se o usuário estiver
+// na aba Radar, consulta novamente o topo.
+//
+// NÃO executa o coletor.
+// Apenas consulta os dados mais recentes
+// que já chegaram ao banco.
+// ======================================================
+
+setInterval(
+  () => {
+    if (
+      document.visibilityState ===
+        "visible" &&
+      filtroAtual ===
+        "radar" &&
+      !modoFavoritos
+    ) {
+      atualizarPrimeiraPaginaSilenciosamente();
+    }
+  },
+  2 * 60 * 1000
 );
 
 // ======================================================
 // MODAL
 // ======================================================
 
-if (closeModal) {
+if (
+  closeModal
+) {
   closeModal.addEventListener(
     "click",
     fecharModal
   );
 }
 
-if (productModal) {
+if (
+  productModal
+) {
   productModal
     .querySelector(
       ".modal-overlay"
@@ -3524,7 +4084,8 @@ document.addEventListener(
   "keydown",
   event => {
     if (
-      event.key === "Escape" &&
+      event.key ===
+        "Escape" &&
       productModal &&
       !productModal.hidden
     ) {
@@ -3534,11 +4095,39 @@ document.addEventListener(
 );
 
 // ======================================================
+// QUANDO VOLTAR PARA A ABA
+//
+// Exemplo:
+// usuário foi para WhatsApp,
+// voltou 10 minutos depois.
+//
+// O Radar busca o topo novamente.
+// ======================================================
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+    if (
+      document.visibilityState ===
+        "visible" &&
+      filtroAtual ===
+        "radar" &&
+      !modoFavoritos
+    ) {
+      atualizarPrimeiraPaginaSilenciosamente();
+    }
+  }
+);
+
+// ======================================================
 // INICIALIZAÇÃO
 // ======================================================
 
-filtroAtual = "radar";
-ordenacaoAtual = "relevance";
+filtroAtual =
+  "radar";
+
+ordenacaoAtual =
+  "relevance";
 
 atualizarFiltroSuperior(
   "radar"
