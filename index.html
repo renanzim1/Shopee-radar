@@ -20,9 +20,41 @@
     rel="stylesheet"
     href="style.css"
   >
+
+  <!-- ==================================================
+       PROTEÇÃO VISUAL
+
+       O Radar começa escondido.
+       Só aparece depois que o Supabase confirmar
+       que existe um usuário autorizado.
+  =================================================== -->
+
+  <style>
+    body.auth-checking {
+      visibility: hidden;
+    }
+
+    .logout-button {
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      background: rgba(0,0,0,.18);
+      color: #fff;
+      padding: 8px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+
 </head>
 
-<body>
+<body class="auth-checking">
 
   <!-- ==================================================
        TOPO
@@ -51,8 +83,20 @@
 
     </div>
 
-    <div class="live-badge">
-      AO VIVO
+    <div class="topbar-actions">
+
+      <div class="live-badge">
+        AO VIVO
+      </div>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+      >
+        Sair
+      </button>
+
     </div>
 
   </header>
@@ -156,14 +200,6 @@
 
     <nav class="tabs">
 
-      <!--
-        CORREÇÃO:
-        Antes estava data-filter="all".
-
-        Agora é "radar", porque esta é
-        a aba REAL de oportunidades.
-      -->
-
       <button
         class="tab active"
         data-filter="radar"
@@ -223,10 +259,6 @@
 
       </div>
 
-
-      <!-- ==================================================
-           NICHO
-      =================================================== -->
 
       <select
         id="categoryFilter"
@@ -430,10 +462,6 @@
     </div>
 
 
-    <!-- ==================================================
-         SENSOR
-    =================================================== -->
-
     <div
       id="scrollSentinel"
       style="height:20px;"
@@ -472,13 +500,6 @@
   =================================================== -->
 
   <nav class="bottom-nav">
-
-    <!--
-      Este continua "all".
-
-      Ele NÃO abre o filtro.
-      Só volta para o topo.
-    -->
 
     <button
       class="bottom-item active"
@@ -567,7 +588,208 @@
 
 
   <!-- ==================================================
-       JAVASCRIPT
+       SUPABASE
+  =================================================== -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+
+  <!-- ==================================================
+       PROTEÇÃO DO RADAR
+  =================================================== -->
+
+  <script>
+
+    const AUTH_SUPABASE_URL =
+      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+
+    const AUTH_SUPABASE_KEY =
+      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+
+    const authSupabase =
+      window.supabase.createClient(
+        AUTH_SUPABASE_URL,
+        AUTH_SUPABASE_KEY
+      );
+
+
+    async function bloquearAcesso() {
+
+      try {
+        await authSupabase.auth.signOut();
+      } catch (erro) {
+        console.error(
+          "Erro ao encerrar sessão:",
+          erro
+        );
+      }
+
+      window.location.replace(
+        "login.html"
+      );
+    }
+
+
+    async function verificarAcessoRadar() {
+
+      try {
+
+        const {
+          data: {
+            session
+          },
+          error: sessionError
+        } =
+          await authSupabase.auth
+            .getSession();
+
+
+        if (
+          sessionError ||
+          !session ||
+          !session.user
+        ) {
+          await bloquearAcesso();
+          return;
+        }
+
+
+        const {
+          data: perfil,
+          error: perfilErro
+        } =
+          await authSupabase
+            .from("profiles")
+            .select(
+              "plan,status,expires_at"
+            )
+            .eq(
+              "id",
+              session.user.id
+            )
+            .single();
+
+
+        if (
+          perfilErro ||
+          !perfil
+        ) {
+          await bloquearAcesso();
+          return;
+        }
+
+
+        if (
+          perfil.status !==
+          "active"
+        ) {
+          await bloquearAcesso();
+          return;
+        }
+
+
+        if (
+          perfil.expires_at
+        ) {
+
+          const vencimento =
+            new Date(
+              perfil.expires_at
+            );
+
+          if (
+            Number.isNaN(
+              vencimento.getTime()
+            ) ||
+            vencimento.getTime() <=
+              Date.now()
+          ) {
+            await bloquearAcesso();
+            return;
+          }
+
+        }
+
+
+        // ================================================
+        // USUÁRIO AUTORIZADO
+        // ================================================
+
+        document.body.classList.remove(
+          "auth-checking"
+        );
+
+
+      } catch (erro) {
+
+        console.error(
+          "Erro ao verificar acesso:",
+          erro
+        );
+
+        await bloquearAcesso();
+
+      }
+
+    }
+
+
+    document
+      .getElementById(
+        "logoutButton"
+      )
+      ?.addEventListener(
+        "click",
+        async () => {
+
+          try {
+
+            await authSupabase.auth
+              .signOut();
+
+          } finally {
+
+            window.location.replace(
+              "login.html"
+            );
+
+          }
+
+        }
+      );
+
+
+    // Verifica alterações na autenticação
+    authSupabase.auth
+      .onAuthStateChange(
+        (event, session) => {
+
+          if (
+            event ===
+              "SIGNED_OUT" ||
+            !session
+          ) {
+
+            window.location.replace(
+              "login.html"
+            );
+
+          }
+
+        }
+      );
+
+
+    // Inicia a proteção
+    verificarAcessoRadar();
+
+  </script>
+
+
+  <!-- ==================================================
+       SHOPEE RADAR
   =================================================== -->
 
   <script src="app.js"></script>
