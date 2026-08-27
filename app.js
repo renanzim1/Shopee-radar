@@ -1,7 +1,9 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
-// Ranking paginado + Busca + Nichos + Favoritos
-// Opportunity Score + Crescimento + Scroll infinito
+//
+// O que postar hoje + Detector de Explosão
+// Mais vendidos Shopee + Nichos + Busca + Favoritos
+// Crescimento + Histórico + Scroll infinito
 // ======================================================
 
 const API_URL =
@@ -15,7 +17,6 @@ const RANKING_API_URL =
 // ======================================================
 
 const LIMITE_POR_PAGINA = 20;
-const CORTE_OPORTUNIDADE = 25;
 
 // ======================================================
 // ESTADO
@@ -30,13 +31,16 @@ let carregando = false;
 let buscaDigitada = "";
 let nichoAtual = "all";
 
+// radar | hot | commission | rating | growth
 let filtroAtual = "radar";
-let ordenacaoAtual = "opportunity";
+
+// relevance | sales | commission | rating | radar | growth
+let ordenacaoAtual = "relevance";
 
 let modoFavoritos = false;
 let usandoRankingServidor = true;
 
-let totalOportunidadesServidor = 0;
+let totalRecomendadosServidor = 0;
 
 // ======================================================
 // FAVORITOS
@@ -124,6 +128,7 @@ function alternarFavorito(id) {
 
   if (modoFavoritos) {
     atualizarTituloFavoritos();
+
     renderizarProdutos(
       favoritos
     );
@@ -210,12 +215,25 @@ function escapar(valor) {
 }
 
 // ======================================================
+// NÚMEROS
+// ======================================================
+
+function numeroSeguro(valor) {
+  const n =
+    Number(valor ?? 0);
+
+  return Number.isFinite(n)
+    ? n
+    : 0;
+}
+
+// ======================================================
 // FORMATAÇÃO
 // ======================================================
 
 function dinheiro(valor) {
-  return Number(
-    valor || 0
+  return numeroSeguro(
+    valor
   ).toLocaleString(
     "pt-BR",
     {
@@ -227,7 +245,7 @@ function dinheiro(valor) {
 
 function formatarNumero(valor) {
   const n =
-    Number(valor || 0);
+    numeroSeguro(valor);
 
   if (n >= 1000000) {
     return (
@@ -242,7 +260,9 @@ function formatarNumero(valor) {
     return (
       (n / 1000)
         .toFixed(
-          n >= 10000 ? 0 : 1
+          n >= 10000
+            ? 0
+            : 1
         )
         .replace(".", ",") +
       " mil"
@@ -256,9 +276,12 @@ function formatarNumero(valor) {
 
 function percentual(valor) {
   let n =
-    Number(valor || 0);
+    numeroSeguro(valor);
 
-  if (n > 0 && n <= 1) {
+  if (
+    n > 0 &&
+    n <= 1
+  ) {
     n *= 100;
   }
 
@@ -274,10 +297,12 @@ function percentualCrescimento(
   valor
 ) {
   const n =
-    Number(valor || 0);
+    numeroSeguro(valor);
 
   const sinal =
-    n > 0 ? "+" : "";
+    n > 0
+      ? "+"
+      : "";
 
   return (
     sinal +
@@ -292,9 +317,12 @@ function normalizarPercentual(
   valor
 ) {
   let n =
-    Number(valor || 0);
+    numeroSeguro(valor);
 
-  if (n > 0 && n <= 1) {
+  if (
+    n > 0 &&
+    n <= 1
+  ) {
     n *= 100;
   }
 
@@ -305,11 +333,35 @@ function formatarDecimal(
   valor,
   casas = 2
 ) {
-  return Number(
-    valor || 0
+  return numeroSeguro(
+    valor
   )
     .toFixed(casas)
     .replace(".", ",");
+}
+
+function formatarDataCurta(
+  valor
+) {
+  if (!valor) {
+    return "";
+  }
+
+  try {
+    return new Date(
+      valor
+    ).toLocaleString(
+      "pt-BR",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    );
+  } catch {
+    return "";
+  }
 }
 
 // ======================================================
@@ -318,24 +370,23 @@ function formatarDecimal(
 
 function calcularScore(produto) {
   const vendas =
-    Number(
-      produto.sold_count || 0
+    numeroSeguro(
+      produto.sold_count
     );
 
   const avaliacao =
-    Number(
-      produto.rating || 0
+    numeroSeguro(
+      produto.rating
     );
 
   const preco =
-    Number(
-      produto.price || 0
+    numeroSeguro(
+      produto.price
     );
 
   const ganho =
-    Number(
-      produto.commission_value ||
-        0
+    numeroSeguro(
+      produto.commission_value
     );
 
   const comissao =
@@ -454,68 +505,115 @@ function calcularScore(produto) {
 }
 
 // ======================================================
-// CLASSIFICAÇÕES
+// DETECTOR
 // ======================================================
 
-function obterClassificacao(score) {
-  if (score >= 85) {
-    return {
-      emoji: "🔥",
-      nome: "Forte oportunidade"
-    };
-  }
-
-  if (score >= 70) {
-    return {
-      emoji: "💎",
-      nome: "Boa oportunidade"
-    };
-  }
-
-  if (score >= 50) {
-    return {
-      emoji: "📈",
-      nome: "Em observação"
-    };
-  }
-
-  return {
-    emoji: "👀",
-    nome: "Baixa prioridade"
-  };
+function temDetector(produto) {
+  return Boolean(
+    produto.detector_nivel ||
+    produto.post_score > 0 ||
+    produto.motivo_principal ||
+    produto.historico_suficiente
+  );
 }
 
-function obterClassificacaoOportunidade(
-  score
+function obterRotuloDetector(
+  produto
 ) {
-  const n =
-    Number(score || 0);
+  const nivel =
+    String(
+      produto.detector_nivel ||
+        ""
+    ).toLowerCase();
 
-  if (n >= 70) {
-    return {
-      emoji: "🚀",
-      nome: "Explodindo"
-    };
+  if (
+    nivel ===
+    "explodindo"
+  ) {
+    return "🚨 EXPLODINDO";
   }
 
-  if (n >= 45) {
-    return {
-      emoji: "🔥",
-      nome: "Alta oportunidade"
-    };
+  if (
+    nivel ===
+    "acelerando"
+  ) {
+    return "🔥 ACELERANDO";
   }
 
-  if (n >= 25) {
-    return {
-      emoji: "📈",
-      nome: "Oportunidade"
-    };
+  if (
+    nivel ===
+    "crescendo"
+  ) {
+    return "📈 CRESCENDO";
   }
 
-  return {
-    emoji: "👀",
-    nome: "Monitorando"
-  };
+  if (
+    nivel ===
+    "observando"
+  ) {
+    return "👀 OBSERVAR";
+  }
+
+  return obterTendencia(
+    produto
+  );
+}
+
+function obterCorDetector(
+  produto
+) {
+  const nivel =
+    String(
+      produto.detector_nivel ||
+        ""
+    ).toLowerCase();
+
+  if (
+    nivel ===
+    "explodindo"
+  ) {
+    return "#ff4d4d";
+  }
+
+  if (
+    nivel ===
+    "acelerando"
+  ) {
+    return "#ff8a3d";
+  }
+
+  if (
+    nivel ===
+    "crescendo"
+  ) {
+    return "#32d583";
+  }
+
+  return "#9299a8";
+}
+
+function obterTextoConfianca(
+  valor
+) {
+  const confianca =
+    String(
+      valor || ""
+    ).toLowerCase();
+
+  if (
+    confianca === "alta"
+  ) {
+    return "Alta";
+  }
+
+  if (
+    confianca === "media" ||
+    confianca === "média"
+  ) {
+    return "Média";
+  }
+
+  return "Baixa";
 }
 
 // ======================================================
@@ -523,6 +621,51 @@ function obterClassificacaoOportunidade(
 // ======================================================
 
 function obterTendencia(produto) {
+  const crescimento =
+    numeroSeguro(
+      produto.crescimento_percentual
+    );
+
+  const novasVendas =
+    numeroSeguro(
+      produto.novas_vendas
+    );
+
+  const vendasHora =
+    numeroSeguro(
+      produto.vendas_por_hora
+    );
+
+  if (
+    produto.detector_nivel
+  ) {
+    return obterRotuloDetectorSemRecursao(
+      produto.detector_nivel
+    );
+  }
+
+  if (
+    crescimento >= 50 ||
+    novasVendas >= 50 ||
+    vendasHora >= 5
+  ) {
+    return "🔥 SUBINDO RÁPIDO";
+  }
+
+  if (
+    crescimento > 0 ||
+    novasVendas > 0 ||
+    vendasHora > 0
+  ) {
+    return "📈 CRESCENDO";
+  }
+
+  if (
+    crescimento < 0
+  ) {
+    return "📉 CAINDO";
+  }
+
   if (
     produto.tendencia &&
     String(
@@ -534,31 +677,31 @@ function obterTendencia(produto) {
     ).trim();
   }
 
-  const crescimento =
-    Number(
-      produto
-        .crescimento_percentual ||
-        0
-    );
+  return "⚪ ESTÁVEL";
+}
 
-  const novasVendas =
-    Number(
-      produto.novas_vendas ||
-        0
-    );
+function obterRotuloDetectorSemRecursao(
+  nivel
+) {
+  const n =
+    String(
+      nivel || ""
+    ).toLowerCase();
 
-  if (
-    crescimento >= 50 ||
-    novasVendas >= 50
-  ) {
-    return "🔥 SUBINDO RÁPIDO";
+  if (n === "explodindo") {
+    return "🚨 EXPLODINDO";
   }
 
-  if (
-    crescimento > 0 ||
-    novasVendas > 0
-  ) {
+  if (n === "acelerando") {
+    return "🔥 ACELERANDO";
+  }
+
+  if (n === "crescendo") {
     return "📈 CRESCENDO";
+  }
+
+  if (n === "observando") {
+    return "👀 OBSERVAR";
   }
 
   return "⚪ ESTÁVEL";
@@ -589,105 +732,171 @@ function normalizarProduto(p) {
       "",
 
     price:
-      Number(
+      numeroSeguro(
         p.price ??
           p.precoMin ??
-          p.priceMin ??
-          0
+          p.priceMin
       ),
 
     price_max:
-      Number(
+      numeroSeguro(
         p.price_max ??
           p.precoMax ??
           p.priceMax ??
           p.price ??
-          p.precoMin ??
-          p.priceMin ??
-          0
+          p.precoMin
       ),
 
     sold_count:
-      Number(
+      numeroSeguro(
         p.sold_count ??
           p.vendidos ??
-          p.sales ??
-          0
+          p.sales
       ),
 
     vendas_anterior:
-      Number(
+      numeroSeguro(
         p.vendas_anterior ??
           p.previous_sales ??
-          0
+          p.previous_sold_count
       ),
 
     novas_vendas:
-      Number(
+      numeroSeguro(
         p.novas_vendas ??
           p.new_sales ??
-          0
+          p.sales_growth
       ),
 
     vendas_por_hora:
-      Number(
+      numeroSeguro(
         p.vendas_por_hora ??
-          p.sales_per_hour ??
-          0
+          p.sales_per_hour
       ),
 
     crescimento_percentual:
-      Number(
+      numeroSeguro(
         p.crescimento_percentual ??
-          p.growth_percentage ??
-          0
+          p.growth_percentage
       ),
 
     rating:
-      Number(
+      numeroSeguro(
         p.rating ??
           p.avaliacao ??
-          p.ratingStar ??
-          0
+          p.ratingStar
       ),
 
     commission_value:
-      Number(
+      numeroSeguro(
         p.commission_value ??
           p.comissao ??
-          p.commission ??
-          0
+          p.commission
       ),
 
     commission_rate:
-      Number(
+      numeroSeguro(
         p.commission_rate ??
           p.taxaComissao ??
-          p.commissionRate ??
-          0
+          p.commissionRate
       ),
 
     radar_score:
-      Number(
+      numeroSeguro(
         p.radar_score ??
-          p.radarScore ??
-          0
+          p.radarScore
       ),
 
     opportunity_score:
-      Number(
-        p.opportunity_score ??
-          0
+      numeroSeguro(
+        p.opportunity_score
       ),
 
+    vendas_24h:
+      numeroSeguro(
+        p.vendas_24h
+      ),
+
+    vendas_6h:
+      numeroSeguro(
+        p.vendas_6h
+      ),
+
+    vendas_hora_6h:
+      numeroSeguro(
+        p.vendas_hora_6h
+      ),
+
+    vendas_hora_anterior:
+      numeroSeguro(
+        p.vendas_hora_anterior
+      ),
+
+    aceleracao_percentual:
+      numeroSeguro(
+        p.aceleracao_percentual
+      ),
+
+    post_score:
+      numeroSeguro(
+        p.post_score
+      ),
+
+    detector_nivel:
+      p.detector_nivel ??
+      "",
+
+    detector_prioridade:
+      numeroSeguro(
+        p.detector_prioridade
+      ),
+
+    motivo_principal:
+      p.motivo_principal ??
+      "",
+
+    capturas_analisadas:
+      numeroSeguro(
+        p.capturas_analisadas
+      ),
+
+    horas_historico:
+      numeroSeguro(
+        p.horas_historico
+      ),
+
+    confianca_detector:
+      p.confianca_detector ??
+      "",
+
+    historico_suficiente:
+      Boolean(
+        p.historico_suficiente
+      ),
+
+    historico_resumo:
+      Array.isArray(
+        p.historico_resumo
+      )
+        ? p.historico_resumo
+        : [],
+
+    ranking_origem:
+      p.ranking_origem ??
+      "",
+
     tendencia:
-      p.tendencia ?? "",
+      p.tendencia ??
+      "",
 
     captura_anterior:
-      p.captura_anterior ?? null,
+      p.captura_anterior ??
+      null,
 
     captured_at:
-      p.captured_at ?? null,
+      p.captured_at ??
+      p.last_seen_at ??
+      null,
 
     shop_name:
       p.shop_name ??
@@ -771,7 +980,7 @@ function removerDuplicados(lista) {
 }
 
 // ======================================================
-// KEYWORDS
+// KEYWORD
 // ======================================================
 
 const KEYWORDS_RADAR = [
@@ -800,7 +1009,10 @@ function obterKeywordAtual() {
       ? ""
       : nichoAtual.trim();
 
-  if (busca && nicho) {
+  if (
+    busca &&
+    nicho
+  ) {
     return `${busca} ${nicho}`;
   }
 
@@ -816,11 +1028,13 @@ function obterKeywordAtual() {
 }
 
 // ======================================================
-// MODO DO RANKING
+// MODO RANKING
 // ======================================================
 
 function obterModoRanking() {
-  if (filtroAtual === "hot") {
+  if (
+    filtroAtual === "hot"
+  ) {
     return "sales";
   }
 
@@ -832,13 +1046,15 @@ function obterModoRanking() {
   }
 
   if (
-    filtroAtual === "rating"
+    filtroAtual ===
+    "rating"
   ) {
     return "rating";
   }
 
   if (
-    filtroAtual === "growth"
+    filtroAtual ===
+    "growth"
   ) {
     return "growth";
   }
@@ -855,7 +1071,10 @@ function deveUsarRankingServidor() {
   const temNicho =
     nichoAtual !== "all";
 
-  return !temBusca && !temNicho;
+  return (
+    !temBusca &&
+    !temNicho
+  );
 }
 
 // ======================================================
@@ -866,7 +1085,9 @@ function montarURL(pagina) {
   usandoRankingServidor =
     deveUsarRankingServidor();
 
-  if (usandoRankingServidor) {
+  if (
+    usandoRankingServidor
+  ) {
     const url =
       new URL(
         RANKING_API_URL
@@ -961,7 +1182,9 @@ function atualizarTitulo() {
     return;
   }
 
-  if (filtroAtual === "hot") {
+  if (
+    filtroAtual === "hot"
+  ) {
     resultsTitle.textContent =
       "Produtos mais vendidos";
 
@@ -999,7 +1222,7 @@ function atualizarTitulo() {
   }
 
   resultsTitle.textContent =
-    "Melhores oportunidades";
+    "🔥 O que postar hoje";
 }
 
 // ======================================================
@@ -1012,19 +1235,31 @@ function atualizarContadores() {
       produtos.length;
   }
 
-  if (
-    totalOportunidades
-  ) {
-    totalOportunidades.textContent =
-      totalOportunidadesServidor ||
-      produtos.filter(
-        produto =>
-          Number(
-            produto.opportunity_score ||
-              0
-          ) >=
-          CORTE_OPORTUNIDADE
-      ).length;
+  if (totalOportunidades) {
+    if (
+      usandoRankingServidor &&
+      filtroAtual === "radar"
+    ) {
+      totalOportunidades.textContent =
+        totalRecomendadosServidor;
+    } else {
+      const movimento =
+        produtos.filter(
+          produto =>
+            numeroSeguro(
+              produto.novas_vendas
+            ) > 0 ||
+            numeroSeguro(
+              produto.vendas_por_hora
+            ) > 0 ||
+            numeroSeguro(
+              produto.crescimento_percentual
+            ) > 0
+        ).length;
+
+      totalOportunidades.textContent =
+        movimento;
+    }
   }
 
   if (totalVideos) {
@@ -1054,7 +1289,7 @@ function mostrarCarregandoInicial() {
       <div class="loader"></div>
 
       <p>
-        Analisando oportunidades da Shopee...
+        Analisando o que vale postar agora...
       </p>
     </div>
   `;
@@ -1191,7 +1426,9 @@ async function carregarProdutos(
       );
     }
 
-    if (dados.ok === false) {
+    if (
+      dados.ok === false
+    ) {
       throw new Error(
         dados.erro ||
           "A API recusou a consulta."
@@ -1212,8 +1449,7 @@ async function carregarProdutos(
         .filter(
           produto =>
             String(
-              produto.id ||
-                ""
+              produto.id || ""
             ).length > 0
         );
 
@@ -1257,7 +1493,7 @@ async function carregarProdutos(
     }
 
     paginaAtual =
-      Number(
+      numeroSeguro(
         dados.paginaAtual ??
           dados.pagina?.page ??
           pagina
@@ -1271,17 +1507,16 @@ async function carregarProdutos(
           false
       );
 
-    // Quando estamos na aba
-    // Oportunidades, o total retornado
-    // pela API é o total REAL.
     if (
       usandoRankingServidor &&
       filtroAtual === "radar"
     ) {
-      totalOportunidadesServidor =
-        Number(
-          dados.total ||
-            produtos.length
+      totalRecomendadosServidor =
+        numeroSeguro(
+          dados.detector
+            ?.recomendados ??
+          dados.total ??
+          produtos.length
         );
     }
 
@@ -1311,7 +1546,7 @@ async function carregarProdutos(
 }
 
 // ======================================================
-// REINICIAR PAGINAÇÃO
+// REINICIAR
 // ======================================================
 
 function reiniciarRadar() {
@@ -1322,6 +1557,8 @@ function reiniciarRadar() {
   paginaAtual = 1;
   temProximaPagina = true;
   carregando = false;
+
+  totalRecomendadosServidor = 0;
 
   atualizarTitulo();
   atualizarContadores();
@@ -1350,11 +1587,12 @@ function aplicarOrdenacaoLocal() {
       [...produtos]
     );
 
-  // No ranking principal,
-  // a ordem já vem correta do servidor.
-  // Só aplica ordenação local
-  // quando o usuário usa os botões
-  // "Ordenar por".
+  if (
+    ordenacaoAtual ===
+    "relevance"
+  ) {
+    // mantém ordem do servidor
+  }
 
   if (
     ordenacaoAtual ===
@@ -1362,10 +1600,10 @@ function aplicarOrdenacaoLocal() {
   ) {
     resultado.sort(
       (a, b) =>
-        Number(
+        numeroSeguro(
           b.sold_count
         ) -
-        Number(
+        numeroSeguro(
           a.sold_count
         )
     );
@@ -1377,10 +1615,10 @@ function aplicarOrdenacaoLocal() {
   ) {
     resultado.sort(
       (a, b) =>
-        Number(
+        numeroSeguro(
           b.commission_value
         ) -
-        Number(
+        numeroSeguro(
           a.commission_value
         )
     );
@@ -1392,10 +1630,10 @@ function aplicarOrdenacaoLocal() {
   ) {
     resultado.sort(
       (a, b) =>
-        Number(
+        numeroSeguro(
           b.rating
         ) -
-        Number(
+        numeroSeguro(
           a.rating
         )
     );
@@ -1406,27 +1644,44 @@ function aplicarOrdenacaoLocal() {
     "growth"
   ) {
     resultado.sort(
-      (a, b) =>
-        Number(
-          b.novas_vendas
-        ) -
-        Number(
-          a.novas_vendas
-        )
+      (a, b) => {
+        const velocidade =
+          numeroSeguro(
+            b.vendas_por_hora
+          ) -
+          numeroSeguro(
+            a.vendas_por_hora
+          );
+
+        if (
+          velocidade !== 0
+        ) {
+          return velocidade;
+        }
+
+        return (
+          numeroSeguro(
+            b.novas_vendas
+          ) -
+          numeroSeguro(
+            a.novas_vendas
+          )
+        );
+      }
     );
   }
 
   if (
     ordenacaoAtual ===
-    "opportunity"
+    "radar"
   ) {
     resultado.sort(
       (a, b) =>
-        Number(
-          b.opportunity_score
+        numeroSeguro(
+          b.radar_score
         ) -
-        Number(
-          a.opportunity_score
+        numeroSeguro(
+          a.radar_score
         )
     );
   }
@@ -1442,25 +1697,8 @@ function aplicarOrdenacaoLocal() {
 
 function criarCard(produto) {
   const score =
-    Number(
-      produto.radar_score ||
-        0
-    );
-
-  const opportunityScore =
-    Number(
-      produto.opportunity_score ||
-        0
-    );
-
-  const classificacao =
-    obterClassificacao(
-      score
-    );
-
-  const oportunidade =
-    obterClassificacaoOportunidade(
-      opportunityScore
+    numeroSeguro(
+      produto.radar_score
     );
 
   const favoritado =
@@ -1469,26 +1707,40 @@ function criarCard(produto) {
     );
 
   const novasVendas =
-    Number(
-      produto.novas_vendas ||
-        0
+    numeroSeguro(
+      produto.novas_vendas
     );
 
   const crescimento =
-    Number(
+    numeroSeguro(
       produto
-        .crescimento_percentual ||
-        0
+        .crescimento_percentual
     );
 
   const vendasHora =
-    Number(
-      produto.vendas_por_hora ||
-        0
+    numeroSeguro(
+      produto.vendas_por_hora
     );
 
+  const postScore =
+    numeroSeguro(
+      produto.post_score
+    );
+
+  const detectorAtivo =
+    temDetector(produto);
+
   const tendencia =
-    obterTendencia(
+    detectorAtivo
+      ? obterRotuloDetector(
+          produto
+        )
+      : obterTendencia(
+          produto
+        );
+
+  const corDetector =
+    obterCorDetector(
       produto
     );
 
@@ -1529,7 +1781,6 @@ function criarCard(produto) {
               : "#ffffff"
           };
           font-size:24px;
-          line-height:1;
           display:flex;
           align-items:center;
           justify-content:center;
@@ -1558,7 +1809,21 @@ function criarCard(produto) {
               decoding="async"
             >
           `
-          : ""
+          : `
+            <div
+              style="
+                aspect-ratio:1/1;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                background:#11151f;
+                color:#737b8b;
+                font-size:13px;
+              "
+            >
+              Sem imagem
+            </div>
+          `
       }
 
       <div
@@ -1571,21 +1836,34 @@ function criarCard(produto) {
 
           <span
             class="opportunity-badge"
+            style="
+              ${
+                detectorAtivo
+                  ? `
+                    color:${corDetector};
+                    background:${corDetector}18;
+                  `
+                  : ""
+              }
+            "
           >
-            ${
-              opportunityScore >=
-              CORTE_OPORTUNIDADE
-                ? `${oportunidade.emoji} ${oportunidade.nome}`
-                : `${classificacao.emoji} ${classificacao.nome}`
-            }
+            ${escapar(
+              tendencia
+            )}
           </span>
 
           <span
             class="score-badge"
           >
-            ${Math.round(
-              score
-            )}/100
+            ${
+              detectorAtivo
+                ? `POST ${Math.round(
+                    postScore
+                  )}`
+                : `${Math.round(
+                    score
+                  )}/100`
+            }
           </span>
 
         </div>
@@ -1606,36 +1884,29 @@ function criarCard(produto) {
           )}
         </div>
 
-        <div
-          style="
-            margin-top:10px;
-            padding:9px 11px;
-            border-radius:10px;
-            background:rgba(255,90,31,.08);
-            border:1px solid rgba(255,90,31,.18);
-            font-size:12px;
-          "
-        >
-          🎯 Opportunity Score:
-
-          <strong>
-            ${formatarDecimal(
-              opportunityScore
-            )}
-          </strong>
-        </div>
-
-        <div
-          style="
-            margin-top:10px;
-            font-size:12px;
-            font-weight:800;
-          "
-        >
-          ${escapar(
-            tendencia
-          )}
-        </div>
+        ${
+          detectorAtivo &&
+          produto.motivo_principal
+            ? `
+              <div
+                style="
+                  margin-bottom:10px;
+                  padding:8px 9px;
+                  border-radius:9px;
+                  background:rgba(255,90,31,.07);
+                  border:1px solid rgba(255,90,31,.12);
+                  color:#c9ced8;
+                  font-size:9px;
+                  line-height:1.35;
+                "
+              >
+                ${escapar(
+                  produto.motivo_principal
+                )}
+              </div>
+            `
+            : ""
+        }
 
         <div
           class="product-stats"
@@ -1681,82 +1952,188 @@ function criarCard(produto) {
             </span>
 
             <strong>
-              ⭐ ${Number(
+              ⭐ ${numeroSeguro(
                 produto.rating
               ).toFixed(1)}
             </strong>
           </div>
 
-        </div>
-
-        <div
-          style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-            gap:10px;
-            margin-top:12px;
-            padding-top:12px;
-            border-top:1px solid rgba(255,255,255,.07);
-            font-size:12px;
-            min-height:58px;
-          "
-        >
-
-          <div>
-            <small>
-              CRESCIMENTO
-            </small>
-
-            <div
-              style="
-                margin-top:3px;
-                font-weight:800;
-              "
-            >
-              ${percentualCrescimento(
-                crescimento
-              )}
-            </div>
-          </div>
-
           <div
-            style="
-              text-align:right;
-            "
+            class="product-stat"
           >
-            <small>
+            <span>
               VENDAS/H
-            </small>
+            </span>
 
-            <div
-              style="
-                margin-top:3px;
-                font-weight:800;
-              "
-            >
+            <strong>
               ${formatarDecimal(
                 vendasHora
               )}
-            </div>
+            </strong>
           </div>
 
         </div>
+
+        ${
+          detectorAtivo
+            ? `
+              <div
+                style="
+                  display:grid;
+                  grid-template-columns:repeat(2,minmax(0,1fr));
+                  gap:6px;
+                  margin-top:8px;
+                "
+              >
+
+                <div
+                  style="
+                    padding:7px;
+                    border-radius:9px;
+                    background:#0b0e14;
+                  "
+                >
+                  <small
+                    style="
+                      display:block;
+                      color:#737b8b;
+                      font-size:7px;
+                      font-weight:800;
+                    "
+                  >
+                    ACELERAÇÃO
+                  </small>
+
+                  <strong
+                    style="
+                      display:block;
+                      margin-top:3px;
+                      font-size:10px;
+                    "
+                  >
+                    ${percentualCrescimento(
+                      produto
+                        .aceleracao_percentual
+                    )}
+                  </strong>
+                </div>
+
+                <div
+                  style="
+                    padding:7px;
+                    border-radius:9px;
+                    background:#0b0e14;
+                  "
+                >
+                  <small
+                    style="
+                      display:block;
+                      color:#737b8b;
+                      font-size:7px;
+                      font-weight:800;
+                    "
+                  >
+                    PROJEÇÃO 24H
+                  </small>
+
+                  <strong
+                    style="
+                      display:block;
+                      margin-top:3px;
+                      font-size:10px;
+                    "
+                  >
+                    ${formatarNumero(
+                      produto.vendas_24h
+                    )}
+                  </strong>
+                </div>
+
+              </div>
+            `
+            : `
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:flex-start;
+                  gap:10px;
+                  margin-top:12px;
+                  padding-top:12px;
+                  border-top:1px solid rgba(255,255,255,.07);
+                  font-size:12px;
+                  min-height:58px;
+                "
+              >
+
+                <div>
+                  <small>
+                    CRESCIMENTO
+                  </small>
+
+                  <div
+                    style="
+                      margin-top:3px;
+                      font-weight:800;
+                    "
+                  >
+                    ${percentualCrescimento(
+                      crescimento
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    text-align:right;
+                  "
+                >
+                  <small>
+                    VENDAS/H
+                  </small>
+
+                  <div
+                    style="
+                      margin-top:3px;
+                      font-weight:800;
+                    "
+                  >
+                    ${formatarDecimal(
+                      vendasHora
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            `
+        }
 
         <div
           class="product-footer"
         >
 
           <div>
+
             <small>
-              RADAR SCORE
+              ${
+                detectorAtivo
+                  ? "POST SCORE"
+                  : "RADAR SCORE"
+              }
             </small>
 
             <strong>
-              ${Math.round(
-                score
-              )}
+              ${
+                detectorAtivo
+                  ? Math.round(
+                      postScore
+                    )
+                  : Math.round(
+                      score
+                    )
+              }
             </strong>
+
           </div>
 
           <div
@@ -1831,7 +2208,9 @@ function renderizarProdutos(
       lista
     );
 
-  if (!listaUnica.length) {
+  if (
+    !listaUnica.length
+  ) {
     productsGrid.innerHTML =
       "";
 
@@ -1864,12 +2243,12 @@ function renderizarProdutos(
       ) {
         if (titulo) {
           titulo.textContent =
-            "Nenhuma oportunidade encontrada";
+            "Radar ainda coletando sinais";
         }
 
         if (texto) {
           texto.textContent =
-            "Ainda não existem oportunidades suficientes neste momento.";
+            "Ainda não há produtos com movimento suficiente para recomendar agora.";
         }
       } else {
         if (titulo) {
@@ -1940,86 +2319,69 @@ function renderizarProdutos(
 }
 
 // ======================================================
-// ANÁLISE DO MODAL
+// HISTÓRICO VISUAL
 // ======================================================
 
-function analisarScore(produto) {
-  const motivos = [];
-
-  const novasVendas =
-    Number(
-      produto.novas_vendas ||
-        0
-    );
-
-  const crescimento =
-    Number(
-      produto
-        .crescimento_percentual ||
-        0
-    );
-
-  const vendasHora =
-    Number(
-      produto.vendas_por_hora ||
-        0
-    );
-
-  const vendas =
-    Number(
-      produto.sold_count ||
-        0
-    );
-
-  const avaliacao =
-    Number(
-      produto.rating ||
-        0
-    );
-
-  if (novasVendas > 0) {
-    motivos.push(
-      `📈 +${formatarNumero(
-        novasVendas
-      )} novas vendas`
-    );
+function montarHistorico(
+  produto
+) {
+  if (
+    !Array.isArray(
+      produto.historico_resumo
+    ) ||
+    !produto
+      .historico_resumo
+      .length
+  ) {
+    return `
+      <p
+        style="
+          margin-top:8px;
+          color:#9299a8;
+          font-size:13px;
+        "
+      >
+        Ainda não há histórico suficiente para mostrar a evolução.
+      </p>
+    `;
   }
 
-  if (crescimento > 0) {
-    motivos.push(
-      `🚀 Crescimento de ${percentualCrescimento(
-        crescimento
-      )}`
-    );
-  }
+  return produto
+    .historico_resumo
+    .map(
+      ponto => `
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            padding:8px 0;
+            border-bottom:1px solid rgba(255,255,255,.06);
+          "
+        >
+          <span
+            style="
+              color:#9299a8;
+              font-size:12px;
+            "
+          >
+            ${escapar(
+              formatarDataCurta(
+                ponto.captured_at
+              )
+            )}
+          </span>
 
-  if (vendasHora > 0) {
-    motivos.push(
-      `⚡ ${formatarDecimal(
-        vendasHora
-      )} vendas/h`
-    );
-  }
-
-  if (vendas >= 1000) {
-    motivos.push(
-      "✓ Demanda comprovada"
-    );
-  }
-
-  if (avaliacao >= 4.8) {
-    motivos.push(
-      "⭐ Excelente avaliação"
-    );
-  }
-
-  if (!motivos.length) {
-    motivos.push(
-      "👀 Produto ainda em monitoramento"
-    );
-  }
-
-  return motivos;
+          <strong>
+            ${formatarNumero(
+              ponto.sold_count
+            )} vendas
+          </strong>
+        </div>
+      `
+    )
+    .join("");
 }
 
 // ======================================================
@@ -2039,32 +2401,17 @@ function abrirModal(produto) {
       produto.id
     );
 
-  const score =
-    Number(
-      produto.radar_score ||
-        0
-    );
-
-  const opportunityScore =
-    Number(
-      produto.opportunity_score ||
-        0
-    );
-
-  const oportunidade =
-    obterClassificacaoOportunidade(
-      opportunityScore
-    );
+  const detectorAtivo =
+    temDetector(produto);
 
   const tendencia =
-    obterTendencia(
-      produto
-    );
-
-  const motivos =
-    analisarScore(
-      produto
-    );
+    detectorAtivo
+      ? obterRotuloDetector(
+          produto
+        )
+      : obterTendencia(
+          produto
+        );
 
   const linkShopee =
     produto.affiliate_url ||
@@ -2101,68 +2448,209 @@ function abrirModal(produto) {
       )}
     </h2>
 
-    <p>
+    <p
+      style="
+        margin-top:8px;
+      "
+    >
       🏪 ${escapar(
         produto.shop_name
       )}
     </p>
 
-    <div
-      style="
-        margin-top:16px;
-        padding:15px;
-        background:#11151f;
-        border-radius:14px;
-      "
-    >
-      <small>
-        OPPORTUNITY SCORE
-      </small>
+    ${
+      detectorAtivo
+        ? `
+          <div
+            style="
+              margin-top:18px;
+              padding:16px;
+              background:#11151f;
+              border:1px solid rgba(255,90,31,.16);
+              border-radius:14px;
+            "
+          >
 
-      <div
-        style="
-          margin-top:6px;
-          display:flex;
-          justify-content:space-between;
-          gap:10px;
-        "
-      >
-        <strong
-          style="
-            font-size:26px;
-          "
-        >
-          ${formatarDecimal(
-            opportunityScore
-          )}
-        </strong>
+            <small>
+              DECISÃO DO RADAR
+            </small>
 
-        <strong>
-          ${oportunidade.emoji}
-          ${oportunidade.nome}
-        </strong>
-      </div>
-    </div>
+            <div
+              style="
+                margin-top:7px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+              "
+            >
 
-    <div
-      style="
-        margin-top:12px;
-        padding:12px 15px;
-        background:rgba(255,255,255,.04);
-        border-radius:12px;
-        font-weight:800;
-      "
-    >
-      ${escapar(
-        tendencia
-      )}
-    </div>
+              <strong
+                style="
+                  font-size:20px;
+                "
+              >
+                ${escapar(
+                  tendencia
+                )}
+              </strong>
+
+              <strong
+                style="
+                  font-size:24px;
+                  color:#ff7a1a;
+                "
+              >
+                ${Math.round(
+                  produto.post_score
+                )}
+              </strong>
+
+            </div>
+
+            <p
+              style="
+                margin-top:10px;
+                color:#b5bac5;
+                font-size:13px;
+                line-height:1.45;
+              "
+            >
+              ${escapar(
+                produto.motivo_principal ||
+                "Produto em análise pelo Radar."
+              )}
+            </p>
+
+          </div>
+
+          <div
+            style="
+              margin-top:12px;
+              display:grid;
+              grid-template-columns:repeat(2,minmax(0,1fr));
+              gap:8px;
+            "
+          >
+
+            <div
+              style="
+                padding:12px;
+                background:#0d1017;
+                border-radius:11px;
+              "
+            >
+              <small>
+                VENDAS 6H
+              </small>
+
+              <strong
+                style="
+                  display:block;
+                  margin-top:5px;
+                "
+              >
+                ${formatarNumero(
+                  produto.vendas_6h
+                )}
+              </strong>
+            </div>
+
+            <div
+              style="
+                padding:12px;
+                background:#0d1017;
+                border-radius:11px;
+              "
+            >
+              <small>
+                VELOCIDADE 6H
+              </small>
+
+              <strong
+                style="
+                  display:block;
+                  margin-top:5px;
+                "
+              >
+                ${formatarDecimal(
+                  produto.vendas_hora_6h
+                )}/h
+              </strong>
+            </div>
+
+            <div
+              style="
+                padding:12px;
+                background:#0d1017;
+                border-radius:11px;
+              "
+            >
+              <small>
+                ACELERAÇÃO
+              </small>
+
+              <strong
+                style="
+                  display:block;
+                  margin-top:5px;
+                "
+              >
+                ${percentualCrescimento(
+                  produto
+                    .aceleracao_percentual
+                )}
+              </strong>
+            </div>
+
+            <div
+              style="
+                padding:12px;
+                background:#0d1017;
+                border-radius:11px;
+              "
+            >
+              <small>
+                PROJEÇÃO 24H
+              </small>
+
+              <strong
+                style="
+                  display:block;
+                  margin-top:5px;
+                "
+              >
+                ${formatarNumero(
+                  produto.vendas_24h
+                )}
+              </strong>
+            </div>
+
+          </div>
+        `
+        : `
+          <div
+            style="
+              margin-top:16px;
+              padding:14px;
+              background:#11151f;
+              border-radius:14px;
+              font-weight:800;
+            "
+          >
+            ${escapar(
+              tendencia
+            )}
+          </div>
+        `
+    }
 
     <div
       style="
         margin-top:18px;
       "
     >
+
       <p>
         <strong>Preço:</strong>
         ${dinheiro(
@@ -2179,7 +2667,11 @@ function abrirModal(produto) {
 
       <p>
         <strong>Novas vendas:</strong>
-        ${formatarNumero(
+        ${
+          produto.novas_vendas > 0
+            ? "+"
+            : ""
+        }${formatarNumero(
           produto.novas_vendas
         )}
       </p>
@@ -2201,9 +2693,8 @@ function abrirModal(produto) {
 
       <p>
         <strong>Avaliação:</strong>
-        ⭐ ${Number(
-          produto.rating ||
-            0
+        ⭐ ${numeroSeguro(
+          produto.rating
         ).toFixed(1)}
       </p>
 
@@ -2221,47 +2712,74 @@ function abrirModal(produto) {
         )}
       </p>
 
-      <p>
-        <strong>Radar Score:</strong>
-        ${Math.round(
-          score
-        )}/100
-      </p>
     </div>
 
-    <div
-      style="
-        margin-top:18px;
-        padding:15px;
-        background:#11151f;
-        border-radius:14px;
-      "
-    >
-      <strong>
-        Por que o Radar destacou este produto?
-      </strong>
+    ${
+      detectorAtivo
+        ? `
+          <div
+            style="
+              margin-top:18px;
+              padding:15px;
+              background:#11151f;
+              border-radius:14px;
+            "
+          >
 
-      <div
-        style="
-          margin-top:10px;
-          display:flex;
-          flex-direction:column;
-          gap:7px;
-        "
-      >
-        ${motivos
-          .map(
-            motivo => `
-              <div>
-                ${escapar(
-                  motivo
-                )}
-              </div>
-            `
-          )
-          .join("")}
-      </div>
-    </div>
+            <strong>
+              📊 Confiança do detector
+            </strong>
+
+            <p
+              style="
+                margin-top:8px;
+                color:#b5bac5;
+              "
+            >
+              ${obterTextoConfianca(
+                produto.confianca_detector
+              )}
+              •
+              ${formatarNumero(
+                produto.capturas_analisadas
+              )}
+              capturas
+              •
+              ${formatarDecimal(
+                produto.horas_historico,
+                1
+              )}h de histórico
+            </p>
+
+          </div>
+
+          <div
+            style="
+              margin-top:18px;
+              padding:15px;
+              background:#11151f;
+              border-radius:14px;
+            "
+          >
+
+            <strong>
+              📈 Evolução das vendas
+            </strong>
+
+            <div
+              style="
+                margin-top:8px;
+              "
+            >
+              ${montarHistorico(
+                produto
+              )}
+            </div>
+
+          </div>
+        `
+        : ""
+    }
 
     <button
       id="modalFavoriteButton"
@@ -2373,6 +2891,38 @@ function atualizarFiltroSuperior(
     });
 }
 
+function atualizarFiltroInferior(
+  filtro
+) {
+  document
+    .querySelectorAll(
+      ".bottom-item"
+    )
+    .forEach(item => {
+      let ativo = false;
+
+      if (
+        filtro === "radar" &&
+        item.dataset.filter ===
+          "all"
+      ) {
+        ativo = true;
+      }
+
+      if (
+        item.dataset.filter ===
+        filtro
+      ) {
+        ativo = true;
+      }
+
+      item.classList.toggle(
+        "active",
+        ativo
+      );
+    });
+}
+
 // ======================================================
 // TROCAR FILTRO
 // ======================================================
@@ -2380,7 +2930,9 @@ function atualizarFiltroSuperior(
 function trocarFiltro(filtro) {
   if (!filtro) return;
 
-  if (filtro === "all") {
+  if (
+    filtro === "all"
+  ) {
     window.scrollTo({
       top: 0,
       behavior: "smooth"
@@ -2394,7 +2946,9 @@ function trocarFiltro(filtro) {
   filtroAtual =
     filtro;
 
-  if (filtro === "hot") {
+  if (
+    filtro === "hot"
+  ) {
     ordenacaoAtual =
       "sales";
   } else if (
@@ -2417,10 +2971,14 @@ function trocarFiltro(filtro) {
       "growth";
   } else {
     ordenacaoAtual =
-      "opportunity";
+      "relevance";
   }
 
   atualizarFiltroSuperior(
+    filtro
+  );
+
+  atualizarFiltroInferior(
     filtro
   );
 
@@ -2435,11 +2993,6 @@ function trocarFiltro(filtro) {
           ordenacaoAtual
       );
     });
-
-  // IMPORTANTE:
-  // ao trocar de aba,
-  // zera tudo e busca
-  // somente os primeiros 20.
 
   reiniciarRadar();
 
@@ -2512,7 +3065,7 @@ document
       () => {
         ordenacaoAtual =
           botao.dataset.sort ||
-          "opportunity";
+          "relevance";
 
         document
           .querySelectorAll(
@@ -2545,8 +3098,10 @@ document
         const filtro =
           botao.dataset.filter;
 
+        // ==============================================
         // RADAR INFERIOR
-        // somente volta ao topo
+        // só sobe para o topo
+        // ==============================================
 
         if (
           botao.classList.contains(
@@ -2565,10 +3120,13 @@ document
           return;
         }
 
+        // ==============================================
         // FAVORITOS
+        // ==============================================
 
         if (
-          filtro === "favorites"
+          filtro ===
+          "favorites"
         ) {
           event.preventDefault();
           event.stopPropagation();
@@ -2576,6 +3134,18 @@ document
           modoFavoritos = true;
 
           esconderCarregandoMais();
+
+          document
+            .querySelectorAll(
+              ".bottom-item"
+            )
+            .forEach(item => {
+              item.classList.toggle(
+                "active",
+                item.dataset.filter ===
+                  "favorites"
+              );
+            });
 
           atualizarTituloFavoritos();
 
@@ -2710,9 +3280,13 @@ document
 // ======================================================
 
 filtroAtual = "radar";
-ordenacaoAtual = "opportunity";
+ordenacaoAtual = "relevance";
 
 atualizarFiltroSuperior(
+  "radar"
+);
+
+atualizarFiltroInferior(
   "radar"
 );
 
