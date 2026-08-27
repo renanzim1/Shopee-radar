@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#ff5a1f"
+  >
+
+  <title>Entrar — Shopee Radar</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #090b10;
+      --surface: #11151f;
+      --border: #252b38;
+      --text: #f5f7fb;
+      --muted: #9299a8;
+      --orange: #ff5a1f;
+    }
+
+    body {
+      min-height: 100vh;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 20px;
+
+      background:
+        radial-gradient(
+          circle at top right,
+          rgba(255, 90, 31, 0.12),
+          transparent 35%
+        ),
+        var(--bg);
+
+      color: var(--text);
+
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+
+      padding: 26px;
+
+      border: 1px solid var(--border);
+      border-radius: 22px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #151922,
+          #0f1218
+        );
+
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      margin-bottom: 24px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      font-size: 21px;
+    }
+
+    .brand h1 {
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .brand p {
+      margin-top: 3px;
+
+      color: var(--muted);
+
+      font-size: 11px;
+    }
+
+    .headline {
+      margin-bottom: 22px;
+    }
+
+    .headline h2 {
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .headline span {
+      color: var(--orange);
+    }
+
+    .headline p {
+      margin-top: 9px;
+
+      color: var(--muted);
+
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .field {
+      margin-bottom: 13px;
+    }
+
+    .field label {
+      display: block;
+
+      margin-bottom: 6px;
+
+      color: #b9bfca;
+
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .field input {
+      width: 100%;
+      height: 48px;
+
+      padding: 0 13px;
+
+      border: 1px solid var(--border);
+      border-radius: 12px;
+
+      outline: none;
+
+      background: #0b0e14;
+      color: var(--text);
+
+      font-size: 14px;
+    }
+
+    .field input:focus {
+      border-color:
+        rgba(255, 90, 31, 0.7);
+    }
+
+    .login-button {
+      width: 100%;
+      height: 50px;
+
+      margin-top: 6px;
+
+      border: 0;
+      border-radius: 12px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d1c,
+          #ff7a00
+        );
+
+      color: white;
+
+      font-size: 14px;
+      font-weight: 900;
+
+      cursor: pointer;
+    }
+
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .message {
+      display: none;
+
+      margin-top: 14px;
+      padding: 11px;
+
+      border-radius: 10px;
+
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .message.error {
+      display: block;
+
+      color: #ffb3b3;
+      background:
+        rgba(255, 77, 77, 0.08);
+
+      border:
+        1px solid
+        rgba(255, 77, 77, 0.2);
+    }
+
+    .message.success {
+      display: block;
+
+      color: #a9f5cc;
+      background:
+        rgba(50, 213, 131, 0.08);
+
+      border:
+        1px solid
+        rgba(50, 213, 131, 0.2);
+    }
+
+    .footer {
+      margin-top: 18px;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      font-size: 10px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="login-card">
+
+    <div class="brand">
+
+      <div class="brand-icon">
+        ◉
+      </div>
+
+      <div>
+        <h1>
+          Shopee Radar
+        </h1>
+
+        <p>
+          Inteligência para afiliados
+        </p>
+      </div>
+
+    </div>
+
+    <div class="headline">
+
+      <h2>
+        Acesse seu
+        <span>Radar.</span>
+      </h2>
+
+      <p>
+        Entre com seu e-mail e senha para acessar
+        as oportunidades e análises.
+      </p>
+
+    </div>
+
+    <form id="loginForm">
+
+      <div class="field">
+
+        <label for="email">
+          E-MAIL
+        </label>
+
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          placeholder="seuemail@exemplo.com"
+          required
+        >
+
+      </div>
+
+      <div class="field">
+
+        <label for="password">
+          SENHA
+        </label>
+
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Digite sua senha"
+          required
+        >
+
+      </div>
+
+      <button
+        id="loginButton"
+        class="login-button"
+        type="submit"
+      >
+        Entrar no Radar
+      </button>
+
+      <div
+        id="message"
+        class="message"
+      ></div>
+
+    </form>
+
+    <div class="footer">
+      Acesso exclusivo para usuários autorizados.
+    </div>
+
+  </main>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <script>
+    const SUPABASE_URL =
+      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+
+    const supabase =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+    const loginForm =
+      document.getElementById(
+        "loginForm"
+      );
+
+    const emailInput =
+      document.getElementById(
+        "email"
+      );
+
+    const passwordInput =
+      document.getElementById(
+        "password"
+      );
+
+    const loginButton =
+      document.getElementById(
+        "loginButton"
+      );
+
+    const message =
+      document.getElementById(
+        "message"
+      );
+
+    function mostrarMensagem(
+      texto,
+      tipo = "error"
+    ) {
+      message.textContent =
+        texto;
+
+      message.className =
+        `message ${tipo}`;
+    }
+
+    async function verificarSessao() {
+      const {
+        data: {
+          session
+        }
+      } =
+        await supabase.auth
+          .getSession();
+
+      if (session) {
+        window.location.href =
+          "index.html";
+      }
+    }
+
+    verificarSessao();
+
+    loginForm.addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+        message.className =
+          "message";
+
+        loginButton.disabled =
+          true;
+
+        loginButton.textContent =
+          "Entrando...";
+
+        try {
+
+          const email =
+            emailInput.value.trim();
+
+          const password =
+            passwordInput.value;
+
+          const {
+            data,
+            error
+          } =
+            await supabase.auth
+              .signInWithPassword({
+                email,
+                password
+              });
+
+          if (error) {
+            throw error;
+          }
+
+          if (
+            !data.session
+          ) {
+            throw new Error(
+              "Não foi possível iniciar a sessão."
+            );
+          }
+
+          const {
+            data: perfil,
+            error: perfilErro
+          } =
+            await supabase
+              .from("profiles")
+              .select(
+                "plan,status,expires_at"
+              )
+              .eq(
+                "id",
+                data.user.id
+              )
+              .single();
+
+          if (perfilErro) {
+            await supabase.auth
+              .signOut();
+
+            throw new Error(
+              "Não foi possível validar seu acesso."
+            );
+          }
+
+          if (
+            perfil.status !==
+            "active"
+          ) {
+            await supabase.auth
+              .signOut();
+
+            throw new Error(
+              "Seu acesso está bloqueado ou vencido."
+            );
+          }
+
+          if (
+            perfil.expires_at
+          ) {
+            const vencimento =
+              new Date(
+                perfil.expires_at
+              );
+
+            if (
+              vencimento <
+              new Date()
+            ) {
+              await supabase.auth
+                .signOut();
+
+              throw new Error(
+                "Seu acesso venceu."
+              );
+            }
+          }
+
+          mostrarMensagem(
+            "Acesso liberado. Entrando...",
+            "success"
+          );
+
+          setTimeout(
+            () => {
+              window.location.href =
+                "index.html";
+            },
+            500
+          );
+
+        } catch (erro) {
+
+          mostrarMensagem(
+            erro?.message ||
+            "E-mail ou senha inválidos."
+          );
+
+        } finally {
+
+          loginButton.disabled =
+            false;
+
+          loginButton.textContent =
+            "Entrar no Radar";
+
+        }
+      }
+    );
+  </script>
+
+</body>
+</html>
