@@ -21,7 +21,7 @@ let buscaDigitada = "";
 let nichoAtual = "all";
 
 // radar | opportunity | growth | sales | commission | rating | relevance
-let ordenacaoAtual = "radar";
+let ordenacaoAtual = "opportunity";
 
 // radar | hot | commission | rating | growth
 let filtroAtual = "radar";
@@ -1056,6 +1056,7 @@ function atualizarTitulo() {
   if (filtroAtual === "hot") {
     resultsTitle.textContent =
       "Produtos mais vendidos";
+
     return;
   }
 
@@ -1065,22 +1066,27 @@ function atualizarTitulo() {
   ) {
     resultsTitle.textContent =
       "Maiores comissões";
+
     return;
   }
 
   if (
-    filtroAtual === "rating"
+    filtroAtual ===
+    "rating"
   ) {
     resultsTitle.textContent =
       "Melhores avaliações";
+
     return;
   }
 
   if (
-    filtroAtual === "growth"
+    filtroAtual ===
+    "growth"
   ) {
     resultsTitle.textContent =
       "Produtos em crescimento";
+
     return;
   }
 
@@ -1284,7 +1290,6 @@ async function carregarProdutos(
   adicionar = false
 ) {
   if (carregando) return;
-
   if (modoFavoritos) return;
 
   if (
@@ -1477,6 +1482,59 @@ function reiniciarRadar(
 }
 
 // ======================================================
+// ESTADO VISUAL DOS FILTROS SUPERIORES
+// ======================================================
+
+function atualizarFiltrosSuperiores(
+  filtro
+) {
+  document
+    .querySelectorAll(
+      "[data-filter]"
+    )
+    .forEach(item => {
+
+      // O MENU INFERIOR NÃO PARTICIPA
+      // DO ACTIVE DAS ABAS SUPERIORES
+
+      if (
+        item.classList.contains(
+          "bottom-item"
+        )
+      ) {
+        return;
+      }
+
+      item.classList.toggle(
+        "active",
+        item.dataset.filter ===
+          filtro
+      );
+    });
+}
+
+// ======================================================
+// ESTADO VISUAL DO MENU INFERIOR
+// ======================================================
+
+function manterRadarInferiorAtivo() {
+  document
+    .querySelectorAll(
+      ".bottom-item"
+    )
+    .forEach(item => {
+
+      const filtro =
+        item.dataset.filter;
+
+      item.classList.toggle(
+        "active",
+        filtro === "all"
+      );
+    });
+}
+
+// ======================================================
 // TROCAR ABA
 // ======================================================
 
@@ -1484,6 +1542,8 @@ function trocarFiltro(filtro) {
   modoFavoritos = false;
 
   if (filtro === "all") {
+    manterRadarInferiorAtivo();
+
     window.scrollTo({
       top: 0,
       behavior: "smooth"
@@ -1521,17 +1581,11 @@ function trocarFiltro(filtro) {
       "opportunity";
   }
 
-  document
-    .querySelectorAll(
-      "[data-filter]"
-    )
-    .forEach(item => {
-      item.classList.toggle(
-        "active",
-        item.dataset.filter ===
-          filtro
-      );
-    });
+  atualizarFiltrosSuperiores(
+    filtroAtual
+  );
+
+  manterRadarInferiorAtivo();
 
   document
     .querySelectorAll(
@@ -1545,17 +1599,9 @@ function trocarFiltro(filtro) {
       );
     });
 
-  if (
-    deveUsarRankingServidor() &&
-    produtos.length
-  ) {
-    atualizarTitulo();
-    aplicarOrdenacao();
+  atualizarTitulo();
 
-    return;
-  }
-
-  reiniciarRadar(true);
+  aplicarOrdenacao();
 }
 
 // ======================================================
@@ -1587,7 +1633,7 @@ function atualizarContadores() {
       produto =>
         Number(
           produto.opportunity_score ||
-            produto.radar_score
+            0
         ) >= 25
     );
 
@@ -1610,7 +1656,7 @@ function atualizarContadores() {
 }
 
 // ======================================================
-// ORDENAÇÃO
+// ORDENAÇÃO + FILTROS
 // ======================================================
 
 function aplicarOrdenacao() {
@@ -1626,6 +1672,50 @@ function aplicarOrdenacao() {
     removerDuplicados(
       [...produtos]
     );
+
+  // ==================================================
+  // CORREÇÃO PRINCIPAL
+  //
+  // OPORTUNIDADES AGORA FILTRA DE VERDADE.
+  //
+  // Só entram produtos com
+  // Opportunity Score >= 25.
+  // ==================================================
+
+  if (filtroAtual === "radar") {
+    resultado =
+      resultado.filter(
+        produto =>
+          Number(
+            produto.opportunity_score ||
+              0
+          ) >= 25
+      );
+  }
+
+  // ==================================================
+  // FILTRO DE CRESCIMENTO
+  // ==================================================
+
+  if (filtroAtual === "growth") {
+    resultado =
+      resultado.filter(
+        produto =>
+          Number(
+            produto.novas_vendas ||
+              0
+          ) > 0 ||
+          Number(
+            produto
+              .crescimento_percentual ||
+              0
+          ) > 0 ||
+          Number(
+            produto.vendas_por_hora ||
+              0
+          ) > 0
+      );
+  }
 
   switch (
     ordenacaoAtual
@@ -1664,7 +1754,7 @@ function aplicarOrdenacao() {
     case "growth":
       resultado.sort(
         (a, b) => {
-          const diferencaVendas =
+          const vendas =
             Number(
               b.novas_vendas
             ) -
@@ -1672,10 +1762,20 @@ function aplicarOrdenacao() {
               a.novas_vendas
             );
 
-          if (
-            diferencaVendas !== 0
-          ) {
-            return diferencaVendas;
+          if (vendas !== 0) {
+            return vendas;
+          }
+
+          const velocidade =
+            Number(
+              b.vendas_por_hora
+            ) -
+            Number(
+              a.vendas_por_hora
+            );
+
+          if (velocidade !== 0) {
+            return velocidade;
           }
 
           return (
@@ -1896,7 +1996,7 @@ function criarCard(produto) {
 
           <span class="opportunity-badge">
             ${
-              opportunityScore > 0
+              opportunityScore >= 25
                 ? `${oportunidade.emoji} ${oportunidade.nome}`
                 : `${classificacao.emoji} ${classificacao.nome}`
             }
@@ -1920,29 +2020,23 @@ function criarCard(produto) {
           )}
         </div>
 
-        ${
-          opportunityScore > 0
-            ? `
-              <div
-                style="
-                  margin-top:10px;
-                  padding:9px 11px;
-                  border-radius:10px;
-                  background:rgba(255,90,31,.08);
-                  border:1px solid rgba(255,90,31,.18);
-                  font-size:12px;
-                "
-              >
-                🎯 Opportunity Score:
-                <strong>
-                  ${formatarDecimal(
-                    opportunityScore
-                  )}
-                </strong>
-              </div>
-            `
-            : ""
-        }
+        <div
+          style="
+            margin-top:10px;
+            padding:9px 11px;
+            border-radius:10px;
+            background:rgba(255,90,31,.08);
+            border:1px solid rgba(255,90,31,.18);
+            font-size:12px;
+          "
+        >
+          🎯 Opportunity Score:
+          <strong>
+            ${formatarDecimal(
+              opportunityScore
+            )}
+          </strong>
+        </div>
 
         <div
           style="
@@ -2165,6 +2259,18 @@ function renderizarProdutos(
           texto.textContent =
             "Toque no coração de um produto para salvá-lo aqui.";
         }
+      } else if (
+        filtroAtual === "radar"
+      ) {
+        if (titulo) {
+          titulo.textContent =
+            "Nenhuma oportunidade encontrada";
+        }
+
+        if (texto) {
+          texto.textContent =
+            "Ainda não existem produtos com Opportunity Score de 25 ou mais entre os itens carregados.";
+        }
       } else {
         if (titulo) {
           titulo.textContent =
@@ -2301,6 +2407,11 @@ function abrirModal(produto) {
       produto
     );
 
+  const linkShopee =
+    produto.affiliate_url ||
+    produto.product_url ||
+    "";
+
   modalBody.innerHTML = `
 
     ${
@@ -2377,53 +2488,47 @@ function abrirModal(produto) {
 
     </div>
 
-    ${
-      opportunityScore > 0
-        ? `
-          <div
-            style="
-              margin-top:12px;
-              padding:15px;
-              background:#11151f;
-              border:1px solid rgba(255,90,31,.18);
-              border-radius:14px;
-            "
-          >
+    <div
+      style="
+        margin-top:12px;
+        padding:15px;
+        background:#11151f;
+        border:1px solid rgba(255,90,31,.18);
+        border-radius:14px;
+      "
+    >
 
-            <small>
-              OPPORTUNITY SCORE
-            </small>
+      <small>
+        OPPORTUNITY SCORE
+      </small>
 
-            <div
-              style="
-                margin-top:5px;
-                display:flex;
-                justify-content:space-between;
-                gap:12px;
-              "
-            >
+      <div
+        style="
+          margin-top:5px;
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+        "
+      >
 
-              <strong
-                style="
-                  font-size:26px;
-                "
-              >
-                ${formatarDecimal(
-                  opportunityScore
-                )}
-              </strong>
+        <strong
+          style="
+            font-size:26px;
+          "
+        >
+          ${formatarDecimal(
+            opportunityScore
+          )}
+        </strong>
 
-              <strong>
-                ${oportunidade.emoji}
-                ${oportunidade.nome}
-              </strong>
+        <strong>
+          ${oportunidade.emoji}
+          ${oportunidade.nome}
+        </strong>
 
-            </div>
+      </div>
 
-          </div>
-        `
-        : ""
-    }
+    </div>
 
     <div
       style="
@@ -2605,11 +2710,11 @@ function abrirModal(produto) {
     </button>
 
     ${
-      produto.affiliate_url
+      linkShopee
         ? `
           <a
             href="${escapar(
-              produto.affiliate_url
+              linkShopee
             )}"
             target="_blank"
             rel="noopener noreferrer"
@@ -2628,7 +2733,21 @@ function abrirModal(produto) {
             🛒 Abrir na Shopee
           </a>
         `
-        : ""
+        : `
+          <div
+            style="
+              margin-top:12px;
+              padding:12px;
+              border-radius:12px;
+              text-align:center;
+              background:rgba(255,255,255,.05);
+              color:#8f95a3;
+              font-size:13px;
+            "
+          >
+            Link da Shopee ainda não disponível para este produto.
+          </div>
+        `
     }
   `;
 
@@ -2788,6 +2907,10 @@ document
         const filtro =
           botao.dataset.filter;
 
+        // ==============================================
+        // RADAR INFERIOR
+        // ==============================================
+
         if (
           botao.classList.contains(
             "bottom-item"
@@ -2797,6 +2920,8 @@ document
           event.preventDefault();
           event.stopPropagation();
 
+          manterRadarInferiorAtivo();
+
           window.scrollTo({
             top: 0,
             behavior: "smooth"
@@ -2804,6 +2929,10 @@ document
 
           return;
         }
+
+        // ==============================================
+        // FAVORITOS
+        // ==============================================
 
         if (
           filtro ===
@@ -2819,14 +2948,23 @@ document
 
           document
             .querySelectorAll(
-              "[data-filter]"
+              ".bottom-item"
             )
             .forEach(item => {
               item.classList.toggle(
                 "active",
-                item.dataset
-                  .filter ===
+                item.dataset.filter ===
                   "favorites"
+              );
+            });
+
+          document
+            .querySelectorAll(
+              "[data-filter]:not(.bottom-item)"
+            )
+            .forEach(item => {
+              item.classList.remove(
+                "active"
               );
             });
 
@@ -2848,6 +2986,10 @@ document
 
           return;
         }
+
+        // ==============================================
+        // OUTRAS ABAS
+        // ==============================================
 
         trocarFiltro(
           filtro
@@ -2955,4 +3097,6 @@ document
 // INICIALIZAÇÃO
 // ======================================================
 
+manterRadarInferiorAtivo();
+atualizarFiltrosSuperiores("radar");
 reiniciarRadar(true);
