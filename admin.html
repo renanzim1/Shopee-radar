@@ -340,6 +340,12 @@
       font-size: 12px;
     }
 
+    .field input:focus,
+    .field select:focus {
+      border-color:
+        rgba(255,90,31,.75);
+    }
+
     .create-button {
       width: 100%;
 
@@ -684,6 +690,7 @@
       </div>
 
       <div>
+
         <h1>
           Shopee Radar
         </h1>
@@ -691,9 +698,11 @@
         <p>
           PAINEL ADMINISTRATIVO
         </p>
+
       </div>
 
     </div>
+
 
     <button
       id="logoutButton"
@@ -731,6 +740,7 @@
     <section class="stats">
 
       <div class="stat">
+
         <small>
           USUÁRIOS
         </small>
@@ -738,9 +748,12 @@
         <strong id="statTotal">
           0
         </strong>
+
       </div>
 
+
       <div class="stat">
+
         <small>
           ATIVOS
         </small>
@@ -748,9 +761,12 @@
         <strong id="statActive">
           0
         </strong>
+
       </div>
 
+
       <div class="stat">
+
         <small>
           VENCIDOS
         </small>
@@ -758,9 +774,12 @@
         <strong id="statExpired">
           0
         </strong>
+
       </div>
 
+
       <div class="stat">
+
         <small>
           BLOQUEADOS
         </small>
@@ -768,6 +787,7 @@
         <strong id="statBlocked">
           0
         </strong>
+
       </div>
 
     </section>
@@ -778,6 +798,7 @@
       <div class="panel-title">
 
         <div>
+
           <h3>
             ➕ Criar novo acesso
           </h3>
@@ -786,6 +807,7 @@
             Escolha por quantos dias
             o cliente poderá usar o Radar.
           </p>
+
         </div>
 
       </div>
@@ -836,8 +858,8 @@
             <input
               id="password"
               type="text"
-              minlength="6"
-              placeholder="Senha do acesso"
+              minlength="8"
+              placeholder="Mínimo 8 caracteres"
               required
             >
 
@@ -918,14 +940,15 @@
       <div class="panel-title">
 
         <div>
+
           <h3>
             👥 Usuários
           </h3>
 
           <p>
-            Controle todos os acessos
-            cadastrados.
+            Controle todos os acessos cadastrados.
           </p>
+
         </div>
 
       </div>
@@ -939,6 +962,7 @@
           type="search"
           placeholder="Pesquisar cliente..."
         >
+
 
         <button
           id="refreshButton"
@@ -1028,10 +1052,11 @@
 
 
     // ==================================================
-    // SEGURANÇA
+    // ESCAPAR HTML
     // ==================================================
 
     function escapar(valor) {
+
       return String(
         valor ?? ""
       )
@@ -1069,24 +1094,6 @@
           "shopeeRadarAccessToken"
         ) || ""
       );
-    }
-
-
-    function obterAccessLocal() {
-
-      try {
-
-        return JSON.parse(
-          localStorage.getItem(
-            "shopeeRadarAccess"
-          ) || "{}"
-        );
-
-      } catch {
-
-        return {};
-
-      }
     }
 
 
@@ -1169,6 +1176,7 @@
 
       let resultado = {};
 
+
       try {
 
         resultado =
@@ -1187,6 +1195,7 @@
       ) {
 
         limparSessao();
+
         irLoginAdmin();
 
         throw new Error(
@@ -1223,7 +1232,7 @@
 
 
     // ==================================================
-    // DATAS
+    // DATA
     // ==================================================
 
     function formatarData(valor) {
@@ -1232,16 +1241,20 @@
         return "Sem vencimento";
       }
 
+
       const data =
         new Date(valor);
+
 
       if (
         Number.isNaN(
           data.getTime()
         )
       ) {
+
         return "—";
       }
+
 
       return data.toLocaleString(
         "pt-BR",
@@ -1256,24 +1269,76 @@
     }
 
 
+    // ==================================================
+    // TEMPO RESTANTE
+    // ==================================================
+
     function diasRestantes(valor) {
 
       if (!valor) {
         return "∞";
       }
 
+
       const diferenca =
         new Date(valor).getTime() -
         Date.now();
 
-      if (diferenca <= 0) {
-        return "0";
+
+      if (
+        diferenca <= 0
+      ) {
+
+        return "Vencido";
       }
 
-      return Math.ceil(
-        diferenca /
-        86400000
-      );
+
+      const totalMinutos =
+        Math.floor(
+          diferenca /
+          60000
+        );
+
+
+      const dias =
+        Math.floor(
+          totalMinutos /
+          1440
+        );
+
+
+      const horas =
+        Math.floor(
+          (
+            totalMinutos %
+            1440
+          ) /
+          60
+        );
+
+
+      const minutos =
+        totalMinutos %
+        60;
+
+
+      if (
+        dias > 0
+      ) {
+
+        return `${dias}d ${horas}h`;
+      }
+
+
+      if (
+        horas > 0
+      ) {
+
+        return `${horas}h ${minutos}min`;
+      }
+
+
+      return `${minutos}min`;
     }
 
 
@@ -1286,27 +1351,13 @@
     ) {
 
       if (
-        usuario.status === "expired"
+        usuario.status ===
+        "expired"
       ) {
 
         return {
           classe: "expired",
           texto: "VENCIDO"
-        };
-      }
-
-
-      if (
-        usuario.status !==
-        "active"
-      ) {
-
-        return {
-          classe: "blocked",
-          texto:
-            usuario.status === "pending"
-              ? "PENDENTE"
-              : "BLOQUEADO"
         };
       }
 
@@ -1322,6 +1373,30 @@
         return {
           classe: "expired",
           texto: "VENCIDO"
+        };
+      }
+
+
+      if (
+        usuario.status ===
+        "blocked"
+      ) {
+
+        return {
+          classe: "blocked",
+          texto: "BLOQUEADO"
+        };
+      }
+
+
+      if (
+        usuario.status ===
+        "pending"
+      ) {
+
+        return {
+          classe: "blocked",
+          texto: "PENDENTE"
         };
       }
 
@@ -1357,6 +1432,7 @@
             status.classe ===
             "active"
           ) {
+
             ativos++;
           }
 
@@ -1365,6 +1441,7 @@
             status.classe ===
             "expired"
           ) {
+
             vencidos++;
           }
 
@@ -1373,6 +1450,7 @@
             status.classe ===
             "blocked"
           ) {
+
             bloqueados++;
           }
 
@@ -1414,7 +1492,7 @@
 
 
     // ==================================================
-    // RENDER
+    // RENDER USUÁRIOS
     // ==================================================
 
     function renderizarUsuarios() {
@@ -1458,7 +1536,9 @@
         );
 
 
-      if (!lista.length) {
+      if (
+        !lista.length
+      ) {
 
         usersContainer.innerHTML = `
           <div class="empty">
@@ -1482,7 +1562,7 @@
 
 
               const dispositivo =
-                usuario.device_id
+                usuario.device_linked
                   ? "Vinculado"
                   : "Livre";
 
@@ -1506,6 +1586,7 @@
                           "Sem nome"
                         )}
                       </div>
+
 
                       <div
                         class="user-email"
@@ -1555,7 +1636,7 @@
                     <div class="info">
 
                       <small>
-                        DIAS RESTANTES
+                        TEMPO RESTANTE
                       </small>
 
                       <strong>
@@ -1681,9 +1762,8 @@
                                 <button
                                   class="action yellow"
                                   onclick="
-                                    alterarStatus(
-                                      '${usuario.id}',
-                                      'blocked'
+                                    bloquearUsuario(
+                                      '${usuario.id}'
                                     )
                                   "
                                 >
@@ -1694,9 +1774,8 @@
                                 <button
                                   class="action green"
                                   onclick="
-                                    alterarStatus(
-                                      '${usuario.id}',
-                                      'active'
+                                    ativarUsuario(
+                                      '${usuario.id}'
                                     )
                                   "
                                 >
@@ -1771,6 +1850,7 @@
 
 
         atualizarStats();
+
         renderizarUsuarios();
 
 
@@ -1790,7 +1870,7 @@
 
 
     // ==================================================
-    // CRIAR
+    // CRIAR USUÁRIO
     // ==================================================
 
     createForm.addEventListener(
@@ -1851,6 +1931,17 @@
             );
 
 
+          if (
+            password.length <
+            8
+          ) {
+
+            throw new Error(
+              "A senha precisa ter pelo menos 8 caracteres."
+            );
+          }
+
+
           await chamarAdmin(
             "create",
             {
@@ -1863,7 +1954,7 @@
 
 
           createMessage.textContent =
-            `Acesso criado por ${days} dias.`;
+            `Acesso criado por ${days} dia${days === 1 ? "" : "s"}.`;
 
 
           createMessage.className =
@@ -1910,7 +2001,7 @@
 
 
     // ==================================================
-    // AÇÕES
+    // RENOVAR
     // ==================================================
 
     async function renovarUsuario(
@@ -1942,18 +2033,33 @@
     }
 
 
-    async function alterarStatus(
-      id,
-      status
+    // ==================================================
+    // BLOQUEAR
+    // ==================================================
+
+    async function bloquearUsuario(
+      id
     ) {
+
+      const confirmar =
+        confirm(
+          "Bloquear o acesso deste usuário?"
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
 
       try {
 
         await chamarAdmin(
-          "status",
+          "block",
           {
-            user_id: id,
-            status
+            user_id: id
           }
         );
 
@@ -1971,17 +2077,54 @@
     }
 
 
+    // ==================================================
+    // ATIVAR
+    // ==================================================
+
+    async function ativarUsuario(
+      id
+    ) {
+
+      try {
+
+        await chamarAdmin(
+          "activate",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
+
+    // ==================================================
+    // LIBERAR APARELHO
+    // ==================================================
+
     async function liberarDispositivo(
       id
     ) {
 
       const confirmar =
         confirm(
-          "Liberar esta conta para um novo aparelho?"
+          "Liberar esta conta para um novo aparelho? O aparelho atual deixará de ser reconhecido."
         );
 
 
-      if (!confirmar) {
+      if (
+        !confirmar
+      ) {
         return;
       }
 
@@ -2009,27 +2152,34 @@
     }
 
 
+    // ==================================================
+    // TROCAR SENHA
+    // ==================================================
+
     async function trocarSenha(
       id
     ) {
 
       const password =
         prompt(
-          "Digite a nova senha:"
+          "Digite a nova senha. Mínimo 8 caracteres:"
         );
 
 
-      if (!password) {
+      if (
+        !password
+      ) {
         return;
       }
 
 
       if (
-        password.length < 6
+        password.length <
+        8
       ) {
 
         alert(
-          "A senha precisa ter pelo menos 6 caracteres."
+          "A senha precisa ter pelo menos 8 caracteres."
         );
 
         return;
@@ -2039,7 +2189,7 @@
       try {
 
         await chamarAdmin(
-          "password",
+          "set_password",
           {
             user_id: id,
             password
@@ -2048,7 +2198,7 @@
 
 
         alert(
-          "Senha alterada."
+          "Senha alterada com sucesso."
         );
 
 
@@ -2062,17 +2212,23 @@
     }
 
 
+    // ==================================================
+    // EXCLUIR
+    // ==================================================
+
     async function excluirUsuario(
       id
     ) {
 
       const confirmar =
         confirm(
-          "Tem certeza que deseja excluir este usuário?"
+          "Tem certeza que deseja excluir este usuário? O acesso será removido permanentemente."
         );
 
 
-      if (!confirmar) {
+      if (
+        !confirmar
+      ) {
         return;
       }
 
@@ -2101,7 +2257,7 @@
 
 
     // ==================================================
-    // BUSCA / REFRESH
+    // BUSCA
     // ==================================================
 
     searchUser.addEventListener(
@@ -2109,6 +2265,10 @@
       renderizarUsuarios
     );
 
+
+    // ==================================================
+    // ATUALIZAR
+    // ==================================================
 
     refreshButton.addEventListener(
       "click",
@@ -2126,11 +2286,33 @@
 
         limparSessao();
 
+
         window.location.replace(
           LOGIN_ADMIN_URL
         );
 
       }
+    );
+
+
+    // ==================================================
+    // ATUALIZA TEMPO AUTOMATICAMENTE
+    // ==================================================
+
+    setInterval(
+      () => {
+
+        if (
+          usuarios.length
+        ) {
+
+          atualizarStats();
+
+          renderizarUsuarios();
+        }
+
+      },
+      60000
     );
 
 
@@ -2144,50 +2326,55 @@
         obterToken();
 
 
-      if (!token) {
+      if (
+        !token
+      ) {
 
         irLoginAdmin();
 
         return;
-
       }
 
 
-      const access =
-        obterAccessLocal();
+      try {
 
+        // A própria API confirma
+        // se a conta realmente é admin.
 
-      if (
-        access.role !== "admin"
-      ) {
-
-        // Mesmo que o localStorage esteja errado,
-        // a API também vai bloquear.
-        // Aqui só evitamos mostrar o painel antes.
-        try {
-
+        const resultado =
           await chamarAdmin(
             "list"
           );
 
-        } catch {
 
-          limparSessao();
-          irLoginAdmin();
+        usuarios =
+          Array.isArray(
+            resultado.users
+          )
+            ? resultado.users
+            : [];
 
-          return;
 
-        }
+        document
+          .body
+          .classList
+          .remove(
+            "auth-checking"
+          );
+
+
+        atualizarStats();
+
+        renderizarUsuarios();
+
+
+      } catch (erro) {
+
+        console.error(
+          erro
+        );
 
       }
-
-
-      document.body.classList.remove(
-        "auth-checking"
-      );
-
-
-      await carregarUsuarios();
     }
 
 
