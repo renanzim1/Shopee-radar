@@ -1,856 +1,3531 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+// ======================================================
+// SHOPEE RADAR — APP.JS
+//
+// MOMENTUM V3 + TREND SCORE
+// RANQUEAR SEUS VÍDEOS — ZERO VENDAS
+// SCROLL INFINITO
+// FAVORITOS
+// SEM COMISSÃO NA LÓGICA
+// ======================================================
 
-<head>
-  <meta charset="UTF-8">
+const MOMENTUM_API =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-momentum";
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  >
+const ZERO_API =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-zero";
 
-  <meta
-    name="theme-color"
-    content="#ff5a1f"
-  >
+const RANKING_API =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-ranking";
 
-  <title>Shopee Radar</title>
+const LIMITE_POR_PAGINA = 20;
 
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
 
-  <style>
-    body.auth-checking {
-      visibility: hidden;
+// ======================================================
+// ESTADO
+// ======================================================
+
+let produtos = [];
+
+let paginaAtual = 1;
+
+let temProximaPagina = true;
+
+let carregando = false;
+
+let filtroAtual = "radar";
+
+let ordenacaoAtual = "relevance";
+
+let modoFavoritos = false;
+
+let buscaDigitada = "";
+
+let nichoAtual = "all";
+
+let totalServidor = 0;
+
+let resumoServidor = {};
+
+
+// ======================================================
+// TOKEN
+// ======================================================
+
+function obterTokenRadar() {
+
+  return (
+    localStorage.getItem(
+      "shopeeRadarAccessToken"
+    ) || ""
+  );
+
+}
+
+
+function limparSessaoRadarApp() {
+
+  localStorage.removeItem(
+    "shopeeRadarAccessToken"
+  );
+
+  localStorage.removeItem(
+    "shopeeRadarRefreshToken"
+  );
+
+  localStorage.removeItem(
+    "shopeeRadarUser"
+  );
+
+}
+
+
+function redirecionarLogin() {
+
+  limparSessaoRadarApp();
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+
+function criarHeadersAPI() {
+
+  const token =
+    obterTokenRadar();
+
+  return {
+    Accept: "application/json",
+
+    Authorization:
+      `Bearer ${token}`
+  };
+
+}
+
+
+// ======================================================
+// ELEMENTOS
+// ======================================================
+
+const productsGrid =
+  document.getElementById(
+    "productsGrid"
+  );
+
+const emptyState =
+  document.getElementById(
+    "emptyState"
+  );
+
+const totalProdutos =
+  document.getElementById(
+    "totalProdutos"
+  );
+
+const totalOportunidades =
+  document.getElementById(
+    "totalOportunidades"
+  );
+
+const totalVideos =
+  document.getElementById(
+    "totalVideos"
+  );
+
+const totalProdutosLabel =
+  document.getElementById(
+    "totalProdutosLabel"
+  );
+
+const totalOportunidadesLabel =
+  document.getElementById(
+    "totalOportunidadesLabel"
+  );
+
+const searchInput =
+  document.getElementById(
+    "searchInput"
+  );
+
+const categoryFilter =
+  document.getElementById(
+    "categoryFilter"
+  );
+
+const resultsTitle =
+  document.getElementById(
+    "resultsTitle"
+  );
+
+const heroDescription =
+  document.getElementById(
+    "heroDescription"
+  );
+
+const zeroStrategyBox =
+  document.getElementById(
+    "zeroStrategyBox"
+  );
+
+const infiniteLoader =
+  document.getElementById(
+    "infiniteLoader"
+  );
+
+const productModal =
+  document.getElementById(
+    "productModal"
+  );
+
+const modalBody =
+  document.getElementById(
+    "modalBody"
+  );
+
+const closeModal =
+  document.getElementById(
+    "closeModal"
+  );
+
+
+// ======================================================
+// FAVORITOS
+// ======================================================
+
+let favoritos = [];
+
+try {
+
+  favoritos =
+    JSON.parse(
+      localStorage.getItem(
+        "shopeeRadarFavoritos"
+      )
+    ) || [];
+
+  if (
+    !Array.isArray(
+      favoritos
+    )
+  ) {
+
+    favoritos = [];
+
+  }
+
+} catch {
+
+  favoritos = [];
+
+}
+
+
+function salvarFavoritos() {
+
+  localStorage.setItem(
+    "shopeeRadarFavoritos",
+    JSON.stringify(
+      favoritos
+    )
+  );
+
+}
+
+
+function estaFavoritado(id) {
+
+  return favoritos.some(
+    produto =>
+      String(produto.id) ===
+      String(id)
+  );
+
+}
+
+
+function encontrarProduto(id) {
+
+  return (
+    produtos.find(
+      produto =>
+        String(produto.id) ===
+        String(id)
+    ) ||
+    favoritos.find(
+      produto =>
+        String(produto.id) ===
+        String(id)
+    )
+  );
+
+}
+
+
+function alternarFavorito(id) {
+
+  const produto =
+    encontrarProduto(id);
+
+  if (!produto) return;
+
+  if (
+    estaFavoritado(id)
+  ) {
+
+    favoritos =
+      favoritos.filter(
+        item =>
+          String(item.id) !==
+          String(id)
+      );
+
+  } else {
+
+    favoritos.unshift({
+      ...produto
+    });
+
+  }
+
+  salvarFavoritos();
+
+  if (
+    modoFavoritos
+  ) {
+
+    renderizarProdutos(
+      favoritos
+    );
+
+  } else {
+
+    aplicarOrdenacao();
+
+  }
+
+}
+
+
+// ======================================================
+// UTILIDADES
+// ======================================================
+
+function numeroSeguro(valor) {
+
+  const numero =
+    Number(
+      valor ?? 0
+    );
+
+  return Number.isFinite(
+    numero
+  )
+    ? numero
+    : 0;
+
+}
+
+
+function escapar(valor) {
+
+  return String(
+    valor ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+function dinheiro(valor) {
+
+  return numeroSeguro(
+    valor
+  ).toLocaleString(
+    "pt-BR",
+    {
+      style:
+        "currency",
+
+      currency:
+        "BRL"
+    }
+  );
+
+}
+
+
+function formatarNumero(valor) {
+
+  const numero =
+    numeroSeguro(
+      valor
+    );
+
+  if (
+    numero >= 1000000
+  ) {
+
+    return (
+      (
+        numero /
+        1000000
+      )
+        .toFixed(1)
+        .replace(
+          ".",
+          ","
+        ) +
+      " mi"
+    );
+
+  }
+
+
+  if (
+    numero >= 1000
+  ) {
+
+    return (
+      (
+        numero /
+        1000
+      )
+        .toFixed(
+          numero >= 10000
+            ? 0
+            : 1
+        )
+        .replace(
+          ".",
+          ","
+        ) +
+      " mil"
+    );
+
+  }
+
+
+  return numero.toLocaleString(
+    "pt-BR"
+  );
+
+}
+
+
+function formatarDecimal(
+  valor,
+  casas = 1
+) {
+
+  return numeroSeguro(
+    valor
+  )
+    .toFixed(
+      casas
+    )
+    .replace(
+      ".",
+      ","
+    );
+
+}
+
+
+function formatarData(valor) {
+
+  if (!valor) {
+    return "";
+  }
+
+  try {
+
+    return new Date(
+      valor
+    ).toLocaleString(
+      "pt-BR",
+      {
+        day:
+          "2-digit",
+
+        month:
+          "2-digit",
+
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit"
+      }
+    );
+
+  } catch {
+
+    return "";
+
+  }
+
+}
+
+
+// ======================================================
+// NORMALIZAÇÃO MOMENTUM
+// ======================================================
+
+function normalizarMomentum(p) {
+
+  return {
+
+    id:
+      String(
+        p.product_id ??
+        p.id ??
+        ""
+      ),
+
+    tipo:
+      "momentum",
+
+    name:
+      p.product_name ??
+      "Produto Shopee",
+
+    image_url:
+      p.image_url ??
+      "",
+
+    product_url:
+      p.product_url ??
+      "",
+
+    affiliate_url:
+      p.affiliate_url ??
+      p.product_url ??
+      "",
+
+    shop_name:
+      p.shop_name ??
+      "Shopee",
+
+    price:
+      numeroSeguro(
+        p.price
+      ),
+
+    sold_count:
+      numeroSeguro(
+        p.sold_count
+      ),
+
+    rating:
+      numeroSeguro(
+        p.rating
+      ),
+
+    momentum_score:
+      numeroSeguro(
+        p.momentum_score
+      ),
+
+    momentum_posicao:
+      numeroSeguro(
+        p.momentum_posicao
+      ),
+
+    percentil_top:
+      numeroSeguro(
+        p.percentil_top
+      ),
+
+    momentum_nivel:
+      p.momentum_nivel ??
+      "observar",
+
+    momentum_rotulo:
+      p.momentum_rotulo ??
+      "👀 OBSERVAR",
+
+    trend_score:
+      numeroSeguro(
+        p.trend_score
+      ),
+
+    trend_nivel:
+      p.trend_nivel ??
+      "⚪ Presença baixa",
+
+    capturas_24h:
+      numeroSeguro(
+        p.capturas_24h
+      ),
+
+    vendas_confirmadas_24h:
+      numeroSeguro(
+        p.vendas_confirmadas_24h
+      ),
+
+    rank_atual:
+      numeroSeguro(
+        p.rank_atual
+      ),
+
+    rank_anterior:
+      numeroSeguro(
+        p.rank_anterior
+      ),
+
+    rank_change:
+      numeroSeguro(
+        p.rank_change
+      ),
+
+    ultima_captura:
+      p.ultima_captura ??
+      p.captured_at ??
+      null,
+
+    sinais_reais:
+      numeroSeguro(
+        p.sinais_reais
+      )
+
+  };
+
+}
+
+
+// ======================================================
+// NORMALIZAÇÃO ZERO VENDAS
+// ======================================================
+
+function normalizarZero(p) {
+
+  return {
+
+    id:
+      String(
+        p.product_id ??
+        p.id ??
+        ""
+      ),
+
+    tipo:
+      "zero",
+
+    name:
+      p.product_name ??
+      "Produto Shopee",
+
+    image_url:
+      p.image_url ??
+      "",
+
+    product_url:
+      p.product_url ??
+      "",
+
+    affiliate_url:
+      p.affiliate_url ??
+      p.product_url ??
+      "",
+
+    shop_name:
+      p.shop_name ??
+      "Shopee",
+
+    price:
+      numeroSeguro(
+        p.price
+      ),
+
+    sold_count:
+      0,
+
+    rating:
+      numeroSeguro(
+        p.rating
+      ),
+
+    times_seen:
+      numeroSeguro(
+        p.times_seen
+      ),
+
+    rank_atual:
+      numeroSeguro(
+        p.current_rank
+      ),
+
+    rank_change:
+      numeroSeguro(
+        p.rank_change
+      ),
+
+    ultima_captura:
+      p.last_seen_at ??
+      null,
+
+    estrategia_rotulo:
+      p.estrategia_rotulo ??
+      "🎯 Ranquear seus vídeos",
+
+    motivo:
+      p.motivo ??
+      "Produto com 0 vendas totais registradas."
+
+  };
+
+}
+
+
+// ======================================================
+// NORMALIZAÇÃO RANKING NORMAL
+// ======================================================
+
+function normalizarRanking(p) {
+
+  return {
+
+    id:
+      String(
+        p.product_id ??
+        p.id ??
+        ""
+      ),
+
+    tipo:
+      "ranking",
+
+    name:
+      p.product_name ??
+      p.name ??
+      "Produto Shopee",
+
+    image_url:
+      p.image_url ??
+      "",
+
+    product_url:
+      p.product_url ??
+      "",
+
+    affiliate_url:
+      p.affiliate_url ??
+      p.product_url ??
+      "",
+
+    shop_name:
+      p.shop_name ??
+      "Shopee",
+
+    price:
+      numeroSeguro(
+        p.price
+      ),
+
+    sold_count:
+      numeroSeguro(
+        p.sold_count
+      ),
+
+    rating:
+      numeroSeguro(
+        p.rating
+      )
+
+  };
+
+}
+
+
+// ======================================================
+// DUPLICADOS
+// ======================================================
+
+function removerDuplicados(lista) {
+
+  const mapa =
+    new Map();
+
+  for (
+    const produto
+    of lista
+  ) {
+
+    if (!produto.id) {
+      continue;
     }
 
-    .logout-button {
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 10px;
-      background: rgba(0,0,0,.18);
-      color: #fff;
-      padding: 8px 11px;
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
+    mapa.set(
+      String(
+        produto.id
+      ),
+      produto
+    );
+
+  }
+
+  return [
+    ...mapa.values()
+  ];
+
+}
+
+
+// ======================================================
+// URL
+// ======================================================
+
+function montarURL(
+  pagina
+) {
+
+  if (
+    filtroAtual ===
+    "zero"
+  ) {
+
+    const url =
+      new URL(
+        ZERO_API
+      );
+
+    url.searchParams.set(
+      "page",
+      String(
+        pagina
+      )
+    );
+
+    url.searchParams.set(
+      "limit",
+      String(
+        LIMITE_POR_PAGINA
+      )
+    );
+
+
+    if (
+      buscaDigitada
+    ) {
+
+      url.searchParams.set(
+        "q",
+        buscaDigitada
+      );
+
     }
 
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+
+    let sort =
+      "recent";
+
+
+    if (
+      ordenacaoAtual ===
+      "rating"
+    ) {
+
+      sort =
+        "rating";
+
     }
-  </style>
 
-</head>
 
-<body class="auth-checking">
+    if (
+      ordenacaoAtual ===
+      "recent"
+    ) {
 
-  <!-- ==================================================
-       TOPO
-  =================================================== -->
+      sort =
+        "recent";
 
-  <header class="topbar">
+    }
 
-    <div class="brand">
 
-      <div class="brand-icon">
-        ◉
-      </div>
+    if (
+      ordenacaoAtual ===
+      "trend"
+    ) {
 
-      <div>
+      sort =
+        "seen";
 
-        <h1>
-          Shopee Radar
-        </h1>
+    }
 
-        <div class="status">
-          <span class="status-dot"></span>
-          RADAR ATIVO
-        </div>
 
-      </div>
+    url.searchParams.set(
+      "sort",
+      sort
+    );
 
-    </div>
 
-    <div class="topbar-actions">
+    return {
+      url:
+        url.toString(),
 
-      <div class="live-badge">
-        AO VIVO
-      </div>
+      tipo:
+        "zero"
+    };
 
-      <button
-        id="logoutButton"
-        class="logout-button"
-        type="button"
-      >
-        Sair
-      </button>
+  }
 
-    </div>
 
-  </header>
+  if (
+    filtroAtual ===
+      "hot" ||
+    filtroAtual ===
+      "rating"
+  ) {
 
+    const url =
+      new URL(
+        RANKING_API
+      );
 
-  <main class="container">
+    url.searchParams.set(
+      "page",
+      String(
+        pagina
+      )
+    );
 
-    <!-- ==================================================
-         HERO
-    =================================================== -->
+    url.searchParams.set(
+      "limit",
+      String(
+        LIMITE_POR_PAGINA
+      )
+    );
 
-    <section class="hero">
+    url.searchParams.set(
+      "mode",
+      filtroAtual ===
+        "hot"
+          ? "sales"
+          : "rating"
+    );
 
-      <div class="hero-badge">
-        INTELIGÊNCIA PARA AFILIADOS
-      </div>
 
-      <h2>
-        Encontre produtos
-        <span>
-          antes de saturarem.
-        </span>
-      </h2>
+    return {
+      url:
+        url.toString(),
 
-      <p>
-        Analise vendas, comissão, avaliação e
-        desempenho dos produtos em um único radar.
-      </p>
+      tipo:
+        "ranking"
+    };
 
-    </section>
+  }
 
 
-    <!-- ==================================================
-         RESUMO
-    =================================================== -->
+  const url =
+    new URL(
+      MOMENTUM_API
+    );
 
-    <section class="stats-grid">
+  url.searchParams.set(
+    "page",
+    String(
+      pagina
+    )
+  );
 
-      <div class="stat-card">
+  url.searchParams.set(
+    "limit",
+    String(
+      LIMITE_POR_PAGINA
+    )
+  );
 
-        <span class="stat-icon">
-          🔥
-        </span>
 
-        <div>
-          <small>
-            NO RADAR
-          </small>
+  return {
+    url:
+      url.toString(),
 
-          <strong id="totalProdutos">
-            0
-          </strong>
-        </div>
+    tipo:
+      "momentum"
+  };
 
-      </div>
+}
 
 
-      <div class="stat-card">
+// ======================================================
+// CARREGAR
+// ======================================================
 
-        <span class="stat-icon">
-          💎
-        </span>
+async function carregarProdutos(
+  pagina = 1,
+  adicionar = false
+) {
 
-        <div>
-          <small>
-            OPORTUNIDADES
-          </small>
+  if (
+    carregando ||
+    modoFavoritos
+  ) {
 
-          <strong id="totalOportunidades">
-            0
-          </strong>
-        </div>
+    return;
 
-      </div>
+  }
 
 
-      <div class="stat-card">
+  if (
+    adicionar &&
+    !temProximaPagina
+  ) {
 
-        <span class="stat-icon">
-          📦
-        </span>
+    return;
 
-        <div>
-          <small>
-            CARREGADOS
-          </small>
+  }
 
-          <strong id="totalVideos">
-            0
-          </strong>
-        </div>
 
-      </div>
+  const token =
+    obterTokenRadar();
 
-    </section>
 
+  if (!token) {
 
-    <!-- ==================================================
-         NAVEGAÇÃO PRINCIPAL
-    =================================================== -->
+    redirecionarLogin();
+    return;
 
-    <nav class="tabs">
+  }
 
-      <button
-        class="tab active"
-        data-filter="radar"
-        type="button"
-      >
-        💎 Oportunidades
-      </button>
 
+  carregando =
+    true;
 
-      <button
-        class="tab"
-        data-filter="hot"
-        type="button"
-      >
-        🔥 Mais vendidos
-      </button>
 
+  if (
+    adicionar
+  ) {
 
-      <button
-        class="tab"
-        data-filter="commission"
-        type="button"
-      >
-        💰 Comissão
-      </button>
+    if (
+      infiniteLoader
+    ) {
 
+      infiniteLoader.hidden =
+        false;
 
-      <button
-        class="tab"
-        data-filter="rating"
-        type="button"
-      >
-        ⭐ Avaliação
-      </button>
+    }
 
-    </nav>
+  } else {
 
+    mostrarLoading();
 
-    <!-- ==================================================
-         PESQUISA
-    =================================================== -->
+  }
 
-    <section class="filters">
 
-      <div class="search-box">
+  try {
 
-        <span>
-          ⌕
-        </span>
+    const config =
+      montarURL(
+        pagina
+      );
 
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Pesquisar produto..."
-          autocomplete="off"
-        >
 
-      </div>
+    const resposta =
+      await fetch(
+        config.url,
+        {
+          headers:
+            criarHeadersAPI(),
 
+          cache:
+            "no-store"
+        }
+      );
 
-      <select
-        id="categoryFilter"
-        aria-label="Selecionar nicho"
-      >
 
-        <option value="all">
-          Todos os nichos
-        </option>
+    if (
+      resposta.status === 401 ||
+      resposta.status === 403
+    ) {
 
-        <option value="moda feminina">
-          👗 Moda Feminina
-        </option>
+      redirecionarLogin();
+      return;
 
-        <option value="casa cozinha">
-          🏠 Casa e Cozinha
-        </option>
+    }
 
-        <option value="casa construcao">
-          🔨 Casa e Construção
-        </option>
 
-        <option value="beleza">
-          💄 Beleza
-        </option>
+    const dados =
+      await resposta.json();
 
-        <option value="eletronicos">
-          📱 Eletrônicos
-        </option>
 
-        <option value="informatica">
-          💻 Informática
-        </option>
+    if (
+      !resposta.ok ||
+      dados.ok === false
+    ) {
 
-        <option value="celular">
-          📲 Celulares
-        </option>
+      throw new Error(
+        dados.erro ||
+        "Não foi possível carregar os produtos."
+      );
 
-        <option value="games">
-          🎮 Games
-        </option>
+    }
 
-        <option value="fitness">
-          🏋️ Fitness
-        </option>
 
-        <option value="pet">
-          🐶 Pet
-        </option>
+    let novos =
+      [];
 
-        <option value="bebe">
-          👶 Bebê
-        </option>
 
-        <option value="automotivo">
-          🚗 Automotivo
-        </option>
+    if (
+      config.tipo ===
+      "momentum"
+    ) {
 
-        <option value="ferramentas">
-          🛠️ Ferramentas
-        </option>
+      novos =
+        (
+          dados.produtos ||
+          []
+        ).map(
+          normalizarMomentum
+        );
 
-        <option value="papelaria">
-          ✏️ Papelaria
-        </option>
+    }
 
-      </select>
 
-    </section>
+    if (
+      config.tipo ===
+      "zero"
+    ) {
 
+      novos =
+        (
+          dados.produtos ||
+          []
+        ).map(
+          normalizarZero
+        );
 
-    <!-- ==================================================
-         ORDENAÇÃO
-    =================================================== -->
+    }
 
-    <section class="radar-sort">
 
-      <span class="sort-title">
-        Ordenar por
-      </span>
+    if (
+      config.tipo ===
+      "ranking"
+    ) {
 
-      <div class="sort-options">
+      novos =
+        (
+          dados.produtos ||
+          []
+        ).map(
+          normalizarRanking
+        );
 
-        <button
-          class="sort-btn active"
-          data-sort="relevance"
-          type="button"
-        >
-          🎯 Relevância
-        </button>
+    }
 
 
-        <button
-          class="sort-btn"
-          data-sort="sales"
-          type="button"
-        >
-          🔥 Mais vendidos
-        </button>
+    novos =
+      removerDuplicados(
+        novos
+      );
 
 
-        <button
-          class="sort-btn"
-          data-sort="commission"
-          type="button"
-        >
-          💰 Maior comissão
-        </button>
+    if (
+      adicionar
+    ) {
 
+      produtos =
+        removerDuplicados(
+          [
+            ...produtos,
+            ...novos
+          ]
+        );
 
-        <button
-          class="sort-btn"
-          data-sort="rating"
-          type="button"
-        >
-          ⭐ Melhor avaliação
-        </button>
+    } else {
 
+      produtos =
+        novos;
 
-        <button
-          class="sort-btn"
-          data-sort="radar"
-          type="button"
-        >
-          💎 Radar Score
-        </button>
+    }
 
-      </div>
 
-    </section>
+    paginaAtual =
+      numeroSeguro(
+        dados.paginaAtual ??
+        pagina
+      );
 
 
-    <!-- ==================================================
-         CABEÇALHO
-    =================================================== -->
+    temProximaPagina =
+      Boolean(
+        dados.temProximaPagina
+      );
 
-    <section class="section-heading">
 
-      <div>
+    totalServidor =
+      numeroSeguro(
+        dados.total
+      );
 
-        <span class="eyebrow">
-          ANÁLISE EM TEMPO REAL
-        </span>
 
-        <h3 id="resultsTitle">
-          Melhores oportunidades
-        </h3>
+    resumoServidor =
+      dados.resumo ||
+      {};
 
-      </div>
 
+    atualizarInterfaceModo();
 
-      <div class="live-indicator">
+    atualizarContadores();
 
-        <span></span>
+    aplicarOrdenacao();
 
-        AO VIVO
 
-      </div>
+  } catch (erro) {
 
-    </section>
+    console.error(
+      erro
+    );
 
+    mostrarErro(
+      erro instanceof Error
+        ? erro.message
+        : String(
+            erro
+          )
+    );
 
-    <!-- ==================================================
-         PRODUTOS
-    =================================================== -->
+  } finally {
 
-    <section
-      id="productsGrid"
-      class="products-grid"
+    carregando =
+      false;
+
+
+    if (
+      infiniteLoader
+    ) {
+
+      infiniteLoader.hidden =
+        true;
+
+    }
+
+  }
+
+}
+
+
+// ======================================================
+// CONTADORES
+// ======================================================
+
+function atualizarContadores() {
+
+  if (
+    totalProdutos
+  ) {
+
+    totalProdutos.textContent =
+      totalServidor ||
+      produtos.length;
+
+  }
+
+
+  if (
+    totalVideos
+  ) {
+
+    totalVideos.textContent =
+      produtos.length;
+
+  }
+
+
+  if (
+    totalOportunidades
+  ) {
+
+    if (
+      filtroAtual ===
+      "zero"
+    ) {
+
+      totalOportunidades.textContent =
+        produtos.filter(
+          produto =>
+            produto.times_seen >= 2
+        ).length;
+
+    }
+
+    else if (
+      filtroAtual ===
+      "radar"
+    ) {
+
+      totalOportunidades.textContent =
+        numeroSeguro(
+          resumoServidor
+            .postar_agora
+        ) +
+        numeroSeguro(
+          resumoServidor
+            .forte_candidato
+        );
+
+    }
+
+    else {
+
+      totalOportunidades.textContent =
+        produtos.length;
+
+    }
+
+  }
+
+}
+
+
+// ======================================================
+// INTERFACE POR MODO
+// ======================================================
+
+function atualizarInterfaceModo() {
+
+  const zero =
+    filtroAtual ===
+    "zero";
+
+
+  if (
+    zeroStrategyBox
+  ) {
+
+    zeroStrategyBox.classList.toggle(
+      "active",
+      zero
+    );
+
+  }
+
+
+  if (
+    totalProdutosLabel
+  ) {
+
+    totalProdutosLabel.textContent =
+      zero
+        ? "PRODUTOS 0 VENDAS"
+        : "NO RADAR";
+
+  }
+
+
+  if (
+    totalOportunidadesLabel
+  ) {
+
+    totalOportunidadesLabel.textContent =
+      zero
+        ? "RECORRENTES"
+        : "DESTAQUES";
+
+  }
+
+
+  if (
+    heroDescription
+  ) {
+
+    heroDescription.textContent =
+      zero
+        ? "Encontre produtos ainda sem nenhuma venda e tente posicionar seu vídeo antes da concorrência."
+        : "Acompanhe momentum, tendência, ranking e movimento dos produtos em um único Radar.";
+
+  }
+
+
+  if (
+    resultsTitle
+  ) {
+
+    if (
+      filtroAtual ===
+      "zero"
+    ) {
+
+      resultsTitle.textContent =
+        "🎯 Ranquear seus vídeos";
+
+    }
+
+    else if (
+      filtroAtual ===
+      "hot"
+    ) {
+
+      resultsTitle.textContent =
+        "🔥 Mais vendidos";
+
+    }
+
+    else if (
+      filtroAtual ===
+      "rating"
+    ) {
+
+      resultsTitle.textContent =
+        "⭐ Melhor avaliação";
+
+    }
+
+    else {
+
+      resultsTitle.textContent =
+        "🔥 O que está ganhando força";
+
+    }
+
+  }
+
+}
+
+
+// ======================================================
+// ORDENAÇÃO LOCAL
+// ======================================================
+
+function aplicarOrdenacao() {
+
+  let lista =
+    removerDuplicados(
+      [
+        ...produtos
+      ]
+    );
+
+
+  const busca =
+    buscaDigitada
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    busca &&
+    filtroAtual !==
+      "zero"
+  ) {
+
+    lista =
+      lista.filter(
+        produto =>
+          String(
+            produto.name
+          )
+            .toLowerCase()
+            .includes(
+              busca
+            )
+      );
+
+  }
+
+
+  if (
+    nichoAtual !==
+    "all"
+  ) {
+
+    const termo =
+      nichoAtual
+        .toLowerCase();
+
+
+    lista =
+      lista.filter(
+        produto =>
+          String(
+            produto.name
+          )
+            .toLowerCase()
+            .includes(
+              termo
+            )
+      );
+
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "relevance"
+  ) {
+
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.momentum_score
+        ) -
+        numeroSeguro(
+          a.momentum_score
+        )
+    );
+
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "trend"
+  ) {
+
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.trend_score ??
+          b.times_seen
+        ) -
+        numeroSeguro(
+          a.trend_score ??
+          a.times_seen
+        )
+    );
+
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "sales"
+  ) {
+
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.sold_count
+        ) -
+        numeroSeguro(
+          a.sold_count
+        )
+    );
+
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "rating"
+  ) {
+
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.rating
+        ) -
+        numeroSeguro(
+          a.rating
+        )
+    );
+
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "recent"
+  ) {
+
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        new Date(
+          b.ultima_captura ||
+          0
+        ).getTime() -
+        new Date(
+          a.ultima_captura ||
+          0
+        ).getTime()
+    );
+
+  }
+
+
+  renderizarProdutos(
+    lista
+  );
+
+}
+
+
+// ======================================================
+// COR DO MOMENTUM
+// ======================================================
+
+function obterCorMomentum(
+  produto
+) {
+
+  if (
+    produto.momentum_nivel ===
+    "em_alta"
+  ) {
+
+    return "#ff4d4d";
+
+  }
+
+
+  if (
+    produto.momentum_nivel ===
+    "ganhando_forca"
+  ) {
+
+    return "#ff8a3d";
+
+  }
+
+
+  if (
+    produto.momentum_nivel ===
+    "acompanhar"
+  ) {
+
+    return "#32d583";
+
+  }
+
+
+  return "#9299a8";
+
+}
+
+
+// ======================================================
+// CARD MOMENTUM
+// ======================================================
+
+function criarCardMomentum(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  const cor =
+    obterCorMomentum(
+      produto
+    );
+
+
+  const vendas =
+    numeroSeguro(
+      produto
+        .vendas_confirmadas_24h
+    );
+
+
+  const rankChange =
+    numeroSeguro(
+      produto.rank_change
+    );
+
+
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="position:relative;"
     >
 
-      <div class="loading">
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(
+          produto.id
+        )}"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#fff"
+          };
+          font-size:24px;
+        "
+      >
+        ${
+          favoritado
+            ? "♥"
+            : "♡"
+        }
+      </button>
 
-        <div class="loader"></div>
+
+      ${
+        produto.image_url
+          ? `
+            <img
+              class="product-image"
+              src="${escapar(
+                produto.image_url
+              )}"
+              alt="${escapar(
+                produto.name
+              )}"
+              loading="lazy"
+            >
+          `
+          : ""
+      }
+
+
+      <div class="product-card-content">
+
+
+        <div class="product-card-top">
+
+          <span
+            class="opportunity-badge"
+            style="
+              color:${cor};
+              background:${cor}18;
+            "
+          >
+            ${escapar(
+              produto.momentum_rotulo
+            )}
+          </span>
+
+
+          <span class="score-badge">
+            ${Math.round(
+              produto.momentum_score
+            )}
+          </span>
+
+        </div>
+
+
+        <h3 class="product-name">
+          ${escapar(
+            produto.name
+          )}
+        </h3>
+
+
+        <div class="product-shop">
+          🏪 ${escapar(
+            produto.shop_name
+          )}
+        </div>
+
+
+        <div
+          style="
+            margin:9px 0;
+            padding:9px;
+            border-radius:10px;
+            background:#0b0e14;
+          "
+        >
+
+          <strong
+            style="
+              color:#ff7a1a;
+              font-size:11px;
+            "
+          >
+            ${escapar(
+              produto.trend_nivel
+            )}
+          </strong>
+
+          <div
+            style="
+              margin-top:5px;
+              color:#9299a8;
+              font-size:9px;
+            "
+          >
+            Trend Score
+            ${Math.round(
+              produto.trend_score
+            )}
+          </div>
+
+        </div>
+
+
+        <div class="product-stats">
+
+
+          <div class="product-stat">
+
+            <span>
+              VENDIDOS
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.sold_count
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              + VENDAS 24H
+            </span>
+
+            <strong>
+              ${
+                vendas > 0
+                  ? "+"
+                  : ""
+              }${formatarNumero(
+                vendas
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              CAPTURAS
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.capturas_24h
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              RANKING
+            </span>
+
+            <strong>
+              ${
+                produto.rank_atual > 0
+                  ? `#${produto.rank_atual}`
+                  : "—"
+              }
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:
+              repeat(2,minmax(0,1fr));
+            gap:7px;
+            margin-top:9px;
+          "
+        >
+
+
+          <div
+            style="
+              padding:8px;
+              border-radius:9px;
+              background:#0b0e14;
+            "
+          >
+
+            <small
+              style="
+                display:block;
+                color:#737b8b;
+                font-size:7px;
+              "
+            >
+              POSIÇÃO MOMENTUM
+            </small>
+
+            <strong>
+              #${Math.round(
+                produto.momentum_posicao
+              )}
+            </strong>
+
+          </div>
+
+
+          <div
+            style="
+              padding:8px;
+              border-radius:9px;
+              background:#0b0e14;
+            "
+          >
+
+            <small
+              style="
+                display:block;
+                color:#737b8b;
+                font-size:7px;
+              "
+            >
+              FAIXA
+            </small>
+
+            <strong>
+              Top ${formatarDecimal(
+                produto.percentil_top,
+                0
+              )}%
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+        ${
+          rankChange > 0
+            ? `
+              <div
+                style="
+                  margin-top:8px;
+                  color:#32d583;
+                  font-size:10px;
+                  font-weight:800;
+                "
+              >
+                📈 Subiu ${rankChange} posições
+              </div>
+            `
+            : ""
+        }
+
+
+        <div class="product-footer">
+
+          <div>
+
+            <small>
+              MOMENTUM
+            </small>
+
+            <strong>
+              ${Math.round(
+                produto.momentum_score
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-price">
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+// ======================================================
+// CARD ZERO VENDAS
+// ======================================================
+
+function criarCardZero(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="position:relative;"
+    >
+
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(
+          produto.id
+        )}"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#fff"
+          };
+          font-size:24px;
+        "
+      >
+        ${
+          favoritado
+            ? "♥"
+            : "♡"
+        }
+      </button>
+
+
+      ${
+        produto.image_url
+          ? `
+            <img
+              class="product-image"
+              src="${escapar(
+                produto.image_url
+              )}"
+              alt="${escapar(
+                produto.name
+              )}"
+              loading="lazy"
+            >
+          `
+          : ""
+      }
+
+
+      <div class="product-card-content">
+
+
+        <div class="product-card-top">
+
+          <span
+            class="opportunity-badge"
+            style="
+              color:#c084fc;
+              background:rgba(192,132,252,.10);
+            "
+          >
+            🎯 0 VENDAS
+          </span>
+
+
+          <span class="score-badge">
+            ENTRAR CEDO
+          </span>
+
+        </div>
+
+
+        <h3 class="product-name">
+          ${escapar(
+            produto.name
+          )}
+        </h3>
+
+
+        <div class="product-shop">
+          🏪 ${escapar(
+            produto.shop_name
+          )}
+        </div>
+
+
+        <div
+          style="
+            margin:9px 0;
+            padding:9px;
+            border-radius:10px;
+            background:rgba(192,132,252,.06);
+            border:1px solid rgba(192,132,252,.12);
+            color:#c9ced8;
+            font-size:9px;
+            line-height:1.45;
+          "
+        >
+          Produto ainda sem venda registrada.
+          Estratégia: publicar o vídeo antes
+          da concorrência.
+        </div>
+
+
+        <div class="product-stats">
+
+
+          <div class="product-stat">
+
+            <span>
+              VENDIDOS
+            </span>
+
+            <strong>
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              DETECÇÕES
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.times_seen
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              AVALIAÇÃO
+            </span>
+
+            <strong>
+              ⭐ ${numeroSeguro(
+                produto.rating
+              ).toFixed(1)}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              ÚLTIMA VEZ
+            </span>
+
+            <strong
+              style="
+                font-size:9px;
+              "
+            >
+              ${escapar(
+                formatarData(
+                  produto.ultima_captura
+                )
+              )}
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+        <div class="product-footer">
+
+
+          <div>
+
+            <small>
+              ESTRATÉGIA
+            </small>
+
+            <strong>
+              ENTRAR CEDO
+            </strong>
+
+          </div>
+
+
+          <div class="product-price">
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+// ======================================================
+// CARD NORMAL
+// ======================================================
+
+function criarCardRanking(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="position:relative;"
+    >
+
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(
+          produto.id
+        )}"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#fff"
+          };
+          font-size:24px;
+        "
+      >
+        ${
+          favoritado
+            ? "♥"
+            : "♡"
+        }
+      </button>
+
+
+      ${
+        produto.image_url
+          ? `
+            <img
+              class="product-image"
+              src="${escapar(
+                produto.image_url
+              )}"
+              alt="${escapar(
+                produto.name
+              )}"
+              loading="lazy"
+            >
+          `
+          : ""
+      }
+
+
+      <div class="product-card-content">
+
+        <h3 class="product-name">
+          ${escapar(
+            produto.name
+          )}
+        </h3>
+
+
+        <div class="product-shop">
+          🏪 ${escapar(
+            produto.shop_name
+          )}
+        </div>
+
+
+        <div class="product-stats">
+
+
+          <div class="product-stat">
+
+            <span>
+              VENDIDOS
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.sold_count
+              )}
+            </strong>
+
+          </div>
+
+
+          <div class="product-stat">
+
+            <span>
+              AVALIAÇÃO
+            </span>
+
+            <strong>
+              ⭐ ${numeroSeguro(
+                produto.rating
+              ).toFixed(1)}
+            </strong>
+
+          </div>
+
+
+        </div>
+
+
+        <div class="product-footer">
+
+
+          <div>
+
+            <small>
+              PRODUTO
+            </small>
+
+            <strong>
+              SHOPEE
+            </strong>
+
+          </div>
+
+
+          <div class="product-price">
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+// ======================================================
+// RENDER
+// ======================================================
+
+function renderizarProdutos(
+  lista
+) {
+
+  if (!productsGrid) {
+    return;
+  }
+
+
+  if (
+    !lista.length
+  ) {
+
+    productsGrid.innerHTML =
+      "";
+
+
+    if (
+      emptyState
+    ) {
+
+      emptyState.hidden =
+        false;
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (
+    emptyState
+  ) {
+
+    emptyState.hidden =
+      true;
+
+  }
+
+
+  productsGrid.innerHTML =
+    lista.map(
+      produto => {
+
+        if (
+          produto.tipo ===
+          "zero"
+        ) {
+
+          return criarCardZero(
+            produto
+          );
+
+        }
+
+
+        if (
+          produto.tipo ===
+          "momentum"
+        ) {
+
+          return criarCardMomentum(
+            produto
+          );
+
+        }
+
+
+        return criarCardRanking(
+          produto
+        );
+
+      }
+    ).join("");
+
+
+  ativarEventosCards();
+
+}
+
+
+// ======================================================
+// EVENTOS DOS CARDS
+// ======================================================
+
+function ativarEventosCards() {
+
+  document
+    .querySelectorAll(
+      ".product-card"
+    )
+    .forEach(
+      card => {
+
+        card.addEventListener(
+          "click",
+          () => {
+
+            const produto =
+              encontrarProduto(
+                card.dataset.id
+              );
+
+
+            if (
+              produto
+            ) {
+
+              abrirModal(
+                produto
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      ".favorite-btn"
+    )
+    .forEach(
+      botao => {
+
+        botao.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            alternarFavorito(
+              botao.dataset
+                .favoriteId
+            );
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+// ======================================================
+// MODAL
+// ======================================================
+
+function abrirModal(
+  produto
+) {
+
+  if (
+    !productModal ||
+    !modalBody
+  ) {
+
+    return;
+
+  }
+
+
+  const link =
+    produto.affiliate_url ||
+    produto.product_url ||
+    "";
+
+
+  let extra =
+    "";
+
+
+  if (
+    produto.tipo ===
+    "momentum"
+  ) {
+
+    extra = `
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          background:#11151f;
+          border-radius:12px;
+        "
+      >
+
+        <strong>
+          📊 Inteligência do Radar
+        </strong>
 
         <p>
-          Consultando Shopee...
+          Momentum:
+          <strong>
+            ${Math.round(
+              produto.momentum_score
+            )}
+          </strong>
+        </p>
+
+        <p>
+          Tendência:
+          <strong>
+            ${escapar(
+              produto.trend_nivel
+            )}
+          </strong>
+        </p>
+
+        <p>
+          Trend Score:
+          ${Math.round(
+            produto.trend_score
+          )}
+        </p>
+
+        <p>
+          Vendas confirmadas 24h:
+          +${formatarNumero(
+            produto
+              .vendas_confirmadas_24h
+          )}
+        </p>
+
+        <p>
+          Capturas:
+          ${formatarNumero(
+            produto.capturas_24h
+          )}
+        </p>
+
+        <p>
+          Ranking:
+          ${
+            produto.rank_atual > 0
+              ? "#" +
+                produto.rank_atual
+              : "Sem posição"
+          }
+        </p>
+
+        <p>
+          Faixa:
+          Top ${formatarDecimal(
+            produto.percentil_top,
+            1
+          )}%
         </p>
 
       </div>
 
-    </section>
+    `;
+
+  }
 
 
-    <!-- ==================================================
-         LOADER
-    =================================================== -->
+  if (
+    produto.tipo ===
+    "zero"
+  ) {
+
+    extra = `
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          background:rgba(192,132,252,.07);
+          border:1px solid rgba(192,132,252,.18);
+          border-radius:12px;
+        "
+      >
+
+        <strong>
+          🎯 Estratégia de ranqueamento
+        </strong>
+
+        <p
+          style="
+            margin-top:8px;
+            color:#b5bac5;
+            line-height:1.5;
+          "
+        >
+          Este produto está com 0 vendas totais
+          registradas. A estratégia é publicar
+          conteúdo cedo para tentar posicionar
+          o vídeo antes de outros afiliados.
+        </p>
+
+        <p>
+          Detectado pelo Radar:
+          ${formatarNumero(
+            produto.times_seen
+          )}
+          vezes.
+        </p>
+
+      </div>
+
+    `;
+
+  }
+
+
+  modalBody.innerHTML = `
+
+    ${
+      produto.image_url
+        ? `
+          <img
+            src="${escapar(
+              produto.image_url
+            )}"
+            alt="${escapar(
+              produto.name
+            )}"
+            style="
+              width:100%;
+              max-height:300px;
+              object-fit:contain;
+              border-radius:14px;
+              margin-bottom:16px;
+            "
+          >
+        `
+        : ""
+    }
+
+
+    <h2>
+      ${escapar(
+        produto.name
+      )}
+    </h2>
+
+
+    <p
+      style="
+        margin-top:8px;
+      "
+    >
+      🏪 ${escapar(
+        produto.shop_name
+      )}
+    </p>
+
+
+    <p
+      style="
+        margin-top:15px;
+      "
+    >
+      <strong>
+        Preço:
+      </strong>
+
+      ${dinheiro(
+        produto.price
+      )}
+    </p>
+
+
+    <p>
+      <strong>
+        Vendidos:
+      </strong>
+
+      ${formatarNumero(
+        produto.sold_count
+      )}
+    </p>
+
+
+    <p>
+      <strong>
+        Avaliação:
+      </strong>
+
+      ⭐ ${numeroSeguro(
+        produto.rating
+      ).toFixed(1)}
+    </p>
+
+
+    ${extra}
+
+
+    <button
+      id="modalFavoriteButton"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="
+        width:100%;
+        margin-top:18px;
+        padding:14px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.15);
+        background:#151821;
+        color:#fff;
+        font-weight:800;
+      "
+    >
+
+      ${
+        estaFavoritado(
+          produto.id
+        )
+          ? "♥ Remover dos favoritos"
+          : "♡ Salvar nos favoritos"
+      }
+
+    </button>
+
+
+    ${
+      link
+        ? `
+          <a
+            href="${escapar(
+              link
+            )}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              margin-top:12px;
+              padding:15px;
+              text-align:center;
+              background:#ff5a1f;
+              color:#fff;
+              border-radius:12px;
+              text-decoration:none;
+              font-weight:800;
+            "
+          >
+            🛒 Abrir na Shopee
+          </a>
+        `
+        : ""
+    }
+
+  `;
+
+
+  document
+    .getElementById(
+      "modalFavoriteButton"
+    )
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const id =
+          event.currentTarget
+            .dataset.id;
+
+
+        alternarFavorito(
+          id
+        );
+
+
+        const atualizado =
+          encontrarProduto(
+            id
+          );
+
+
+        if (
+          atualizado
+        ) {
+
+          abrirModal(
+            atualizado
+          );
+
+        }
+
+      }
+    );
+
+
+  productModal.hidden =
+    false;
+
+}
+
+
+function fecharModal() {
+
+  if (
+    productModal
+  ) {
+
+    productModal.hidden =
+      true;
+
+  }
+
+}
+
+
+// ======================================================
+// LOADING
+// ======================================================
+
+function mostrarLoading() {
+
+  if (
+    emptyState
+  ) {
+
+    emptyState.hidden =
+      true;
+
+  }
+
+
+  productsGrid.innerHTML = `
 
     <div
-      id="infiniteLoader"
-      class="infinite-loader"
-      hidden
+      class="loading"
+      style="
+        grid-column:1/-1;
+      "
     >
 
       <div class="loader"></div>
 
-      <span>
-        Buscando mais oportunidades...
-      </span>
+      <p>
+        Analisando produtos...
+      </p>
 
     </div>
 
+  `;
+
+}
+
+
+function mostrarErro(
+  mensagem
+) {
+
+  productsGrid.innerHTML = `
 
     <div
-      id="scrollSentinel"
-      style="height:20px;"
-    ></div>
-
-
-    <!-- ==================================================
-         SEM RESULTADOS
-    =================================================== -->
-
-    <section
-      id="emptyState"
       class="empty-state"
-      hidden
+      style="
+        display:block;
+        grid-column:1/-1;
+      "
     >
 
       <div>
-        🔎
+        ⚠️
       </div>
 
       <h3>
-        Nenhum produto encontrado
+        Não foi possível carregar
       </h3>
 
       <p>
-        Tente mudar sua pesquisa ou selecionar outro nicho.
+        ${escapar(
+          mensagem
+        )}
       </p>
-
-    </section>
-
-  </main>
-
-
-  <!-- ==================================================
-       MENU MOBILE
-  =================================================== -->
-
-  <nav class="bottom-nav">
-
-    <button
-      class="bottom-item active"
-      data-filter="all"
-      type="button"
-    >
-      <span>
-        💎
-      </span>
-
-      Radar
-    </button>
-
-
-    <button
-      class="bottom-item"
-      data-filter="hot"
-      type="button"
-    >
-      <span>
-        🔥
-      </span>
-
-      Vendidos
-    </button>
-
-
-    <button
-      class="bottom-item"
-      data-filter="commission"
-      type="button"
-    >
-      <span>
-        💰
-      </span>
-
-      Comissão
-    </button>
-
-
-    <button
-      class="bottom-item"
-      data-filter="favorites"
-      type="button"
-    >
-      <span>
-        ♡
-      </span>
-
-      Favoritos
-    </button>
-
-  </nav>
-
-
-  <!-- ==================================================
-       MODAL
-  =================================================== -->
-
-  <div
-    id="productModal"
-    class="modal"
-    hidden
-  >
-
-    <div class="modal-overlay"></div>
-
-
-    <div class="modal-content">
-
-      <button
-        id="closeModal"
-        class="modal-close"
-        aria-label="Fechar"
-        type="button"
-      >
-        ×
-      </button>
-
-
-      <div id="modalBody"></div>
 
     </div>
 
-  </div>
+  `;
+
+}
 
 
-  <!-- ==================================================
-       PROTEÇÃO DE ACESSO
-       MESMO SISTEMA USADO NO NOVO LOGIN
-  =================================================== -->
+// ======================================================
+// REINICIAR
+// ======================================================
 
-  <script>
+function reiniciarRadar() {
 
-    const AUTH_SUPABASE_URL =
-      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+  produtos =
+    [];
 
-    const AUTH_SUPABASE_KEY =
-      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+  paginaAtual =
+    1;
 
+  totalServidor =
+    0;
 
-    function limparSessaoRadar() {
+  resumoServidor =
+    {};
 
-      localStorage.removeItem(
-        "shopeeRadarAccessToken"
-      );
+  temProximaPagina =
+    true;
 
-      localStorage.removeItem(
-        "shopeeRadarRefreshToken"
-      );
+  carregando =
+    false;
 
-      localStorage.removeItem(
-        "shopeeRadarUser"
-      );
-
-    }
+  modoFavoritos =
+    false;
 
 
-    function irParaLogin() {
+  atualizarInterfaceModo();
 
-      limparSessaoRadar();
-
-      window.location.replace(
-        "login.html"
-      );
-
-    }
+  atualizarContadores();
 
 
-    async function verificarAcessoRadar() {
+  carregarProdutos(
+    1,
+    false
+  );
 
-      const token =
-        localStorage.getItem(
-          "shopeeRadarAccessToken"
+}
+
+
+// ======================================================
+// FILTROS PRINCIPAIS
+// ======================================================
+
+function trocarFiltro(
+  filtro
+) {
+
+  if (
+    filtro ===
+    "all"
+  ) {
+
+    filtro =
+      "radar";
+
+  }
+
+
+  filtroAtual =
+    filtro;
+
+
+  if (
+    filtroAtual ===
+    "hot"
+  ) {
+
+    ordenacaoAtual =
+      "sales";
+
+  }
+
+  else if (
+    filtroAtual ===
+    "rating"
+  ) {
+
+    ordenacaoAtual =
+      "rating";
+
+  }
+
+  else if (
+    filtroAtual ===
+    "zero"
+  ) {
+
+    ordenacaoAtual =
+      "recent";
+
+  }
+
+  else {
+
+    ordenacaoAtual =
+      "relevance";
+
+  }
+
+
+  document
+    .querySelectorAll(
+      "[data-filter]:not(.bottom-item)"
+    )
+    .forEach(
+      botao => {
+
+        botao.classList.toggle(
+          "active",
+          botao.dataset.filter ===
+            filtroAtual
         );
-
-
-      const usuarioSalvo =
-        localStorage.getItem(
-          "shopeeRadarUser"
-        );
-
-
-      if (
-        !token ||
-        !usuarioSalvo
-      ) {
-
-        irParaLogin();
-
-        return;
 
       }
+    );
 
 
-      try {
+  document
+    .querySelectorAll(
+      ".bottom-item"
+    )
+    .forEach(
+      botao => {
 
-        // ==============================================
-        // CONFIRMAR TOKEN COM SUPABASE
-        // ==============================================
-
-        const respostaUsuario =
-          await fetch(
-            `${AUTH_SUPABASE_URL}/auth/v1/user`,
-            {
-              method: "GET",
-
-              headers: {
-
-                "apikey":
-                  AUTH_SUPABASE_KEY,
-
-                "Authorization":
-                  `Bearer ${token}`
-
-              }
-            }
-          );
+        const valor =
+          botao.dataset.filter;
 
 
-        if (
-          !respostaUsuario.ok
-        ) {
-
-          irParaLogin();
-
-          return;
-
-        }
-
-
-        const usuario =
-          await respostaUsuario.json();
+        const ativo =
+          (
+            filtroAtual ===
+              "radar" &&
+            valor ===
+              "all"
+          ) ||
+          valor ===
+            filtroAtual;
 
 
-        if (
-          !usuario ||
-          !usuario.id
-        ) {
+        botao.classList.toggle(
+          "active",
+          ativo
+        );
 
-          irParaLogin();
-
-          return;
-
-        }
+      }
+    );
 
 
-        // ==============================================
-        // VALIDAR PERFIL
-        // ==============================================
-
-        const respostaPerfil =
-          await fetch(
-            `${AUTH_SUPABASE_URL}/rest/v1/profiles?id=eq.${usuario.id}&select=plan,status,expires_at`,
-            {
-              headers: {
-
-                "apikey":
-                  AUTH_SUPABASE_KEY,
-
-                "Authorization":
-                  `Bearer ${token}`
-
-              }
-            }
-          );
+  reiniciarRadar();
 
 
-        if (
-          !respostaPerfil.ok
-        ) {
+  window.scrollTo({
+    top:
+      0,
 
-          irParaLogin();
+    behavior:
+      "smooth"
+  });
 
-          return;
-
-        }
-
-
-        const perfis =
-          await respostaPerfil.json();
+}
 
 
-        const perfil =
-          Array.isArray(
-            perfis
-          )
-            ? perfis[0]
-            : null;
+// ======================================================
+// CLIQUES FILTROS
+// ======================================================
 
+document
+  .querySelectorAll(
+    "[data-filter]"
+  )
+  .forEach(
+    botao => {
 
-        if (!perfil) {
+      botao.addEventListener(
+        "click",
+        event => {
 
-          irParaLogin();
-
-          return;
-
-        }
-
-
-        if (
-          perfil.status !==
-          "active"
-        ) {
-
-          irParaLogin();
-
-          return;
-
-        }
-
-
-        // ==============================================
-        // VERIFICAR VENCIMENTO
-        // ==============================================
-
-        if (
-          perfil.expires_at
-        ) {
-
-          const vencimento =
-            new Date(
-              perfil.expires_at
-            );
+          const filtro =
+            botao.dataset.filter;
 
 
           if (
-            Number.isNaN(
-              vencimento.getTime()
-            ) ||
-            vencimento.getTime() <=
-              Date.now()
+            filtro ===
+            "favorites"
           ) {
 
-            irParaLogin();
+            event.preventDefault();
+
+            modoFavoritos =
+              true;
+
+
+            if (
+              resultsTitle
+            ) {
+
+              resultsTitle.textContent =
+                `♡ Favoritos (${favoritos.length})`;
+
+            }
+
+
+            renderizarProdutos(
+              favoritos
+            );
+
 
             return;
 
           }
 
-        }
 
-
-        // ==============================================
-        // LIBERAR RADAR
-        // ==============================================
-
-        document.body.classList.remove(
-          "auth-checking"
-        );
-
-
-      } catch (erro) {
-
-        console.error(
-          "Erro ao validar acesso:",
-          erro
-        );
-
-        irParaLogin();
-
-      }
-
-    }
-
-
-    // ==================================================
-    // LOGOUT
-    // ==================================================
-
-    document
-      .getElementById(
-        "logoutButton"
-      )
-      ?.addEventListener(
-        "click",
-        () => {
-
-          limparSessaoRadar();
-
-          window.location.replace(
-            "login.html"
+          trocarFiltro(
+            filtro
           );
 
         }
       );
 
-
-    verificarAcessoRadar();
-
-  </script>
+    }
+  );
 
 
-  <!-- ==================================================
-       SHOPEE RADAR
-  =================================================== -->
+// ======================================================
+// ORDENAÇÃO
+// ======================================================
 
-  <script src="app.js"></script>
+document
+  .querySelectorAll(
+    "[data-sort]"
+  )
+  .forEach(
+    botao => {
 
-</body>
+      botao.addEventListener(
+        "click",
+        () => {
 
-</html>
+          ordenacaoAtual =
+            botao.dataset.sort ||
+            "relevance";
+
+
+          document
+            .querySelectorAll(
+              "[data-sort]"
+            )
+            .forEach(
+              item => {
+
+                item.classList.toggle(
+                  "active",
+                  item ===
+                    botao
+                );
+
+              }
+            );
+
+
+          if (
+            filtroAtual ===
+            "zero"
+          ) {
+
+            reiniciarRadar();
+
+          } else {
+
+            aplicarOrdenacao();
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+// ======================================================
+// PESQUISA
+// ======================================================
+
+if (
+  searchInput
+) {
+
+  searchInput.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        buscaDigitada =
+          searchInput
+            .value
+            .trim();
+
+
+        if (
+          filtroAtual ===
+          "zero"
+        ) {
+
+          reiniciarRadar();
+
+        } else {
+
+          aplicarOrdenacao();
+
+        }
+
+      }
+
+    }
+  );
+
+
+  searchInput.addEventListener(
+    "search",
+    () => {
+
+      if (
+        !searchInput.value
+      ) {
+
+        buscaDigitada =
+          "";
+
+
+        if (
+          filtroAtual ===
+          "zero"
+        ) {
+
+          reiniciarRadar();
+
+        } else {
+
+          aplicarOrdenacao();
+
+        }
+
+      }
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// NICHO
+// ======================================================
+
+if (
+  categoryFilter
+) {
+
+  categoryFilter.addEventListener(
+    "change",
+    () => {
+
+      nichoAtual =
+        categoryFilter.value;
+
+
+      aplicarOrdenacao();
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// SCROLL INFINITO
+// ======================================================
+
+async function carregarProximaPagina() {
+
+  if (
+    carregando ||
+    modoFavoritos ||
+    !temProximaPagina
+  ) {
+
+    return;
+
+  }
+
+
+  await carregarProdutos(
+    paginaAtual + 1,
+    true
+  );
+
+}
+
+
+window.addEventListener(
+  "scroll",
+  () => {
+
+    if (
+      carregando ||
+      modoFavoritos ||
+      !temProximaPagina
+    ) {
+
+      return;
+
+    }
+
+
+    const posicao =
+      window.innerHeight +
+      window.scrollY;
+
+
+    const altura =
+      document
+        .documentElement
+        .scrollHeight;
+
+
+    if (
+      posicao >=
+      altura - 900
+    ) {
+
+      carregarProximaPagina();
+
+    }
+
+  },
+  {
+    passive:
+      true
+  }
+);
+
+
+// ======================================================
+// ATUALIZAÇÃO SILENCIOSA
+// ======================================================
+
+setInterval(
+  () => {
+
+    if (
+      document.visibilityState ===
+        "visible" &&
+      !modoFavoritos &&
+      paginaAtual === 1
+    ) {
+
+      carregarProdutos(
+        1,
+        false
+      );
+
+    }
+
+  },
+  2 * 60 * 1000
+);
+
+
+// ======================================================
+// MODAL
+// ======================================================
+
+if (
+  closeModal
+) {
+
+  closeModal.addEventListener(
+    "click",
+    fecharModal
+  );
+
+}
+
+
+if (
+  productModal
+) {
+
+  productModal
+    .querySelector(
+      ".modal-overlay"
+    )
+    ?.addEventListener(
+      "click",
+      fecharModal
+    );
+
+}
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key ===
+        "Escape" &&
+      productModal &&
+      !productModal.hidden
+    ) {
+
+      fecharModal();
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
+filtroAtual =
+  "radar";
+
+ordenacaoAtual =
+  "relevance";
+
+reiniciarRadar();
