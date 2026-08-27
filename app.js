@@ -5,6 +5,9 @@
 // Detector de Explosão + Post Score
 // Ranking Shopee + Nichos + Busca + Favoritos
 // Scroll infinito + Histórico + Crescimento
+//
+// PROTEÇÃO:
+// APIs autenticadas por token do usuário
 // ======================================================
 
 const API_URL =
@@ -18,6 +21,57 @@ const RANKING_API_URL =
 // ======================================================
 
 const LIMITE_POR_PAGINA = 20;
+
+// ======================================================
+// AUTENTICAÇÃO DAS APIS
+// ======================================================
+
+function obterTokenRadar() {
+  return (
+    localStorage.getItem(
+      "shopeeRadarAccessToken"
+    ) || ""
+  );
+}
+
+function limparSessaoRadarApp() {
+  localStorage.removeItem(
+    "shopeeRadarAccessToken"
+  );
+
+  localStorage.removeItem(
+    "shopeeRadarRefreshToken"
+  );
+
+  localStorage.removeItem(
+    "shopeeRadarUser"
+  );
+}
+
+function redirecionarLogin() {
+  limparSessaoRadarApp();
+
+  window.location.replace(
+    "https://renanzim1.github.io/Shopee-radar/login.html"
+  );
+}
+
+function criarHeadersAPI() {
+  const token =
+    obterTokenRadar();
+
+  const headers = {
+    Accept:
+      "application/json"
+  };
+
+  if (token) {
+    headers.Authorization =
+      `Bearer ${token}`;
+  }
+
+  return headers;
+}
 
 // ======================================================
 // ESTADO
@@ -519,10 +573,6 @@ function temDetector(produto) {
 
 // ======================================================
 // DECISÃO DO POST
-//
-// AGORA É O POST SCORE QUE MANDA.
-// Não deixamos detector_nivel antigo
-// forçar uma classificação errada.
 // ======================================================
 
 function obterDecisaoPost(
@@ -1448,6 +1498,14 @@ async function carregarProdutos(
     return;
   }
 
+  const token =
+    obterTokenRadar();
+
+  if (!token) {
+    redirecionarLogin();
+    return;
+  }
+
   carregando = true;
 
   if (adicionar) {
@@ -1469,12 +1527,25 @@ async function carregarProdutos(
       await fetch(
         url,
         {
-          headers: {
-            Accept:
-              "application/json"
-          }
+          method: "GET",
+
+          headers:
+            criarHeadersAPI()
         }
       );
+
+    // ================================================
+    // TOKEN EXPIRADO / ACESSO BLOQUEADO
+    // ================================================
+
+    if (
+      resposta.status === 401 ||
+      resposta.status === 403
+    ) {
+      redirecionarLogin();
+
+      return;
+    }
 
     let dados;
 
@@ -1490,6 +1561,7 @@ async function carregarProdutos(
     if (!resposta.ok) {
       throw new Error(
         dados?.erro ||
+          dados?.message ||
           `Erro ${resposta.status}`
       );
     }
@@ -2910,8 +2982,14 @@ function atualizarFiltroSuperior(
     .forEach(item => {
       const ativo =
         filtro === "radar"
-          ? item.dataset.filter === "all"
-          : item.dataset.filter === filtro;
+          ? (
+              item.dataset.filter ===
+                "radar" ||
+              item.dataset.filter ===
+                "all"
+            )
+          : item.dataset.filter ===
+              filtro;
 
       item.classList.toggle(
         "active",
@@ -3122,10 +3200,6 @@ document
         const filtro =
           botao.dataset.filter;
 
-        // ==============================================
-        // FAVORITOS
-        // ==============================================
-
         if (
           filtro ===
           "favorites"
@@ -3157,10 +3231,6 @@ document
 
           return;
         }
-
-        // ==============================================
-        // RADAR INFERIOR
-        // ==============================================
 
         if (
           botao.classList.contains(
