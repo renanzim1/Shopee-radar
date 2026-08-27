@@ -425,6 +425,7 @@
         event.preventDefault();
 
         button.disabled = true;
+
         button.textContent =
           "Entrando...";
 
@@ -471,6 +472,7 @@
           if (
             !resposta.ok
           ) {
+
             console.error(
               "Erro Auth:",
               dados
@@ -482,6 +484,7 @@
               dados?.message ||
               "E-mail ou senha inválidos."
             );
+
           }
 
 
@@ -489,9 +492,11 @@
             !dados.access_token ||
             !dados.user
           ) {
+
             throw new Error(
               "O Supabase não retornou uma sessão válida."
             );
+
           }
 
 
@@ -504,11 +509,13 @@
               `${SUPABASE_URL}/rest/v1/profiles?id=eq.${dados.user.id}&select=plan,status,expires_at`,
               {
                 headers: {
+
                   "apikey":
                     SUPABASE_KEY,
 
                   "Authorization":
                     `Bearer ${dados.access_token}`
+
                 }
               }
             );
@@ -521,9 +528,11 @@
           if (
             !perfilResposta.ok
           ) {
+
             throw new Error(
               "Não foi possível validar seu perfil."
             );
+
           }
 
 
@@ -534,9 +543,11 @@
 
 
           if (!perfil) {
+
             throw new Error(
               "Seu perfil de acesso não foi encontrado."
             );
+
           }
 
 
@@ -544,9 +555,11 @@
             perfil.status !==
             "active"
           ) {
+
             throw new Error(
               "Seu acesso está bloqueado."
             );
+
           }
 
 
@@ -559,17 +572,27 @@
                 perfil.expires_at
               );
 
+
             if (
+              Number.isNaN(
+                vencimento.getTime()
+              ) ||
               vencimento.getTime() <=
-              Date.now()
+                Date.now()
             ) {
+
               throw new Error(
                 "Seu acesso venceu."
               );
+
             }
 
           }
 
+
+          // ============================================
+          // SALVAR SESSÃO
+          // ============================================
 
           salvarSessao(
             dados
@@ -582,11 +605,16 @@
           );
 
 
+          // ============================================
+          // REDIRECIONAMENTO CORRIGIDO
+          // ============================================
+
           setTimeout(
             function() {
 
-              window.location.href =
-                "index.html";
+              window.location.replace(
+                "https://renanzim1.github.io/Shopee-radar/index.html"
+              );
 
             },
             300
