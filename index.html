@@ -21,14 +21,6 @@
     href="style.css"
   >
 
-  <!-- ==================================================
-       PROTEÇÃO VISUAL
-
-       O Radar começa escondido.
-       Só aparece depois que o Supabase confirmar
-       que existe um usuário autorizado.
-  =================================================== -->
-
   <style>
     body.auth-checking {
       visibility: hidden;
@@ -392,7 +384,7 @@
 
 
     <!-- ==================================================
-         CABEÇALHO DOS RESULTADOS
+         CABEÇALHO
     =================================================== -->
 
     <section class="section-heading">
@@ -444,7 +436,7 @@
 
 
     <!-- ==================================================
-         LOADER DO SCROLL
+         LOADER
     =================================================== -->
 
     <div
@@ -588,16 +580,8 @@
 
 
   <!-- ==================================================
-       SUPABASE
-  =================================================== -->
-
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  ></script>
-
-
-  <!-- ==================================================
-       PROTEÇÃO DO RADAR
+       PROTEÇÃO DE ACESSO
+       MESMO SISTEMA USADO NO NOVO LOGIN
   =================================================== -->
 
   <script>
@@ -608,76 +592,163 @@
     const AUTH_SUPABASE_KEY =
       "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
 
-    const authSupabase =
-      window.supabase.createClient(
-        AUTH_SUPABASE_URL,
-        AUTH_SUPABASE_KEY
+
+    function limparSessaoRadar() {
+
+      localStorage.removeItem(
+        "shopeeRadarAccessToken"
       );
 
+      localStorage.removeItem(
+        "shopeeRadarRefreshToken"
+      );
 
-    async function bloquearAcesso() {
+      localStorage.removeItem(
+        "shopeeRadarUser"
+      );
 
-      try {
-        await authSupabase.auth.signOut();
-      } catch (erro) {
-        console.error(
-          "Erro ao encerrar sessão:",
-          erro
-        );
-      }
+    }
+
+
+    function irParaLogin() {
+
+      limparSessaoRadar();
 
       window.location.replace(
         "login.html"
       );
+
     }
 
 
     async function verificarAcessoRadar() {
 
+      const token =
+        localStorage.getItem(
+          "shopeeRadarAccessToken"
+        );
+
+
+      const usuarioSalvo =
+        localStorage.getItem(
+          "shopeeRadarUser"
+        );
+
+
+      if (
+        !token ||
+        !usuarioSalvo
+      ) {
+
+        irParaLogin();
+
+        return;
+
+      }
+
+
       try {
 
-        const {
-          data: {
-            session
-          },
-          error: sessionError
-        } =
-          await authSupabase.auth
-            .getSession();
+        // ==============================================
+        // CONFIRMAR TOKEN COM SUPABASE
+        // ==============================================
+
+        const respostaUsuario =
+          await fetch(
+            `${AUTH_SUPABASE_URL}/auth/v1/user`,
+            {
+              method: "GET",
+
+              headers: {
+
+                "apikey":
+                  AUTH_SUPABASE_KEY,
+
+                "Authorization":
+                  `Bearer ${token}`
+
+              }
+            }
+          );
 
 
         if (
-          sessionError ||
-          !session ||
-          !session.user
+          !respostaUsuario.ok
         ) {
-          await bloquearAcesso();
+
+          irParaLogin();
+
           return;
+
         }
 
 
-        const {
-          data: perfil,
-          error: perfilErro
-        } =
-          await authSupabase
-            .from("profiles")
-            .select(
-              "plan,status,expires_at"
-            )
-            .eq(
-              "id",
-              session.user.id
-            )
-            .single();
+        const usuario =
+          await respostaUsuario.json();
 
 
         if (
-          perfilErro ||
-          !perfil
+          !usuario ||
+          !usuario.id
         ) {
-          await bloquearAcesso();
+
+          irParaLogin();
+
           return;
+
+        }
+
+
+        // ==============================================
+        // VALIDAR PERFIL
+        // ==============================================
+
+        const respostaPerfil =
+          await fetch(
+            `${AUTH_SUPABASE_URL}/rest/v1/profiles?id=eq.${usuario.id}&select=plan,status,expires_at`,
+            {
+              headers: {
+
+                "apikey":
+                  AUTH_SUPABASE_KEY,
+
+                "Authorization":
+                  `Bearer ${token}`
+
+              }
+            }
+          );
+
+
+        if (
+          !respostaPerfil.ok
+        ) {
+
+          irParaLogin();
+
+          return;
+
+        }
+
+
+        const perfis =
+          await respostaPerfil.json();
+
+
+        const perfil =
+          Array.isArray(
+            perfis
+          )
+            ? perfis[0]
+            : null;
+
+
+        if (!perfil) {
+
+          irParaLogin();
+
+          return;
+
         }
 
 
@@ -685,10 +756,17 @@
           perfil.status !==
           "active"
         ) {
-          await bloquearAcesso();
+
+          irParaLogin();
+
           return;
+
         }
 
+
+        // ==============================================
+        // VERIFICAR VENCIMENTO
+        // ==============================================
 
         if (
           perfil.expires_at
@@ -699,6 +777,7 @@
               perfil.expires_at
             );
 
+
           if (
             Number.isNaN(
               vencimento.getTime()
@@ -706,16 +785,19 @@
             vencimento.getTime() <=
               Date.now()
           ) {
-            await bloquearAcesso();
+
+            irParaLogin();
+
             return;
+
           }
 
         }
 
 
-        // ================================================
-        // USUÁRIO AUTORIZADO
-        // ================================================
+        // ==============================================
+        // LIBERAR RADAR
+        // ==============================================
 
         document.body.classList.remove(
           "auth-checking"
@@ -725,16 +807,20 @@
       } catch (erro) {
 
         console.error(
-          "Erro ao verificar acesso:",
+          "Erro ao validar acesso:",
           erro
         );
 
-        await bloquearAcesso();
+        irParaLogin();
 
       }
 
     }
 
+
+    // ==================================================
+    // LOGOUT
+    // ==================================================
 
     document
       .getElementById(
@@ -742,47 +828,18 @@
       )
       ?.addEventListener(
         "click",
-        async () => {
+        () => {
 
-          try {
+          limparSessaoRadar();
 
-            await authSupabase.auth
-              .signOut();
-
-          } finally {
-
-            window.location.replace(
-              "login.html"
-            );
-
-          }
+          window.location.replace(
+            "login.html"
+          );
 
         }
       );
 
 
-    // Verifica alterações na autenticação
-    authSupabase.auth
-      .onAuthStateChange(
-        (event, session) => {
-
-          if (
-            event ===
-              "SIGNED_OUT" ||
-            !session
-          ) {
-
-            window.location.replace(
-              "login.html"
-            );
-
-          }
-
-        }
-      );
-
-
-    // Inicia a proteção
     verificarAcessoRadar();
 
   </script>
