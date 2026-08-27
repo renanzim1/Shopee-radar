@@ -33,11 +33,9 @@
 
     body {
       min-height: 100vh;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       padding: 20px;
 
       background:
@@ -115,9 +113,7 @@
 
     .brand p {
       margin-top: 3px;
-
       color: var(--muted);
-
       font-size: 11px;
     }
 
@@ -137,9 +133,7 @@
 
     .headline p {
       margin-top: 9px;
-
       color: var(--muted);
-
       font-size: 13px;
       line-height: 1.5;
     }
@@ -150,11 +144,8 @@
 
     .field label {
       display: block;
-
       margin-bottom: 6px;
-
       color: #b9bfca;
-
       font-size: 11px;
       font-weight: 800;
     }
@@ -162,7 +153,6 @@
     .field input {
       width: 100%;
       height: 48px;
-
       padding: 0 13px;
 
       border: 1px solid var(--border);
@@ -226,6 +216,7 @@
       display: block;
 
       color: #ffb3b3;
+
       background:
         rgba(255, 77, 77, 0.08);
 
@@ -238,6 +229,7 @@
       display: block;
 
       color: #a9f5cc;
+
       background:
         rgba(50, 213, 131, 0.08);
 
@@ -351,206 +343,322 @@
   </main>
 
   <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
   ></script>
 
   <script>
-    const SUPABASE_URL =
-      "https://vepoqxpnvlzzhmajcqzo.supabase.co";
+    window.addEventListener(
+      "DOMContentLoaded",
+      async () => {
 
-    const SUPABASE_KEY =
-      "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+        const message =
+          document.getElementById(
+            "message"
+          );
 
-    const supabase =
-      window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
+        const loginForm =
+          document.getElementById(
+            "loginForm"
+          );
 
-    const loginForm =
-      document.getElementById(
-        "loginForm"
-      );
+        const emailInput =
+          document.getElementById(
+            "email"
+          );
 
-    const emailInput =
-      document.getElementById(
-        "email"
-      );
+        const passwordInput =
+          document.getElementById(
+            "password"
+          );
 
-    const passwordInput =
-      document.getElementById(
-        "password"
-      );
+        const loginButton =
+          document.getElementById(
+            "loginButton"
+          );
 
-    const loginButton =
-      document.getElementById(
-        "loginButton"
-      );
 
-    const message =
-      document.getElementById(
-        "message"
-      );
+        function mostrarMensagem(
+          texto,
+          tipo = "error"
+        ) {
+          message.textContent =
+            texto;
 
-    function mostrarMensagem(
-      texto,
-      tipo = "error"
-    ) {
-      message.textContent =
-        texto;
-
-      message.className =
-        `message ${tipo}`;
-    }
-
-    async function verificarSessao() {
-      const {
-        data: {
-          session
+          message.className =
+            `message ${tipo}`;
         }
-      } =
-        await supabase.auth
-          .getSession();
 
-      if (session) {
-        window.location.href =
-          "index.html";
-      }
-    }
 
-    verificarSessao();
+        // ==============================================
+        // VERIFICA SE SUPABASE CARREGOU
+        // ==============================================
 
-    loginForm.addEventListener(
-      "submit",
-      async event => {
+        if (
+          !window.supabase ||
+          !window.supabase.createClient
+        ) {
+          mostrarMensagem(
+            "Erro ao carregar o sistema de login. Atualize a página e tente novamente."
+          );
 
-        event.preventDefault();
+          return;
+        }
 
-        message.className =
-          "message";
 
-        loginButton.disabled =
-          true;
+        const SUPABASE_URL =
+          "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 
-        loginButton.textContent =
-          "Entrando...";
+        const SUPABASE_KEY =
+          "sb_publishable_K7pfWLa17aOQq3hrkN5PnQ_0AKYuZa_";
+
+
+        const cliente =
+          window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+          );
+
+
+        // ==============================================
+        // SE JÁ ESTIVER LOGADO
+        // ==============================================
 
         try {
 
-          const email =
-            emailInput.value.trim();
-
-          const password =
-            passwordInput.value;
-
           const {
-            data,
-            error
+            data
           } =
-            await supabase.auth
-              .signInWithPassword({
-                email,
-                password
-              });
-
-          if (error) {
-            throw error;
-          }
+            await cliente.auth
+              .getSession();
 
           if (
-            !data.session
+            data?.session
           ) {
-            throw new Error(
-              "Não foi possível iniciar a sessão."
+            window.location.replace(
+              "index.html"
             );
+
+            return;
           }
-
-          const {
-            data: perfil,
-            error: perfilErro
-          } =
-            await supabase
-              .from("profiles")
-              .select(
-                "plan,status,expires_at"
-              )
-              .eq(
-                "id",
-                data.user.id
-              )
-              .single();
-
-          if (perfilErro) {
-            await supabase.auth
-              .signOut();
-
-            throw new Error(
-              "Não foi possível validar seu acesso."
-            );
-          }
-
-          if (
-            perfil.status !==
-            "active"
-          ) {
-            await supabase.auth
-              .signOut();
-
-            throw new Error(
-              "Seu acesso está bloqueado ou vencido."
-            );
-          }
-
-          if (
-            perfil.expires_at
-          ) {
-            const vencimento =
-              new Date(
-                perfil.expires_at
-              );
-
-            if (
-              vencimento <
-              new Date()
-            ) {
-              await supabase.auth
-                .signOut();
-
-              throw new Error(
-                "Seu acesso venceu."
-              );
-            }
-          }
-
-          mostrarMensagem(
-            "Acesso liberado. Entrando...",
-            "success"
-          );
-
-          setTimeout(
-            () => {
-              window.location.href =
-                "index.html";
-            },
-            500
-          );
 
         } catch (erro) {
 
-          mostrarMensagem(
-            erro?.message ||
-            "E-mail ou senha inválidos."
+          console.error(
+            "Erro ao verificar sessão:",
+            erro
           );
 
-        } finally {
-
-          loginButton.disabled =
-            false;
-
-          loginButton.textContent =
-            "Entrar no Radar";
-
         }
+
+
+        // ==============================================
+        // LOGIN
+        // ==============================================
+
+        loginForm.addEventListener(
+          "submit",
+          async event => {
+
+            event.preventDefault();
+
+            message.className =
+              "message";
+
+            loginButton.disabled =
+              true;
+
+            loginButton.textContent =
+              "Entrando...";
+
+
+            try {
+
+              const email =
+                emailInput.value.trim();
+
+              const password =
+                passwordInput.value;
+
+
+              if (
+                !email ||
+                !password
+              ) {
+                throw new Error(
+                  "Digite seu e-mail e sua senha."
+                );
+              }
+
+
+              const {
+                data,
+                error
+              } =
+                await cliente.auth
+                  .signInWithPassword({
+                    email,
+                    password
+                  });
+
+
+              if (error) {
+                console.error(
+                  "Erro Auth:",
+                  error
+                );
+
+                throw new Error(
+                  "E-mail ou senha inválidos."
+                );
+              }
+
+
+              if (
+                !data ||
+                !data.session ||
+                !data.user
+              ) {
+                throw new Error(
+                  "Não foi possível iniciar sua sessão."
+                );
+              }
+
+
+              // ==========================================
+              // VALIDAR PERFIL
+              // ==========================================
+
+              const {
+                data: perfil,
+                error: perfilErro
+              } =
+                await cliente
+                  .from("profiles")
+                  .select(
+                    "plan,status,expires_at"
+                  )
+                  .eq(
+                    "id",
+                    data.user.id
+                  )
+                  .maybeSingle();
+
+
+              if (perfilErro) {
+
+                console.error(
+                  "Erro perfil:",
+                  perfilErro
+                );
+
+                await cliente.auth
+                  .signOut();
+
+                throw new Error(
+                  "Não foi possível validar seu acesso."
+                );
+              }
+
+
+              if (!perfil) {
+
+                await cliente.auth
+                  .signOut();
+
+                throw new Error(
+                  "Seu perfil de acesso não foi encontrado."
+                );
+              }
+
+
+              if (
+                perfil.status !==
+                "active"
+              ) {
+
+                await cliente.auth
+                  .signOut();
+
+                throw new Error(
+                  "Seu acesso está bloqueado ou vencido."
+                );
+              }
+
+
+              if (
+                perfil.expires_at
+              ) {
+
+                const vencimento =
+                  new Date(
+                    perfil.expires_at
+                  );
+
+
+                if (
+                  Number.isNaN(
+                    vencimento.getTime()
+                  ) ||
+                  vencimento.getTime() <=
+                    Date.now()
+                ) {
+
+                  await cliente.auth
+                    .signOut();
+
+                  throw new Error(
+                    "Seu acesso venceu."
+                  );
+
+                }
+
+              }
+
+
+              mostrarMensagem(
+                "Acesso liberado. Entrando...",
+                "success"
+              );
+
+
+              setTimeout(
+                () => {
+
+                  window.location.replace(
+                    "index.html"
+                  );
+
+                },
+                350
+              );
+
+
+            } catch (erro) {
+
+              console.error(
+                "Erro no login:",
+                erro
+              );
+
+              mostrarMensagem(
+                erro?.message ||
+                "Não foi possível entrar."
+              );
+
+
+            } finally {
+
+              loginButton.disabled =
+                false;
+
+              loginButton.textContent =
+                "Entrar no Radar";
+
+            }
+
+          }
+        );
+
       }
     );
   </script>
