@@ -1,10 +1,10 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
 //
+// VERSÃO ESTÁVEL
 // MOMENTUM + TREND SCORE
 // RANQUEAR SEUS VÍDEOS — ZERO VENDAS
-// CATEGORIAS INTELIGENTES
-// BUSCA AUTOMÁTICA EM MAIS PÁGINAS
+// NICHOS PRINCIPAIS
 // SCROLL INFINITO
 // FAVORITOS
 // ======================================================
@@ -30,12 +30,6 @@ const RANKING_API =
 
 const LIMITE_POR_PAGINA = 20;
 
-// Quando selecionar nicho, tenta encontrar pelo menos isso.
-const ALVO_PRODUTOS_NICHO = 24;
-
-// Limite de páginas automáticas para não sobrecarregar.
-const MAX_PAGINAS_NICHO = 25;
-
 
 // ======================================================
 // ESTADO
@@ -48,8 +42,6 @@ let paginaAtual = 1;
 let temProximaPagina = true;
 
 let carregando = false;
-
-let carregandoCategoria = false;
 
 let filtroAtual = "radar";
 
@@ -229,12 +221,20 @@ try {
 
 
 function salvarFavoritos() {
-  localStorage.setItem(
-    "shopeeRadarFavoritos",
-    JSON.stringify(
-      favoritos
-    )
-  );
+  try {
+    localStorage.setItem(
+      "shopeeRadarFavoritos",
+      JSON.stringify(
+        favoritos
+      )
+    );
+
+  } catch (erro) {
+    console.error(
+      "Erro ao salvar favoritos:",
+      erro
+    );
+  }
 }
 
 
@@ -303,7 +303,7 @@ function alternarFavorito(id) {
 
 
 // ======================================================
-// NÚMEROS
+// UTILIDADES
 // ======================================================
 
 function numeroSeguro(valor) {
@@ -319,10 +319,6 @@ function numeroSeguro(valor) {
     : 0;
 }
 
-
-// ======================================================
-// TEXTO
-// ======================================================
 
 function escapar(valor) {
   return String(
@@ -499,11 +495,17 @@ function formatarFaixaPercentil(
       valor
     );
 
-  numero =
-    Math.max(
-      1,
-      numero
-    );
+  if (
+    numero <= 0
+  ) {
+    numero = 1;
+  }
+
+  if (
+    numero < 1
+  ) {
+    numero = 1;
+  }
 
   if (
     numero < 10
@@ -527,7 +529,7 @@ function formatarFaixaPercentil(
 
 
 // ======================================================
-// MAPA INTELIGENTE DE NICHOS
+// NICHOS PRINCIPAIS
 // ======================================================
 
 const MAPA_NICHOS = {
@@ -546,34 +548,34 @@ const MAPA_NICHOS = {
     "bermuda",
     "saia",
     "macacao",
-    "conjunto",
-    "moda feminina",
-    "moda masculina",
-    "roupa",
-    "look",
+    "conjunto feminino",
+    "roupa feminina",
+    "roupa masculina",
     "tenis",
     "sapato",
     "sandalia",
     "chinelo",
-    "sapatilha",
     "bolsa",
     "mochila",
-    "carteira",
-    "cinto",
-    "oculos",
-    "bone",
-    "cueca",
     "calcinha",
     "sutia",
-    "pijama",
-    "meia"
+    "pijama"
   ],
+
 
   casa: [
     "casa",
-    "lar",
-    "decoracao",
-    "decorativo",
+    "cozinha",
+    "panela",
+    "frigideira",
+    "talher",
+    "prato",
+    "copo",
+    "caneca",
+    "garrafa",
+    "jarra",
+    "pote",
+    "marmita",
     "organizador",
     "prateleira",
     "toalha",
@@ -589,31 +591,23 @@ const MAPA_NICHOS = {
     "banheiro",
     "cabide",
     "cesto",
-    "lixeira",
-    "limpeza",
     "mop",
     "vassoura",
-    "esfregao",
     "rodo",
-    "escova limpeza",
-    "varal",
-    "porta objetos",
-    "suporte parede"
+    "limpeza",
+    "escorredor",
+    "peneira",
+    "batedor",
+    "mixer"
   ],
+
 
   cozinha: [
     "panela",
     "frigideira",
-    "caldeirao",
-    "assadeira",
-    "forma",
     "talher",
-    "garfo",
-    "faca",
-    "colher",
     "prato",
     "copo",
-    "xicar",
     "caneca",
     "garrafa",
     "jarra",
@@ -625,175 +619,84 @@ const MAPA_NICHOS = {
     "cortador",
     "batedor",
     "mixer",
-    "liquidificador",
     "air fryer",
     "airfryer",
     "cafeteira",
     "chaleira",
-    "termica",
-    "termico",
-    "tampa",
     "tabua",
-    "peneira",
-    "espumadeira"
+    "peneira"
   ],
 
+
   beleza: [
-    "beleza",
     "maquiagem",
     "batom",
     "rimel",
-    "mascara de cilios",
+    "mascara cilios",
     "base facial",
     "corretivo",
     "blush",
     "sombra",
     "delineador",
     "skincare",
-    "skin care",
     "hidratante",
-    "creme",
+    "creme corporal",
     "locao",
     "serum",
     "sabonete",
     "shampoo",
     "condicionador",
     "mascara capilar",
-    "cabelo",
     "perfume",
     "colonia",
     "desodorante",
     "body splash",
     "protetor solar",
-    "unha",
     "esmalte",
-    "pincel maquiagem",
-    "depilacao",
     "depilador",
     "natura",
     "avon",
     "boticario"
   ],
 
+
   eletronicos: [
     "eletronico",
-    "eletronica",
     "smartwatch",
     "relogio inteligente",
     "fone",
-    "fone bluetooth",
     "headphone",
     "earbuds",
     "caixa de som",
     "bluetooth",
     "carregador",
     "cabo usb",
-    "usb",
     "power bank",
     "camera",
     "webcam",
     "microfone",
     "projetor",
-    "controle remoto",
     "led",
     "lampada",
-    "luminaria",
     "adaptador",
-    "tomada",
-    "extensao",
-    "pilha",
-    "bateria"
-  ],
-
-  informatica: [
-    "computador",
-    "pc",
-    "notebook",
-    "laptop",
-    "monitor",
-    "teclado",
-    "mouse",
-    "mousepad",
-    "ssd",
-    "hd",
-    "memoria ram",
-    "ram",
-    "placa mae",
-    "placa de video",
-    "processador",
-    "cooler",
-    "gabinete",
-    "impressora",
-    "roteador",
-    "wifi",
-    "ethernet",
-    "pendrive",
-    "hub usb",
-    "informatica"
-  ],
-
-  celular: [
     "celular",
     "smartphone",
     "iphone",
     "android",
-    "samsung galaxy",
+    "samsung",
     "xiaomi",
     "motorola",
     "redmi",
-    "poco",
-    "capa celular",
-    "pelicula",
-    "carregador celular",
-    "suporte celular",
-    "tripé celular",
-    "tripe celular"
+    "notebook",
+    "computador",
+    "monitor",
+    "teclado",
+    "mouse",
+    "ssd",
+    "pendrive",
+    "roteador"
   ],
 
-  games: [
-    "gamer",
-    "gaming",
-    "game",
-    "jogo",
-    "joystick",
-    "controle gamer",
-    "controle ps",
-    "controle xbox",
-    "playstation",
-    "ps4",
-    "ps5",
-    "xbox",
-    "nintendo",
-    "switch",
-    "console",
-    "headset gamer",
-    "teclado gamer",
-    "mouse gamer",
-    "cadeira gamer",
-    "rgb"
-  ],
-
-  fitness: [
-    "fitness",
-    "academia",
-    "musculacao",
-    "halter",
-    "peso academia",
-    "elastico exercicio",
-    "faixa elastica",
-    "treino",
-    "yoga",
-    "pilates",
-    "crossfit",
-    "corrida",
-    "esporte",
-    "esportivo",
-    "squeeze",
-    "garrafa academia",
-    "tapete yoga",
-    "luva academia",
-    "cinta abdominal"
-  ],
 
   pet: [
     "pet",
@@ -806,40 +709,34 @@ const MAPA_NICHOS = {
     "petisco",
     "coleira",
     "peitoral",
-    "guia cachorro",
     "comedouro",
-    "bebedouro pet",
+    "bebedouro",
     "areia gato",
     "areia sanitaria",
-    "brinquedo cachorro",
-    "brinquedo gato",
     "casinha pet",
     "cama pet",
-    "arranhador",
-    "aquario"
+    "arranhador"
   ],
 
-  bebe: [
-    "bebe",
-    "bebê",
-    "infantil",
-    "crianca",
-    "criancas",
-    "recem nascido",
-    "mamadeira",
-    "chupeta",
-    "fralda",
-    "berco",
-    "carrinho bebe",
-    "cadeira alimentacao",
-    "maternidade",
-    "mordedor",
-    "babador",
-    "banheira bebe",
-    "trocador",
-    "body bebe",
-    "roupa infantil"
+
+  fitness: [
+    "fitness",
+    "academia",
+    "musculacao",
+    "halter",
+    "peso academia",
+    "elastico exercicio",
+    "treino",
+    "yoga",
+    "pilates",
+    "crossfit",
+    "corrida",
+    "esporte",
+    "squeeze",
+    "tapete yoga",
+    "luva academia"
   ],
+
 
   automotivo: [
     "automotivo",
@@ -853,18 +750,14 @@ const MAPA_NICHOS = {
     "retrovisor",
     "capacete",
     "farol",
-    "lampada carro",
     "limpa para brisa",
-    "limpador para brisa",
     "tapete carro",
     "capa banco",
-    "suporte celular carro",
     "carregador veicular",
     "lavagem automotiva",
-    "polimento",
-    "chave catraca",
-    "kit chave"
+    "polimento"
   ],
+
 
   ferramentas: [
     "ferramenta",
@@ -879,7 +772,6 @@ const MAPA_NICHOS = {
     "soquete",
     "broca",
     "trena",
-    "nivel",
     "solda",
     "ferro de solda",
     "compressor",
@@ -887,28 +779,6 @@ const MAPA_NICHOS = {
     "lixadeira",
     "multimetro",
     "caixa ferramentas"
-  ],
-
-  papelaria: [
-    "papelaria",
-    "caneta",
-    "lapis",
-    "lapiseira",
-    "borracha",
-    "caderno",
-    "agenda",
-    "planner",
-    "estojo",
-    "marca texto",
-    "marcador",
-    "papel",
-    "adesivo",
-    "etiqueta",
-    "tesoura",
-    "grampeador",
-    "cola",
-    "escolar",
-    "material escolar"
   ]
 
 };
@@ -917,18 +787,6 @@ const MAPA_NICHOS = {
 // ======================================================
 // IDENTIFICAR NICHO
 // ======================================================
-
-function textoProdutoParaNicho(
-  produto
-) {
-  return normalizarTexto(
-    [
-      produto.name,
-      produto.shop_name
-    ].join(" ")
-  );
-}
-
 
 function produtoPertenceNicho(
   produto,
@@ -944,17 +802,25 @@ function produtoPertenceNicho(
   const palavras =
     MAPA_NICHOS[
       nicho
-    ] || [];
+    ];
 
+  // Se o index ainda tiver categoria antiga
+  // que não usamos mais, não quebra o Radar.
   if (
+    !Array.isArray(
+      palavras
+    ) ||
     !palavras.length
   ) {
     return true;
   }
 
   const texto =
-    textoProdutoParaNicho(
-      produto
+    normalizarTexto(
+      [
+        produto.name,
+        produto.shop_name
+      ].join(" ")
     );
 
   return palavras.some(
@@ -974,6 +840,7 @@ function produtoPertenceNicho(
 
 function normalizarMomentum(p) {
   return {
+
     id:
       String(
         p.product_id ??
@@ -1089,6 +956,7 @@ function normalizarMomentum(p) {
       numeroSeguro(
         p.sinais_reais
       )
+
   };
 }
 
@@ -1099,6 +967,7 @@ function normalizarMomentum(p) {
 
 function normalizarZero(p) {
   return {
+
     id:
       String(
         p.product_id ??
@@ -1169,6 +1038,7 @@ function normalizarZero(p) {
     motivo:
       p.motivo ??
       "Produto com 0 vendas totais registradas."
+
   };
 }
 
@@ -1179,6 +1049,7 @@ function normalizarZero(p) {
 
 function normalizarRanking(p) {
   return {
+
     id:
       String(
         p.product_id ??
@@ -1230,6 +1101,7 @@ function normalizarRanking(p) {
       p.captured_at ??
       p.last_seen_at ??
       null
+
   };
 }
 
@@ -1246,21 +1118,23 @@ function removerDuplicados(lista) {
     const produto
     of lista
   ) {
-    if (!produto.id) {
+    if (
+      !produto ||
+      !produto.id
+    ) {
       continue;
     }
 
+    const id =
+      String(
+        produto.id
+      );
+
     if (
-      !mapa.has(
-        String(
-          produto.id
-        )
-      )
+      !mapa.has(id)
     ) {
       mapa.set(
-        String(
-          produto.id
-        ),
+        id,
         produto
       );
     }
@@ -1279,6 +1153,8 @@ function removerDuplicados(lista) {
 function montarURL(
   pagina
 ) {
+
+  // ZERO VENDAS
   if (
     filtroAtual ===
     "zero"
@@ -1345,6 +1221,7 @@ function montarURL(
   }
 
 
+  // MAIS VENDIDOS / AVALIAÇÃO
   if (
     filtroAtual ===
       "hot" ||
@@ -1388,6 +1265,7 @@ function montarURL(
   }
 
 
+  // MOMENTUM
   const url =
     new URL(
       MOMENTUM_API
@@ -1418,465 +1296,6 @@ function montarURL(
 
 
 // ======================================================
-// BUSCAR UMA PÁGINA
-// ======================================================
-
-async function buscarPaginaAPI(
-  pagina
-) {
-  const token =
-    obterTokenRadar();
-
-  if (!token) {
-    redirecionarLogin();
-
-    throw new Error(
-      "Sessão expirada."
-    );
-  }
-
-  const config =
-    montarURL(
-      pagina
-    );
-
-  const resposta =
-    await fetch(
-      config.url,
-      {
-        headers:
-          criarHeadersAPI(),
-
-        cache:
-          "no-store"
-      }
-    );
-
-  if (
-    resposta.status === 401 ||
-    resposta.status === 403
-  ) {
-    redirecionarLogin();
-
-    throw new Error(
-      "Acesso expirado."
-    );
-  }
-
-  let dados;
-
-  try {
-    dados =
-      await resposta.json();
-
-  } catch {
-    throw new Error(
-      "Resposta inválida da API."
-    );
-  }
-
-  if (
-    !resposta.ok ||
-    dados.ok === false
-  ) {
-    throw new Error(
-      dados.erro ||
-      dados.message ||
-      "Não foi possível carregar os produtos."
-    );
-  }
-
-  let lista =
-    [];
-
-  if (
-    config.tipo ===
-    "momentum"
-  ) {
-    lista =
-      (
-        dados.produtos ||
-        []
-      ).map(
-        normalizarMomentum
-      );
-  }
-
-  if (
-    config.tipo ===
-    "zero"
-  ) {
-    lista =
-      (
-        dados.produtos ||
-        []
-      ).map(
-        normalizarZero
-      );
-  }
-
-  if (
-    config.tipo ===
-    "ranking"
-  ) {
-    lista =
-      (
-        dados.produtos ||
-        []
-      ).map(
-        normalizarRanking
-      );
-  }
-
-  return {
-    produtos:
-      removerDuplicados(
-        lista
-      ),
-
-    paginaAtual:
-      numeroSeguro(
-        dados.paginaAtual ??
-        pagina
-      ),
-
-    temProximaPagina:
-      Boolean(
-        dados.temProximaPagina
-      ),
-
-    total:
-      numeroSeguro(
-        dados.total
-      ),
-
-    resumo:
-      dados.resumo ||
-      {}
-  };
-}
-
-
-// ======================================================
-// FILTRAR LISTA
-// ======================================================
-
-function obterListaFiltrada(
-  origem = produtos
-) {
-  let lista =
-    removerDuplicados(
-      [
-        ...origem
-      ]
-    );
-
-  const busca =
-    normalizarTexto(
-      buscaDigitada
-    );
-
-  if (
-    busca
-  ) {
-    lista =
-      lista.filter(
-        produto => {
-          const texto =
-            normalizarTexto(
-              [
-                produto.name,
-                produto.shop_name
-              ].join(" ")
-            );
-
-          return texto.includes(
-            busca
-          );
-        }
-      );
-  }
-
-  if (
-    nichoAtual !==
-    "all"
-  ) {
-    lista =
-      lista.filter(
-        produto =>
-          produtoPertenceNicho(
-            produto,
-            nichoAtual
-          )
-      );
-  }
-
-  return lista;
-}
-
-
-// ======================================================
-// ORDENAÇÃO
-// ======================================================
-
-function ordenarLista(
-  lista
-) {
-  const resultado =
-    [
-      ...lista
-    ];
-
-  if (
-    ordenacaoAtual ===
-    "relevance"
-  ) {
-    if (
-      filtroAtual ===
-      "radar"
-    ) {
-      resultado.sort(
-        (
-          a,
-          b
-        ) =>
-          numeroSeguro(
-            b.momentum_score
-          ) -
-          numeroSeguro(
-            a.momentum_score
-          )
-      );
-    }
-  }
-
-
-  if (
-    ordenacaoAtual ===
-    "trend"
-  ) {
-    resultado.sort(
-      (
-        a,
-        b
-      ) =>
-        numeroSeguro(
-          b.trend_score ??
-          b.times_seen
-        ) -
-        numeroSeguro(
-          a.trend_score ??
-          a.times_seen
-        )
-    );
-  }
-
-
-  if (
-    ordenacaoAtual ===
-    "sales"
-  ) {
-    resultado.sort(
-      (
-        a,
-        b
-      ) =>
-        numeroSeguro(
-          b.sold_count
-        ) -
-        numeroSeguro(
-          a.sold_count
-        )
-    );
-  }
-
-
-  if (
-    ordenacaoAtual ===
-    "rating"
-  ) {
-    resultado.sort(
-      (
-        a,
-        b
-      ) =>
-        numeroSeguro(
-          b.rating
-        ) -
-        numeroSeguro(
-          a.rating
-        )
-    );
-  }
-
-
-  if (
-    ordenacaoAtual ===
-    "recent"
-  ) {
-    resultado.sort(
-      (
-        a,
-        b
-      ) =>
-        new Date(
-          b.ultima_captura ||
-          0
-        ).getTime() -
-        new Date(
-          a.ultima_captura ||
-          0
-        ).getTime()
-    );
-  }
-
-  return resultado;
-}
-
-
-function aplicarOrdenacao() {
-  const lista =
-    ordenarLista(
-      obterListaFiltrada()
-    );
-
-  atualizarContadores();
-
-  renderizarProdutos(
-    lista
-  );
-}
-
-
-// ======================================================
-// COMPLETAR NICHO AUTOMATICAMENTE
-// ======================================================
-
-async function completarNicho() {
-  if (
-    nichoAtual === "all" ||
-    carregandoCategoria ||
-    modoFavoritos
-  ) {
-    return;
-  }
-
-  let encontrados =
-    obterListaFiltrada()
-      .length;
-
-  if (
-    encontrados >=
-    ALVO_PRODUTOS_NICHO
-  ) {
-    return;
-  }
-
-  carregandoCategoria =
-    true;
-
-  if (
-    infiniteLoader
-  ) {
-    infiniteLoader.hidden =
-      false;
-
-    const texto =
-      infiniteLoader.querySelector(
-        "span"
-      );
-
-    if (texto) {
-      texto.textContent =
-        "Buscando mais produtos deste nicho...";
-    }
-  }
-
-  try {
-    while (
-      encontrados <
-        ALVO_PRODUTOS_NICHO &&
-      temProximaPagina &&
-      paginaAtual <
-        MAX_PAGINAS_NICHO
-    ) {
-      const proxima =
-        paginaAtual + 1;
-
-      const dados =
-        await buscarPaginaAPI(
-          proxima
-        );
-
-      produtos =
-        removerDuplicados(
-          [
-            ...produtos,
-            ...dados.produtos
-          ]
-        );
-
-      paginaAtual =
-        dados.paginaAtual;
-
-      temProximaPagina =
-        dados.temProximaPagina;
-
-      if (
-        dados.total > 0
-      ) {
-        totalServidor =
-          dados.total;
-      }
-
-      if (
-        dados.resumo &&
-        Object.keys(
-          dados.resumo
-        ).length
-      ) {
-        resumoServidor =
-          dados.resumo;
-      }
-
-      encontrados =
-        obterListaFiltrada()
-          .length;
-
-      aplicarOrdenacao();
-    }
-
-  } catch (erro) {
-    console.error(
-      "Erro ao completar nicho:",
-      erro
-    );
-
-  } finally {
-    carregandoCategoria =
-      false;
-
-    if (
-      infiniteLoader
-    ) {
-      infiniteLoader.hidden =
-        true;
-
-      const texto =
-        infiniteLoader.querySelector(
-          "span"
-        );
-
-      if (texto) {
-        texto.textContent =
-          "Buscando mais produtos...";
-      }
-    }
-  }
-}
-
-
-// ======================================================
 // CARREGAR
 // ======================================================
 
@@ -1884,6 +1303,7 @@ async function carregarProdutos(
   pagina = 1,
   adicionar = false
 ) {
+
   if (
     carregando ||
     modoFavoritos
@@ -1898,8 +1318,17 @@ async function carregarProdutos(
     return;
   }
 
+  const token =
+    obterTokenRadar();
+
+  if (!token) {
+    redirecionarLogin();
+    return;
+  }
+
   carregando =
     true;
+
 
   if (
     adicionar
@@ -1915,11 +1344,129 @@ async function carregarProdutos(
     mostrarLoading();
   }
 
+
   try {
-    const dados =
-      await buscarPaginaAPI(
+    const config =
+      montarURL(
         pagina
       );
+
+    console.log(
+      "Shopee Radar:",
+      config.url
+    );
+
+
+    const resposta =
+      await fetch(
+        config.url,
+        {
+          method:
+            "GET",
+
+          headers:
+            criarHeadersAPI(),
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    if (
+      resposta.status === 401 ||
+      resposta.status === 403
+    ) {
+      redirecionarLogin();
+      return;
+    }
+
+
+    let dados;
+
+    try {
+      dados =
+        await resposta.json();
+
+    } catch {
+      throw new Error(
+        "Resposta inválida da API."
+      );
+    }
+
+
+    if (
+      !resposta.ok ||
+      dados.ok === false
+    ) {
+      throw new Error(
+        dados.erro ||
+        dados.message ||
+        "Não foi possível carregar os produtos."
+      );
+    }
+
+
+    let novos =
+      [];
+
+
+    if (
+      config.tipo ===
+      "momentum"
+    ) {
+      novos =
+        (
+          Array.isArray(
+            dados.produtos
+          )
+            ? dados.produtos
+            : []
+        ).map(
+          normalizarMomentum
+        );
+    }
+
+
+    if (
+      config.tipo ===
+      "zero"
+    ) {
+      novos =
+        (
+          Array.isArray(
+            dados.produtos
+          )
+            ? dados.produtos
+            : []
+        ).map(
+          normalizarZero
+        );
+    }
+
+
+    if (
+      config.tipo ===
+      "ranking"
+    ) {
+      novos =
+        (
+          Array.isArray(
+            dados.produtos
+          )
+            ? dados.produtos
+            : []
+        ).map(
+          normalizarRanking
+        );
+    }
+
+
+    novos =
+      removerDuplicados(
+        novos
+      );
+
 
     if (
       adicionar
@@ -1928,30 +1475,44 @@ async function carregarProdutos(
         removerDuplicados(
           [
             ...produtos,
-            ...dados.produtos
+            ...novos
           ]
         );
 
     } else {
       produtos =
-        dados.produtos;
+        novos;
     }
 
+
     paginaAtual =
-      dados.paginaAtual;
+      numeroSeguro(
+        dados.paginaAtual ??
+        pagina
+      );
+
 
     temProximaPagina =
-      dados.temProximaPagina;
+      Boolean(
+        dados.temProximaPagina
+      );
+
 
     totalServidor =
-      dados.total;
+      numeroSeguro(
+        dados.total
+      );
+
 
     resumoServidor =
-      dados.resumo;
+      dados.resumo ||
+      {};
+
 
     atualizarInterfaceModo();
 
     aplicarOrdenacao();
+
 
   } catch (erro) {
     console.error(
@@ -1982,13 +1543,68 @@ async function carregarProdutos(
         true;
     }
   }
+}
+
+
+// ======================================================
+// FILTRAGEM
+// ======================================================
+
+function obterListaFiltrada() {
+  let lista =
+    removerDuplicados(
+      [
+        ...produtos
+      ]
+    );
+
+
+  const busca =
+    normalizarTexto(
+      buscaDigitada
+    );
+
 
   if (
-    !adicionar &&
-    nichoAtual !== "all"
+    busca &&
+    filtroAtual !==
+      "zero"
   ) {
-    await completarNicho();
+    lista =
+      lista.filter(
+        produto => {
+          const texto =
+            normalizarTexto(
+              [
+                produto.name,
+                produto.shop_name
+              ].join(" ")
+            );
+
+          return texto.includes(
+            busca
+          );
+        }
+      );
   }
+
+
+  if (
+    nichoAtual !==
+    "all"
+  ) {
+    lista =
+      lista.filter(
+        produto =>
+          produtoPertenceNicho(
+            produto,
+            nichoAtual
+          )
+      );
+  }
+
+
+  return lista;
 }
 
 
@@ -1996,23 +1612,32 @@ async function carregarProdutos(
 // CONTADORES
 // ======================================================
 
-function atualizarContadores() {
-  const listaVisivel =
-    obterListaFiltrada();
+function atualizarContadores(
+  listaVisivel = null
+) {
 
-  const usandoFiltro =
+  const lista =
+    Array.isArray(
+      listaVisivel
+    )
+      ? listaVisivel
+      : obterListaFiltrada();
+
+
+  const filtrando =
     nichoAtual !==
       "all" ||
     Boolean(
       buscaDigitada
     );
 
+
   if (
     totalProdutos
   ) {
     totalProdutos.textContent =
-      usandoFiltro
-        ? listaVisivel.length
+      filtrando
+        ? lista.length
         : (
             totalServidor ||
             produtos.length
@@ -2024,7 +1649,7 @@ function atualizarContadores() {
     totalVideos
   ) {
     totalVideos.textContent =
-      listaVisivel.length;
+      produtos.length;
   }
 
 
@@ -2040,7 +1665,7 @@ function atualizarContadores() {
     "zero"
   ) {
     totalOportunidades.textContent =
-      listaVisivel.filter(
+      lista.filter(
         produto =>
           numeroSeguro(
             produto.times_seen
@@ -2056,10 +1681,10 @@ function atualizarContadores() {
     "radar"
   ) {
     if (
-      usandoFiltro
+      filtrando
     ) {
       totalOportunidades.textContent =
-        listaVisivel.filter(
+        lista.filter(
           produto =>
             produto.momentum_nivel ===
               "em_alta" ||
@@ -2084,12 +1709,12 @@ function atualizarContadores() {
 
 
   totalOportunidades.textContent =
-    listaVisivel.length;
+    lista.length;
 }
 
 
 // ======================================================
-// INTERFACE
+// INTERFACE POR MODO
 // ======================================================
 
 function atualizarInterfaceModo() {
@@ -2171,6 +1796,124 @@ function atualizarInterfaceModo() {
 
 
 // ======================================================
+// ORDENAÇÃO
+// ======================================================
+
+function aplicarOrdenacao() {
+  let lista =
+    obterListaFiltrada();
+
+
+  if (
+    ordenacaoAtual ===
+    "relevance"
+  ) {
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.momentum_score
+        ) -
+        numeroSeguro(
+          a.momentum_score
+        )
+    );
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "trend"
+  ) {
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.trend_score ??
+          b.times_seen
+        ) -
+        numeroSeguro(
+          a.trend_score ??
+          a.times_seen
+        )
+    );
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "sales"
+  ) {
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.sold_count
+        ) -
+        numeroSeguro(
+          a.sold_count
+        )
+    );
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "rating"
+  ) {
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        numeroSeguro(
+          b.rating
+        ) -
+        numeroSeguro(
+          a.rating
+        )
+    );
+  }
+
+
+  if (
+    ordenacaoAtual ===
+    "recent"
+  ) {
+    lista.sort(
+      (
+        a,
+        b
+      ) =>
+        new Date(
+          b.ultima_captura ||
+          0
+        ).getTime() -
+        new Date(
+          a.ultima_captura ||
+          0
+        ).getTime()
+    );
+  }
+
+
+  atualizarContadores(
+    lista
+  );
+
+  renderizarProdutos(
+    lista
+  );
+}
+
+
+// ======================================================
 // COR MOMENTUM
 // ======================================================
 
@@ -2209,6 +1952,7 @@ function obterCorMomentum(
 function criarCardMomentum(
   produto
 ) {
+
   const favoritado =
     estaFavoritado(
       produto.id
@@ -2229,6 +1973,7 @@ function criarCardMomentum(
     numeroSeguro(
       produto.rank_change
     );
+
 
   return `
     <article
@@ -2282,6 +2027,7 @@ function criarCardMomentum(
                 produto.name
               )}"
               loading="lazy"
+              decoding="async"
             >
           `
           : ""
@@ -2357,6 +2103,7 @@ function criarCardMomentum(
               produto.trend_nivel
             )}
           </strong>
+
 
           <div
             style="
@@ -2464,4 +2211,1755 @@ function criarCardMomentum(
             "
           >
 
-           
+            <small
+              style="
+                display:block;
+                color:#737b8b;
+                font-size:7px;
+              "
+            >
+              POSIÇÃO MOMENTUM
+            </small>
+
+            <strong>
+              ${
+                produto.momentum_posicao > 0
+                  ? "#" +
+                    Math.round(
+                      produto.momentum_posicao
+                    )
+                  : "—"
+              }
+            </strong>
+
+          </div>
+
+
+          <div
+            style="
+              padding:8px;
+              border-radius:9px;
+              background:#0b0e14;
+            "
+          >
+
+            <small
+              style="
+                display:block;
+                color:#737b8b;
+                font-size:7px;
+              "
+            >
+              FAIXA
+            </small>
+
+            <strong>
+              Top ${formatarFaixaPercentil(
+                produto.percentil_top
+              )}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        ${
+          rankChange > 0
+            ? `
+              <div
+                style="
+                  margin-top:8px;
+                  color:#32d583;
+                  font-size:10px;
+                  font-weight:800;
+                "
+              >
+                📈 Subiu ${Math.round(
+                  rankChange
+                )} posições
+              </div>
+            `
+            : ""
+        }
+
+
+        <div
+          class="product-footer"
+        >
+
+          <div>
+
+            <small>
+              MOMENTUM
+            </small>
+
+            <strong>
+              ${Math.round(
+                produto.momentum_score
+              )}
+            </strong>
+
+          </div>
+
+
+          <div
+            class="product-price"
+          >
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </article>
+  `;
+}
+
+
+// ======================================================
+// CARD ZERO
+// ======================================================
+
+function criarCardZero(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="position:relative;"
+    >
+
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(
+          produto.id
+        )}"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#fff"
+          };
+          font-size:24px;
+        "
+      >
+        ${
+          favoritado
+            ? "♥"
+            : "♡"
+        }
+      </button>
+
+
+      ${
+        produto.image_url
+          ? `
+            <img
+              class="product-image"
+              src="${escapar(
+                produto.image_url
+              )}"
+              alt="${escapar(
+                produto.name
+              )}"
+              loading="lazy"
+              decoding="async"
+            >
+          `
+          : ""
+      }
+
+
+      <div
+        class="product-card-content"
+      >
+
+        <div
+          class="product-card-top"
+        >
+
+          <span
+            class="opportunity-badge"
+            style="
+              color:#c084fc;
+              background:rgba(192,132,252,.10);
+            "
+          >
+            🎯 0 VENDAS
+          </span>
+
+
+          <span
+            class="score-badge"
+          >
+            ENTRAR CEDO
+          </span>
+
+        </div>
+
+
+        <h3
+          class="product-name"
+        >
+          ${escapar(
+            produto.name
+          )}
+        </h3>
+
+
+        <div
+          class="product-shop"
+        >
+          🏪 ${escapar(
+            produto.shop_name
+          )}
+        </div>
+
+
+        <div
+          style="
+            margin:9px 0;
+            padding:9px;
+            border-radius:10px;
+            background:rgba(192,132,252,.06);
+            border:1px solid rgba(192,132,252,.12);
+            color:#c9ced8;
+            font-size:9px;
+            line-height:1.45;
+          "
+        >
+          Produto ainda sem venda registrada.
+          Estratégia: publicar o vídeo antes
+          da concorrência.
+        </div>
+
+
+        <div
+          class="product-stats"
+        >
+
+          <div
+            class="product-stat"
+          >
+            <span>
+              VENDIDOS
+            </span>
+
+            <strong>
+              0
+            </strong>
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+            <span>
+              DETECÇÕES
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.times_seen
+              )}
+            </strong>
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+            <span>
+              AVALIAÇÃO
+            </span>
+
+            <strong>
+              ⭐ ${numeroSeguro(
+                produto.rating
+              ).toFixed(1)}
+            </strong>
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+            <span>
+              ÚLTIMA VEZ
+            </span>
+
+            <strong
+              style="
+                font-size:9px;
+              "
+            >
+              ${escapar(
+                formatarData(
+                  produto.ultima_captura
+                )
+              )}
+            </strong>
+          </div>
+
+        </div>
+
+
+        <div
+          class="product-footer"
+        >
+
+          <div>
+
+            <small>
+              ESTRATÉGIA
+            </small>
+
+            <strong>
+              ENTRAR CEDO
+            </strong>
+
+          </div>
+
+
+          <div
+            class="product-price"
+          >
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </article>
+  `;
+}
+
+
+// ======================================================
+// CARD RANKING
+// ======================================================
+
+function criarCardRanking(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  return `
+    <article
+      class="product-card"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="position:relative;"
+    >
+
+      <button
+        class="favorite-btn"
+        data-favorite-id="${escapar(
+          produto.id
+        )}"
+        style="
+          position:absolute;
+          top:10px;
+          right:10px;
+          z-index:20;
+          width:40px;
+          height:40px;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:50%;
+          background:rgba(10,12,18,.88);
+          color:${
+            favoritado
+              ? "#ff5a1f"
+              : "#fff"
+          };
+          font-size:24px;
+        "
+      >
+        ${
+          favoritado
+            ? "♥"
+            : "♡"
+        }
+      </button>
+
+
+      ${
+        produto.image_url
+          ? `
+            <img
+              class="product-image"
+              src="${escapar(
+                produto.image_url
+              )}"
+              alt="${escapar(
+                produto.name
+              )}"
+              loading="lazy"
+              decoding="async"
+            >
+          `
+          : ""
+      }
+
+
+      <div
+        class="product-card-content"
+      >
+
+        <h3
+          class="product-name"
+        >
+          ${escapar(
+            produto.name
+          )}
+        </h3>
+
+
+        <div
+          class="product-shop"
+        >
+          🏪 ${escapar(
+            produto.shop_name
+          )}
+        </div>
+
+
+        <div
+          class="product-stats"
+        >
+
+          <div
+            class="product-stat"
+          >
+
+            <span>
+              VENDIDOS
+            </span>
+
+            <strong>
+              ${formatarNumero(
+                produto.sold_count
+              )}
+            </strong>
+
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+
+            <span>
+              AVALIAÇÃO
+            </span>
+
+            <strong>
+              ⭐ ${numeroSeguro(
+                produto.rating
+              ).toFixed(1)}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="product-footer"
+        >
+
+          <div>
+
+            <small>
+              PRODUTO
+            </small>
+
+            <strong>
+              SHOPEE
+            </strong>
+
+          </div>
+
+
+          <div
+            class="product-price"
+          >
+
+            <small>
+              PREÇO
+            </small>
+
+            <strong>
+              ${dinheiro(
+                produto.price
+              )}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </article>
+  `;
+}
+
+
+// ======================================================
+// RENDER
+// ======================================================
+
+function renderizarProdutos(
+  lista
+) {
+
+  if (
+    !productsGrid
+  ) {
+    return;
+  }
+
+
+  const listaUnica =
+    removerDuplicados(
+      lista
+    );
+
+
+  if (
+    !listaUnica.length
+  ) {
+    productsGrid.innerHTML =
+      "";
+
+
+    if (
+      emptyState
+    ) {
+      emptyState.hidden =
+        false;
+
+
+      const titulo =
+        emptyState.querySelector(
+          "h3"
+        );
+
+      const texto =
+        emptyState.querySelector(
+          "p"
+        );
+
+
+      if (
+        titulo
+      ) {
+        titulo.textContent =
+          "Nenhum produto encontrado";
+      }
+
+
+      if (
+        texto
+      ) {
+        texto.textContent =
+          nichoAtual !== "all"
+            ? "Role a página para carregar mais produtos ou escolha outro nicho."
+            : "Tente mudar sua pesquisa.";
+      }
+    }
+
+
+    return;
+  }
+
+
+  if (
+    emptyState
+  ) {
+    emptyState.hidden =
+      true;
+  }
+
+
+  productsGrid.innerHTML =
+    listaUnica.map(
+      produto => {
+
+        if (
+          produto.tipo ===
+          "zero"
+        ) {
+          return criarCardZero(
+            produto
+          );
+        }
+
+
+        if (
+          produto.tipo ===
+          "momentum"
+        ) {
+          return criarCardMomentum(
+            produto
+          );
+        }
+
+
+        return criarCardRanking(
+          produto
+        );
+
+      }
+    ).join("");
+
+
+  ativarEventosCards();
+}
+
+
+// ======================================================
+// EVENTOS DOS CARDS
+// ======================================================
+
+function ativarEventosCards() {
+
+  document
+    .querySelectorAll(
+      ".product-card"
+    )
+    .forEach(
+      card => {
+
+        card.addEventListener(
+          "click",
+          () => {
+
+            const produto =
+              encontrarProduto(
+                card.dataset.id
+              );
+
+
+            if (
+              produto
+            ) {
+              abrirModal(
+                produto
+              );
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      ".favorite-btn"
+    )
+    .forEach(
+      botao => {
+
+        botao.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            alternarFavorito(
+              botao.dataset
+                .favoriteId
+            );
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+// ======================================================
+// MODAL
+// ======================================================
+
+function abrirModal(
+  produto
+) {
+
+  if (
+    !productModal ||
+    !modalBody
+  ) {
+    return;
+  }
+
+
+  const link =
+    produto.affiliate_url ||
+    produto.product_url ||
+    "";
+
+
+  let extra =
+    "";
+
+
+  if (
+    produto.tipo ===
+    "momentum"
+  ) {
+
+    extra = `
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          background:#11151f;
+          border-radius:12px;
+        "
+      >
+
+        <strong>
+          📊 Inteligência do Radar
+        </strong>
+
+
+        <p>
+          Momentum:
+          <strong>
+            ${Math.round(
+              produto.momentum_score
+            )}
+          </strong>
+        </p>
+
+
+        <p>
+          Tendência:
+          <strong>
+            ${escapar(
+              produto.trend_nivel
+            )}
+          </strong>
+        </p>
+
+
+        <p>
+          Trend Score:
+          ${Math.round(
+            produto.trend_score
+          )}
+        </p>
+
+
+        <p>
+          Vendas confirmadas 24h:
+          +${formatarNumero(
+            produto
+              .vendas_confirmadas_24h
+          )}
+        </p>
+
+
+        <p>
+          Capturas:
+          ${formatarNumero(
+            produto.capturas_24h
+          )}
+        </p>
+
+
+        <p>
+          Ranking:
+          ${
+            produto.rank_atual > 0
+              ? "#" +
+                produto.rank_atual
+              : "Sem posição"
+          }
+        </p>
+
+
+        <p>
+          Faixa:
+          Top ${formatarFaixaPercentil(
+            produto.percentil_top
+          )}
+        </p>
+
+      </div>
+
+    `;
+
+  }
+
+
+  if (
+    produto.tipo ===
+    "zero"
+  ) {
+
+    extra = `
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          background:rgba(192,132,252,.07);
+          border:1px solid rgba(192,132,252,.18);
+          border-radius:12px;
+        "
+      >
+
+        <strong>
+          🎯 Estratégia de ranqueamento
+        </strong>
+
+
+        <p
+          style="
+            margin-top:8px;
+            color:#b5bac5;
+            line-height:1.5;
+          "
+        >
+          Este produto está com 0 vendas totais
+          registradas. A estratégia é publicar
+          conteúdo cedo para tentar posicionar
+          o vídeo antes de outros afiliados.
+        </p>
+
+
+        <p>
+          Detectado pelo Radar:
+          ${formatarNumero(
+            produto.times_seen
+          )}
+          vezes.
+        </p>
+
+      </div>
+
+    `;
+
+  }
+
+
+  modalBody.innerHTML = `
+
+    ${
+      produto.image_url
+        ? `
+          <img
+            src="${escapar(
+              produto.image_url
+            )}"
+            alt="${escapar(
+              produto.name
+            )}"
+            style="
+              width:100%;
+              max-height:300px;
+              object-fit:contain;
+              border-radius:14px;
+              margin-bottom:16px;
+            "
+          >
+        `
+        : ""
+    }
+
+
+    <h2>
+      ${escapar(
+        produto.name
+      )}
+    </h2>
+
+
+    <p
+      style="
+        margin-top:8px;
+      "
+    >
+      🏪 ${escapar(
+        produto.shop_name
+      )}
+    </p>
+
+
+    <p
+      style="
+        margin-top:15px;
+      "
+    >
+      <strong>
+        Preço:
+      </strong>
+
+      ${dinheiro(
+        produto.price
+      )}
+    </p>
+
+
+    <p>
+      <strong>
+        Vendidos:
+      </strong>
+
+      ${formatarNumero(
+        produto.sold_count
+      )}
+    </p>
+
+
+    <p>
+      <strong>
+        Avaliação:
+      </strong>
+
+      ⭐ ${numeroSeguro(
+        produto.rating
+      ).toFixed(1)}
+    </p>
+
+
+    ${extra}
+
+
+    <button
+      id="modalFavoriteButton"
+      data-id="${escapar(
+        produto.id
+      )}"
+      style="
+        width:100%;
+        margin-top:18px;
+        padding:14px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.15);
+        background:#151821;
+        color:#fff;
+        font-weight:800;
+      "
+    >
+      ${
+        estaFavoritado(
+          produto.id
+        )
+          ? "♥ Remover dos favoritos"
+          : "♡ Salvar nos favoritos"
+      }
+    </button>
+
+
+    ${
+      link
+        ? `
+          <a
+            href="${escapar(
+              link
+            )}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              margin-top:12px;
+              padding:15px;
+              text-align:center;
+              background:#ff5a1f;
+              color:#fff;
+              border-radius:12px;
+              text-decoration:none;
+              font-weight:800;
+            "
+          >
+            🛒 Abrir na Shopee
+          </a>
+        `
+        : ""
+    }
+
+  `;
+
+
+  document
+    .getElementById(
+      "modalFavoriteButton"
+    )
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const id =
+          event.currentTarget
+            .dataset.id;
+
+
+        alternarFavorito(
+          id
+        );
+
+
+        const atualizado =
+          encontrarProduto(
+            id
+          );
+
+
+        if (
+          atualizado
+        ) {
+          abrirModal(
+            atualizado
+          );
+        }
+
+      }
+    );
+
+
+  productModal.hidden =
+    false;
+
+}
+
+
+function fecharModal() {
+
+  if (
+    productModal
+  ) {
+    productModal.hidden =
+      true;
+  }
+
+}
+
+
+// ======================================================
+// LOADING
+// ======================================================
+
+function mostrarLoading() {
+
+  if (
+    emptyState
+  ) {
+    emptyState.hidden =
+      true;
+  }
+
+
+  if (
+    !productsGrid
+  ) {
+    return;
+  }
+
+
+  productsGrid.innerHTML = `
+
+    <div
+      class="loading"
+      style="
+        grid-column:1/-1;
+      "
+    >
+
+      <div
+        class="loader"
+      ></div>
+
+      <p>
+        Analisando produtos...
+      </p>
+
+    </div>
+
+  `;
+
+}
+
+
+// ======================================================
+// ERRO
+// ======================================================
+
+function mostrarErro(
+  mensagem
+) {
+
+  if (
+    !productsGrid
+  ) {
+    return;
+  }
+
+
+  productsGrid.innerHTML = `
+
+    <div
+      class="empty-state"
+      style="
+        display:block;
+        grid-column:1/-1;
+      "
+    >
+
+      <div>
+        ⚠️
+      </div>
+
+      <h3>
+        Não foi possível carregar
+      </h3>
+
+      <p>
+        ${escapar(
+          mensagem
+        )}
+      </p>
+
+      <button
+        id="retryRadarButton"
+        type="button"
+        style="
+          margin-top:14px;
+          padding:12px 16px;
+          border:0;
+          border-radius:10px;
+          background:#ff5a1f;
+          color:#fff;
+          font-weight:800;
+        "
+      >
+        Tentar novamente
+      </button>
+
+    </div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "retryRadarButton"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        reiniciarRadar();
+      }
+    );
+
+}
+
+
+// ======================================================
+// REINICIAR
+// ======================================================
+
+function reiniciarRadar() {
+
+  produtos =
+    [];
+
+  paginaAtual =
+    1;
+
+  totalServidor =
+    0;
+
+  resumoServidor =
+    {};
+
+  temProximaPagina =
+    true;
+
+  carregando =
+    false;
+
+  modoFavoritos =
+    false;
+
+
+  atualizarInterfaceModo();
+
+  atualizarContadores(
+    []
+  );
+
+
+  carregarProdutos(
+    1,
+    false
+  );
+
+}
+
+
+// ======================================================
+// TROCAR FILTRO
+// ======================================================
+
+function trocarFiltro(
+  filtro
+) {
+
+  if (
+    filtro ===
+    "all"
+  ) {
+    filtro =
+      "radar";
+  }
+
+
+  filtroAtual =
+    filtro;
+
+
+  if (
+    filtroAtual ===
+    "hot"
+  ) {
+    ordenacaoAtual =
+      "sales";
+
+  } else if (
+    filtroAtual ===
+    "rating"
+  ) {
+    ordenacaoAtual =
+      "rating";
+
+  } else if (
+    filtroAtual ===
+    "zero"
+  ) {
+    ordenacaoAtual =
+      "recent";
+
+  } else {
+    ordenacaoAtual =
+      "relevance";
+  }
+
+
+  document
+    .querySelectorAll(
+      "[data-filter]:not(.bottom-item)"
+    )
+    .forEach(
+      botao => {
+
+        botao.classList.toggle(
+          "active",
+          botao.dataset.filter ===
+            filtroAtual
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      ".bottom-item"
+    )
+    .forEach(
+      botao => {
+
+        const valor =
+          botao.dataset.filter;
+
+
+        const ativo =
+          (
+            filtroAtual ===
+              "radar" &&
+            valor ===
+              "all"
+          ) ||
+          valor ===
+            filtroAtual;
+
+
+        botao.classList.toggle(
+          "active",
+          ativo
+        );
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-sort]"
+    )
+    .forEach(
+      botao => {
+
+        botao.classList.toggle(
+          "active",
+          botao.dataset.sort ===
+            ordenacaoAtual
+        );
+
+      }
+    );
+
+
+  reiniciarRadar();
+
+
+  window.scrollTo({
+    top:
+      0,
+
+    behavior:
+      "smooth"
+  });
+
+}
+
+
+// ======================================================
+// FILTROS PRINCIPAIS
+// ======================================================
+
+document
+  .querySelectorAll(
+    "[data-filter]"
+  )
+  .forEach(
+    botao => {
+
+      botao.addEventListener(
+        "click",
+        event => {
+
+          const filtro =
+            botao.dataset.filter;
+
+
+          if (
+            filtro ===
+            "favorites"
+          ) {
+
+            event.preventDefault();
+
+            modoFavoritos =
+              true;
+
+
+            document
+              .querySelectorAll(
+                ".bottom-item"
+              )
+              .forEach(
+                item => {
+
+                  item.classList.toggle(
+                    "active",
+                    item.dataset.filter ===
+                      "favorites"
+                  );
+
+                }
+              );
+
+
+            if (
+              resultsTitle
+            ) {
+              resultsTitle.textContent =
+                `♡ Favoritos (${favoritos.length})`;
+            }
+
+
+            renderizarProdutos(
+              favoritos
+            );
+
+
+            return;
+
+          }
+
+
+          trocarFiltro(
+            filtro
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+// ======================================================
+// ORDENAÇÃO
+// ======================================================
+
+document
+  .querySelectorAll(
+    "[data-sort]"
+  )
+  .forEach(
+    botao => {
+
+      botao.addEventListener(
+        "click",
+        () => {
+
+          ordenacaoAtual =
+            botao.dataset.sort ||
+            "relevance";
+
+
+          document
+            .querySelectorAll(
+              "[data-sort]"
+            )
+            .forEach(
+              item => {
+
+                item.classList.toggle(
+                  "active",
+                  item ===
+                    botao
+                );
+
+              }
+            );
+
+
+          if (
+            filtroAtual ===
+            "zero"
+          ) {
+            reiniciarRadar();
+
+          } else {
+            aplicarOrdenacao();
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+// ======================================================
+// PESQUISA
+// ======================================================
+
+if (
+  searchInput
+) {
+
+  searchInput.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        buscaDigitada =
+          searchInput
+            .value
+            .trim();
+
+
+        if (
+          filtroAtual ===
+          "zero"
+        ) {
+          reiniciarRadar();
+
+        } else {
+          aplicarOrdenacao();
+        }
+
+      }
+
+    }
+  );
+
+
+  searchInput.addEventListener(
+    "search",
+    () => {
+
+      if (
+        !searchInput.value
+      ) {
+
+        buscaDigitada =
+          "";
+
+
+        if (
+          filtroAtual ===
+          "zero"
+        ) {
+          reiniciarRadar();
+
+        } else {
+          aplicarOrdenacao();
+        }
+
+      }
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// NICHO
+// ======================================================
+
+if (
+  categoryFilter
+) {
+
+  categoryFilter.addEventListener(
+    "change",
+    () => {
+
+      nichoAtual =
+        categoryFilter.value;
+
+
+      // Agora é instantâneo.
+      // Não busca 25 páginas sozinho.
+      aplicarOrdenacao();
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// PRÓXIMA PÁGINA
+// ======================================================
+
+async function carregarProximaPagina() {
+
+  if (
+    carregando ||
+    modoFavoritos ||
+    !temProximaPagina
+  ) {
+    return;
+  }
+
+
+  await carregarProdutos(
+    paginaAtual + 1,
+    true
+  );
+
+}
+
+
+// ======================================================
+// SCROLL INFINITO
+// ======================================================
+
+window.addEventListener(
+  "scroll",
+  () => {
+
+    if (
+      carregando ||
+      modoFavoritos ||
+      !temProximaPagina
+    ) {
+      return;
+    }
+
+
+    const posicao =
+      window.innerHeight +
+      window.scrollY;
+
+
+    const altura =
+      document
+        .documentElement
+        .scrollHeight;
+
+
+    if (
+      posicao >=
+      altura - 900
+    ) {
+      carregarProximaPagina();
+    }
+
+  },
+  {
+    passive:
+      true
+  }
+);
+
+
+// ======================================================
+// ATUALIZAÇÃO SILENCIOSA
+// ======================================================
+
+setInterval(
+  () => {
+
+    if (
+      document.visibilityState ===
+        "visible" &&
+      !modoFavoritos &&
+      paginaAtual === 1 &&
+      !carregando
+    ) {
+
+      carregarProdutos(
+        1,
+        false
+      );
+
+    }
+
+  },
+  2 * 60 * 1000
+);
+
+
+// ======================================================
+// MODAL
+// ======================================================
+
+if (
+  closeModal
+) {
+
+  closeModal.addEventListener(
+    "click",
+    fecharModal
+  );
+
+}
+
+
+if (
+  productModal
+) {
+
+  productModal
+    .querySelector(
+      ".modal-overlay"
+    )
+    ?.addEventListener(
+      "click",
+      fecharModal
+    );
+
+}
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key ===
+        "Escape" &&
+      productModal &&
+      !productModal.hidden
+    ) {
+      fecharModal();
+    }
+
+  }
+);
+
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
+filtroAtual =
+  "radar";
+
+ordenacaoAtual =
+  "relevance";
+
+reiniciarRadar();
