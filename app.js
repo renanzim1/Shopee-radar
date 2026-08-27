@@ -1,9 +1,10 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
 //
-// O que postar hoje + Detector de Explosão
-// Mais vendidos Shopee + Nichos + Busca + Favoritos
-// Crescimento + Histórico + Scroll infinito
+// O QUE POSTAR HOJE
+// Detector de Explosão + Post Score
+// Ranking Shopee + Nichos + Busca + Favoritos
+// Scroll infinito + Histórico + Crescimento
 // ======================================================
 
 const API_URL =
@@ -31,10 +32,7 @@ let carregando = false;
 let buscaDigitada = "";
 let nichoAtual = "all";
 
-// radar | hot | commission | rating | growth
 let filtroAtual = "radar";
-
-// relevance | sales | commission | rating | radar | growth
 let ordenacaoAtual = "relevance";
 
 let modoFavoritos = false;
@@ -511,7 +509,9 @@ function calcularScore(produto) {
 function temDetector(produto) {
   return Boolean(
     produto.detector_nivel ||
-    produto.post_score > 0 ||
+    numeroSeguro(
+      produto.post_score
+    ) > 0 ||
     produto.motivo_principal ||
     produto.historico_suficiente
   );
@@ -554,14 +554,17 @@ function obterRotuloDetector(
     return "👀 OBSERVAR";
   }
 
-  return obterTendencia(
-    produto
-  );
+  return "👀 OBSERVAR";
 }
 
-function obterCorDetector(
+function obterDecisaoPost(
   produto
 ) {
+  const score =
+    numeroSeguro(
+      produto.post_score
+    );
+
   const nivel =
     String(
       produto.detector_nivel ||
@@ -569,51 +572,76 @@ function obterCorDetector(
     ).toLowerCase();
 
   if (
-    nivel ===
-    "explodindo"
+    nivel === "explodindo" ||
+    score >= 85
   ) {
-    return "#ff4d4d";
+    return {
+      emoji: "🔥",
+      nome: "POSTAR AGORA",
+      cor: "#ff4d4d"
+    };
   }
 
   if (
-    nivel ===
-    "acelerando"
+    nivel === "acelerando" ||
+    score >= 65
   ) {
-    return "#ff8a3d";
+    return {
+      emoji: "🚀",
+      nome: "FORTE CANDIDATO",
+      cor: "#ff8a3d"
+    };
   }
 
   if (
-    nivel ===
-    "crescendo"
+    nivel === "crescendo" ||
+    score >= 35
   ) {
-    return "#32d583";
+    return {
+      emoji: "📈",
+      nome: "ACOMPANHAR",
+      cor: "#32d583"
+    };
   }
 
-  return "#9299a8";
+  return {
+    emoji: "👀",
+    nome: "AGUARDAR",
+    cor: "#9299a8"
+  };
 }
 
-function obterTextoConfianca(
-  valor
+function obterTextoAceleracao(
+  produto
 ) {
-  const confianca =
-    String(
-      valor || ""
-    ).toLowerCase();
+  const iniciou =
+    Boolean(
+      produto.aceleracao_iniciada
+    );
+
+  const anterior =
+    numeroSeguro(
+      produto.vendas_hora_anterior
+    );
+
+  const atual =
+    numeroSeguro(
+      produto.vendas_hora_6h
+    );
 
   if (
-    confianca === "alta"
+    iniciou ||
+    (
+      anterior <= 0 &&
+      atual > 0
+    )
   ) {
-    return "Alta";
+    return "Começou a acelerar";
   }
 
-  if (
-    confianca === "media" ||
-    confianca === "média"
-  ) {
-    return "Média";
-  }
-
-  return "Baixa";
+  return percentualCrescimento(
+    produto.aceleracao_percentual
+  );
 }
 
 // ======================================================
@@ -621,6 +649,14 @@ function obterTextoConfianca(
 // ======================================================
 
 function obterTendencia(produto) {
+  if (
+    produto.detector_nivel
+  ) {
+    return obterRotuloDetector(
+      produto
+    );
+  }
+
   const crescimento =
     numeroSeguro(
       produto.crescimento_percentual
@@ -635,14 +671,6 @@ function obterTendencia(produto) {
     numeroSeguro(
       produto.vendas_por_hora
     );
-
-  if (
-    produto.detector_nivel
-  ) {
-    return obterRotuloDetectorSemRecursao(
-      produto.detector_nivel
-    );
-  }
 
   if (
     crescimento >= 50 ||
@@ -680,31 +708,113 @@ function obterTendencia(produto) {
   return "⚪ ESTÁVEL";
 }
 
-function obterRotuloDetectorSemRecursao(
-  nivel
+// ======================================================
+// MOTIVO AMIGÁVEL
+// ======================================================
+
+function obterMotivoAmigavel(
+  produto
 ) {
-  const n =
+  const novas =
+    numeroSeguro(
+      produto.novas_vendas
+    );
+
+  const vendasHora =
+    Math.max(
+      numeroSeguro(
+        produto.vendas_por_hora
+      ),
+      numeroSeguro(
+        produto.vendas_hora_6h
+      )
+    );
+
+  const aceleracao =
+    numeroSeguro(
+      produto.aceleracao_percentual
+    );
+
+  const iniciou =
+    Boolean(
+      produto.aceleracao_iniciada
+    ) ||
+    (
+      numeroSeguro(
+        produto.vendas_hora_anterior
+      ) <= 0 &&
+      numeroSeguro(
+        produto.vendas_hora_6h
+      ) > 0
+    );
+
+  const nivel =
     String(
-      nivel || ""
+      produto.detector_nivel ||
+        ""
     ).toLowerCase();
 
-  if (n === "explodindo") {
-    return "🚨 EXPLODINDO";
+  if (
+    nivel === "explodindo"
+  ) {
+    return (
+      "As vendas estão subindo muito rápido. " +
+      "O produto apresenta forte aceleração agora."
+    );
   }
 
-  if (n === "acelerando") {
-    return "🔥 ACELERANDO";
+  if (iniciou) {
+    return (
+      "O produto começou a ganhar velocidade " +
+      "nas últimas horas."
+    );
   }
 
-  if (n === "crescendo") {
-    return "📈 CRESCENDO";
+  if (
+    nivel === "acelerando"
+  ) {
+    return (
+      "As vendas estão ganhando velocidade " +
+      "e o ritmo atual está acima do anterior."
+    );
   }
 
-  if (n === "observando") {
-    return "👀 OBSERVAR";
+  if (
+    nivel === "crescendo"
+  ) {
+    return (
+      "O produto apresentou novas vendas " +
+      "e crescimento real entre as capturas."
+    );
   }
 
-  return "⚪ ESTÁVEL";
+  if (
+    novas > 0 &&
+    vendasHora > 0
+  ) {
+    return (
+      `O produto ganhou +${formatarNumero(
+        novas
+      )} vendas e está vendendo em ritmo de ` +
+      `${formatarDecimal(
+        vendasHora
+      )}/h.`
+    );
+  }
+
+  if (
+    aceleracao > 0
+  ) {
+    return (
+      "O ritmo de vendas está melhorando, " +
+      "mas ainda precisa de mais histórico."
+    );
+  }
+
+  return (
+    produto.motivo_principal ||
+    "O Radar ainda está coletando dados para confirmar o movimento."
+  );
 }
 
 // ======================================================
@@ -837,6 +947,11 @@ function normalizarProduto(p) {
         p.aceleracao_percentual
       ),
 
+    aceleracao_iniciada:
+      Boolean(
+        p.aceleracao_iniciada
+      ),
+
     post_score:
       numeroSeguro(
         p.post_score
@@ -943,7 +1058,9 @@ function normalizarProduto(p) {
   }
 
   produto.tendencia =
-    obterTendencia(produto);
+    obterTendencia(
+      produto
+    );
 
   return produto;
 }
@@ -980,7 +1097,7 @@ function removerDuplicados(lista) {
 }
 
 // ======================================================
-// KEYWORD
+// KEYWORDS
 // ======================================================
 
 const KEYWORDS_RADAR = [
@@ -1701,6 +1818,11 @@ function criarCard(produto) {
       produto.radar_score
     );
 
+  const postScore =
+    numeroSeguro(
+      produto.post_score
+    );
+
   const favoritado =
     estaFavoritado(
       produto.id
@@ -1711,36 +1833,26 @@ function criarCard(produto) {
       produto.novas_vendas
     );
 
-  const crescimento =
-    numeroSeguro(
-      produto
-        .crescimento_percentual
-    );
-
   const vendasHora =
-    numeroSeguro(
-      produto.vendas_por_hora
-    );
-
-  const postScore =
-    numeroSeguro(
-      produto.post_score
+    Math.max(
+      numeroSeguro(
+        produto.vendas_por_hora
+      ),
+      numeroSeguro(
+        produto.vendas_hora_6h
+      )
     );
 
   const detectorAtivo =
     temDetector(produto);
 
-  const tendencia =
-    detectorAtivo
-      ? obterRotuloDetector(
-          produto
-        )
-      : obterTendencia(
-          produto
-        );
+  const decisao =
+    obterDecisaoPost(
+      produto
+    );
 
-  const corDetector =
-    obterCorDetector(
+  const motivo =
+    obterMotivoAmigavel(
       produto
     );
 
@@ -1837,19 +1949,12 @@ function criarCard(produto) {
           <span
             class="opportunity-badge"
             style="
-              ${
-                detectorAtivo
-                  ? `
-                    color:${corDetector};
-                    background:${corDetector}18;
-                  `
-                  : ""
-              }
+              color:${decisao.cor};
+              background:${decisao.cor}18;
             "
           >
-            ${escapar(
-              tendencia
-            )}
+            ${decisao.emoji}
+            ${decisao.nome}
           </span>
 
           <span
@@ -1885,8 +1990,7 @@ function criarCard(produto) {
         </div>
 
         ${
-          detectorAtivo &&
-          produto.motivo_principal
+          detectorAtivo
             ? `
               <div
                 style="
@@ -1901,7 +2005,7 @@ function criarCard(produto) {
                 "
               >
                 ${escapar(
-                  produto.motivo_principal
+                  motivo
                 )}
               </div>
             `
@@ -2009,11 +2113,13 @@ function criarCard(produto) {
                       display:block;
                       margin-top:3px;
                       font-size:10px;
+                      line-height:1.25;
                     "
                   >
-                    ${percentualCrescimento(
-                      produto
-                        .aceleracao_percentual
+                    ${escapar(
+                      obterTextoAceleracao(
+                        produto
+                      )
                     )}
                   </strong>
                 </div>
@@ -2033,7 +2139,7 @@ function criarCard(produto) {
                       font-weight:800;
                     "
                   >
-                    PROJEÇÃO 24H
+                    RITMO 24H
                   </small>
 
                   <strong
@@ -2051,61 +2157,7 @@ function criarCard(produto) {
 
               </div>
             `
-            : `
-              <div
-                style="
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:flex-start;
-                  gap:10px;
-                  margin-top:12px;
-                  padding-top:12px;
-                  border-top:1px solid rgba(255,255,255,.07);
-                  font-size:12px;
-                  min-height:58px;
-                "
-              >
-
-                <div>
-                  <small>
-                    CRESCIMENTO
-                  </small>
-
-                  <div
-                    style="
-                      margin-top:3px;
-                      font-weight:800;
-                    "
-                  >
-                    ${percentualCrescimento(
-                      crescimento
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  style="
-                    text-align:right;
-                  "
-                >
-                  <small>
-                    VENDAS/H
-                  </small>
-
-                  <div
-                    style="
-                      margin-top:3px;
-                      font-weight:800;
-                    "
-                  >
-                    ${formatarDecimal(
-                      vendasHora
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            `
+            : ""
         }
 
         <div
@@ -2385,6 +2437,34 @@ function montarHistorico(
 }
 
 // ======================================================
+// CONFIANÇA
+// ======================================================
+
+function obterTextoConfianca(
+  valor
+) {
+  const confianca =
+    String(
+      valor || ""
+    ).toLowerCase();
+
+  if (
+    confianca === "alta"
+  ) {
+    return "Alta";
+  }
+
+  if (
+    confianca === "media" ||
+    confianca === "média"
+  ) {
+    return "Média";
+  }
+
+  return "Baixa";
+}
+
+// ======================================================
 // MODAL
 // ======================================================
 
@@ -2404,14 +2484,15 @@ function abrirModal(produto) {
   const detectorAtivo =
     temDetector(produto);
 
-  const tendencia =
-    detectorAtivo
-      ? obterRotuloDetector(
-          produto
-        )
-      : obterTendencia(
-          produto
-        );
+  const decisao =
+    obterDecisaoPost(
+      produto
+    );
+
+  const motivo =
+    obterMotivoAmigavel(
+      produto
+    );
 
   const linkShopee =
     produto.affiliate_url ||
@@ -2466,7 +2547,7 @@ function abrirModal(produto) {
               margin-top:18px;
               padding:16px;
               background:#11151f;
-              border:1px solid rgba(255,90,31,.16);
+              border:1px solid ${decisao.cor}55;
               border-radius:14px;
             "
           >
@@ -2488,11 +2569,11 @@ function abrirModal(produto) {
               <strong
                 style="
                   font-size:20px;
+                  color:${decisao.cor};
                 "
               >
-                ${escapar(
-                  tendencia
-                )}
+                ${decisao.emoji}
+                ${decisao.nome}
               </strong>
 
               <strong
@@ -2517,8 +2598,7 @@ function abrirModal(produto) {
               "
             >
               ${escapar(
-                produto.motivo_principal ||
-                "Produto em análise pelo Radar."
+                motivo
               )}
             </p>
 
@@ -2596,9 +2676,10 @@ function abrirModal(produto) {
                   margin-top:5px;
                 "
               >
-                ${percentualCrescimento(
-                  produto
-                    .aceleracao_percentual
+                ${escapar(
+                  obterTextoAceleracao(
+                    produto
+                  )
                 )}
               </strong>
             </div>
@@ -2611,7 +2692,7 @@ function abrirModal(produto) {
               "
             >
               <small>
-                PROJEÇÃO 24H
+                RITMO 24H
               </small>
 
               <strong
@@ -2628,21 +2709,7 @@ function abrirModal(produto) {
 
           </div>
         `
-        : `
-          <div
-            style="
-              margin-top:16px;
-              padding:14px;
-              background:#11151f;
-              border-radius:14px;
-              font-weight:800;
-            "
-          >
-            ${escapar(
-              tendencia
-            )}
-          </div>
-        `
+        : ""
     }
 
     <div
@@ -2883,10 +2950,14 @@ function atualizarFiltroSuperior(
       "[data-filter]:not(.bottom-item)"
     )
     .forEach(item => {
+      const deveAtivar =
+        filtro === "radar"
+          ? item.dataset.filter === "all"
+          : item.dataset.filter === filtro;
+
       item.classList.toggle(
         "active",
-        item.dataset.filter ===
-          filtro
+        deveAtivar
       );
     });
 }
@@ -2933,12 +3004,7 @@ function trocarFiltro(filtro) {
   if (
     filtro === "all"
   ) {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-    return;
+    filtro = "radar";
   }
 
   modoFavoritos = false;
@@ -3099,28 +3165,6 @@ document
           botao.dataset.filter;
 
         // ==============================================
-        // RADAR INFERIOR
-        // só sobe para o topo
-        // ==============================================
-
-        if (
-          botao.classList.contains(
-            "bottom-item"
-          ) &&
-          filtro === "all"
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-          });
-
-          return;
-        }
-
-        // ==============================================
         // FAVORITOS
         // ==============================================
 
@@ -3151,6 +3195,42 @@ document
 
           renderizarProdutos(
             favoritos
+          );
+
+          return;
+        }
+
+        // ==============================================
+        // RADAR INFERIOR
+        // AGORA VOLTA PARA O RADAR DE VERDADE
+        // ==============================================
+
+        if (
+          botao.classList.contains(
+            "bottom-item"
+          ) &&
+          filtro === "all"
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          filtroAtual =
+            "radar";
+
+          buscaDigitada = "";
+          nichoAtual = "all";
+
+          if (searchInput) {
+            searchInput.value = "";
+          }
+
+          if (categoryFilter) {
+            categoryFilter.value =
+              "all";
+          }
+
+          trocarFiltro(
+            "radar"
           );
 
           return;
@@ -3252,28 +3332,6 @@ document.addEventListener(
     }
   }
 );
-
-// ======================================================
-// PROTEÇÃO DO RADAR INFERIOR
-// ======================================================
-
-document
-  .querySelectorAll(
-    ".bottom-item"
-  )
-  .forEach(botao => {
-    if (
-      botao.dataset.filter ===
-      "all"
-    ) {
-      botao.addEventListener(
-        "click",
-        event => {
-          event.preventDefault();
-        }
-      );
-    }
-  });
 
 // ======================================================
 // INICIALIZAÇÃO
