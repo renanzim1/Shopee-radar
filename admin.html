@@ -131,9 +131,7 @@
 
     .brand p {
       margin-top: 2px;
-
       color: var(--muted);
-
       font-size: 10px;
       font-weight: 700;
     }
@@ -238,18 +236,14 @@
 
     .stat small {
       display: block;
-
       color: var(--muted);
-
       font-size: 9px;
       font-weight: 900;
     }
 
     .stat strong {
       display: block;
-
       margin-top: 7px;
-
       font-size: 23px;
     }
 
@@ -271,12 +265,6 @@
     }
 
     .panel-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 10px;
-
       margin-bottom: 15px;
     }
 
@@ -287,9 +275,7 @@
 
     .panel-title p {
       margin-top: 4px;
-
       color: var(--muted);
-
       font-size: 10px;
     }
 
@@ -298,7 +284,7 @@
 
       grid-template-columns:
         repeat(
-          4,
+          3,
           minmax(0,1fr)
         );
 
@@ -485,17 +471,13 @@
     .user-name {
       font-size: 14px;
       font-weight: 900;
-
       overflow-wrap: anywhere;
     }
 
     .user-email {
       margin-top: 4px;
-
       color: var(--muted);
-
       font-size: 10px;
-
       overflow-wrap: anywhere;
     }
 
@@ -536,7 +518,7 @@
 
       grid-template-columns:
         repeat(
-          4,
+          3,
           minmax(0,1fr)
         );
 
@@ -612,6 +594,16 @@
       color: #ff9a6f;
     }
 
+    .action.danger {
+      background:
+        rgba(255,77,77,.08);
+
+      border-color:
+        rgba(255,77,77,.22);
+
+      color: #ffaaaa;
+    }
+
     .loading,
     .empty {
       padding: 35px 10px;
@@ -675,6 +667,14 @@
       .refresh {
         width: 100%;
       }
+
+      .user-info {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0,1fr)
+          );
+      }
     }
   </style>
 </head>
@@ -730,8 +730,8 @@
 
       <p>
         Crie acessos, controle vencimentos,
-        renove assinaturas e gerencie os
-        aparelhos autorizados no Shopee Radar.
+        valores pagos, planos e aparelhos
+        autorizados no Shopee Radar.
       </p>
 
     </section>
@@ -797,18 +797,14 @@
 
       <div class="panel-title">
 
-        <div>
+        <h3>
+          ➕ Criar novo acesso
+        </h3>
 
-          <h3>
-            ➕ Criar novo acesso
-          </h3>
-
-          <p>
-            Escolha por quantos dias
-            o cliente poderá usar o Radar.
-          </p>
-
-        </div>
+        <p>
+          Defina cliente, senha, plano,
+          valor e tempo de acesso.
+        </p>
 
       </div>
 
@@ -861,6 +857,40 @@
               minlength="8"
               placeholder="Mínimo 8 caracteres"
               required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="accessLabel">
+              PLANO
+            </label>
+
+            <input
+              id="accessLabel"
+              type="text"
+              value="Mensal"
+              placeholder="Ex: Mensal"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="amountPaid">
+              VALOR PAGO
+            </label>
+
+            <input
+              id="amountPaid"
+              type="number"
+              min="0"
+              step="0.01"
+              value="0"
+              placeholder="0,00"
             >
 
           </div>
@@ -939,17 +969,13 @@
 
       <div class="panel-title">
 
-        <div>
+        <h3>
+          👥 Usuários
+        </h3>
 
-          <h3>
-            👥 Usuários
-          </h3>
-
-          <p>
-            Controle todos os acessos cadastrados.
-          </p>
-
-        </div>
+        <p>
+          Controle todos os acessos cadastrados.
+        </p>
 
       </div>
 
@@ -992,10 +1018,6 @@
 
 
   <script>
-    // ==================================================
-    // CONFIG
-    // ==================================================
-
     const SUPABASE_URL =
       "https://vepoqxpnvlzzhmajcqzo.supabase.co";
 
@@ -1008,10 +1030,6 @@
     const LOGIN_ADMIN_URL =
       "https://renanzim1.github.io/Shopee-radar/login.html?next=admin";
 
-
-    // ==================================================
-    // ELEMENTOS
-    // ==================================================
 
     const createForm =
       document.getElementById(
@@ -1051,10 +1069,6 @@
     let usuarios = [];
 
 
-    // ==================================================
-    // ESCAPAR HTML
-    // ==================================================
-
     function escapar(valor) {
 
       return String(
@@ -1083,9 +1097,19 @@
     }
 
 
-    // ==================================================
-    // SESSÃO
-    // ==================================================
+    function dinheiro(valor) {
+
+      return Number(
+        valor || 0
+      ).toLocaleString(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL"
+        }
+      );
+    }
+
 
     function obterToken() {
 
@@ -1124,10 +1148,6 @@
       );
     }
 
-
-    // ==================================================
-    // API ADMIN
-    // ==================================================
 
     async function chamarAdmin(
       action,
@@ -1231,10 +1251,6 @@
     }
 
 
-    // ==================================================
-    // DATA
-    // ==================================================
-
     function formatarData(valor) {
 
       if (!valor) {
@@ -1251,7 +1267,6 @@
           data.getTime()
         )
       ) {
-
         return "—";
       }
 
@@ -1269,11 +1284,7 @@
     }
 
 
-    // ==================================================
-    // TEMPO RESTANTE
-    // ==================================================
-
-    function diasRestantes(valor) {
+    function tempoRestante(valor) {
 
       if (!valor) {
         return "∞";
@@ -1342,10 +1353,6 @@
     }
 
 
-    // ==================================================
-    // STATUS
-    // ==================================================
-
     function statusUsuario(
       usuario
     ) {
@@ -1408,10 +1415,6 @@
     }
 
 
-    // ==================================================
-    // CONTADORES
-    // ==================================================
-
     function atualizarStats() {
 
       let ativos = 0;
@@ -1432,7 +1435,6 @@
             status.classe ===
             "active"
           ) {
-
             ativos++;
           }
 
@@ -1441,7 +1443,6 @@
             status.classe ===
             "expired"
           ) {
-
             vencidos++;
           }
 
@@ -1450,7 +1451,6 @@
             status.classe ===
             "blocked"
           ) {
-
             bloqueados++;
           }
 
@@ -1491,10 +1491,6 @@
     }
 
 
-    // ==================================================
-    // RENDER USUÁRIOS
-    // ==================================================
-
     function renderizarUsuarios() {
 
       const termo =
@@ -1511,16 +1507,14 @@
               String(
                 usuario.full_name ||
                 ""
-              )
-                .toLowerCase();
+              ).toLowerCase();
 
 
             const email =
               String(
                 usuario.email ||
                 ""
-              )
-                .toLowerCase();
+              ).toLowerCase();
 
 
             return (
@@ -1565,6 +1559,12 @@
                 usuario.device_linked
                   ? "Vinculado"
                   : "Livre";
+
+
+              const plano =
+                usuario.access_label ||
+                usuario.plan ||
+                "Pro";
 
 
               return `
@@ -1619,6 +1619,36 @@
                     <div class="info">
 
                       <small>
+                        PLANO
+                      </small>
+
+                      <strong>
+                        ${escapar(
+                          plano
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
+                        VALOR PAGO
+                      </small>
+
+                      <strong>
+                        ${dinheiro(
+                          usuario.amount_paid
+                        )}
+                      </strong>
+
+                    </div>
+
+
+                    <div class="info">
+
+                      <small>
                         VENCE EM
                       </small>
 
@@ -1641,7 +1671,7 @@
 
                       <strong>
                         ${escapar(
-                          diasRestantes(
+                          tempoRestante(
                             usuario.expires_at
                           )
                         )}
@@ -1746,6 +1776,25 @@
                           <button
                             class="action orange"
                             onclick="
+                              editarFinanceiro(
+                                '${usuario.id}',
+                                '${escapar(
+                                  plano
+                                )}',
+                                '${Number(
+                                  usuario.amount_paid ||
+                                  0
+                                )}'
+                              )
+                            "
+                          >
+                            💳 Plano / valor
+                          </button>
+
+
+                          <button
+                            class="action orange"
+                            onclick="
                               liberarDispositivo(
                                 '${usuario.id}'
                               )
@@ -1798,6 +1847,18 @@
 
 
                           <button
+                            class="action danger"
+                            onclick="
+                              encerrarAgora(
+                                '${usuario.id}'
+                              )
+                            "
+                          >
+                            ⛔ Encerrar acesso
+                          </button>
+
+
+                          <button
                             class="action red"
                             onclick="
                               excluirUsuario(
@@ -1819,10 +1880,6 @@
           .join("");
     }
 
-
-    // ==================================================
-    // CARREGAR
-    // ==================================================
 
     async function carregarUsuarios() {
 
@@ -1868,10 +1925,6 @@
       }
     }
 
-
-    // ==================================================
-    // CRIAR USUÁRIO
-    // ==================================================
 
     createForm.addEventListener(
       "submit",
@@ -1921,6 +1974,25 @@
               .value;
 
 
+          const access_label =
+            document
+              .getElementById(
+                "accessLabel"
+              )
+              .value
+              .trim();
+
+
+          const amount_paid =
+            Number(
+              document
+                .getElementById(
+                  "amountPaid"
+                )
+                .value || 0
+            );
+
+
           const days =
             Number(
               document
@@ -1948,7 +2020,9 @@
               full_name,
               email,
               password,
-              days
+              days,
+              access_label,
+              amount_paid
             }
           );
 
@@ -1970,6 +2044,22 @@
             )
             .value =
             "30";
+
+
+          document
+            .getElementById(
+              "accessLabel"
+            )
+            .value =
+            "Mensal";
+
+
+          document
+            .getElementById(
+              "amountPaid"
+            )
+            .value =
+            "0";
 
 
           await carregarUsuarios();
@@ -2000,10 +2090,6 @@
     );
 
 
-    // ==================================================
-    // RENOVAR
-    // ==================================================
-
     async function renovarUsuario(
       id,
       days
@@ -2033,9 +2119,88 @@
     }
 
 
-    // ==================================================
-    // BLOQUEAR
-    // ==================================================
+    async function editarFinanceiro(
+      id,
+      planoAtual,
+      valorAtual
+    ) {
+
+      const plano =
+        prompt(
+          "Nome do plano:",
+          planoAtual
+        );
+
+
+      if (
+        plano === null
+      ) {
+        return;
+      }
+
+
+      const valor =
+        prompt(
+          "Valor pago em reais:",
+          valorAtual
+        );
+
+
+      if (
+        valor === null
+      ) {
+        return;
+      }
+
+
+      const amount_paid =
+        Number(
+          String(valor)
+            .replace(",", ".")
+        );
+
+
+      if (
+        !Number.isFinite(
+          amount_paid
+        ) ||
+        amount_paid < 0
+      ) {
+
+        alert(
+          "Digite um valor válido."
+        );
+
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "update_billing",
+          {
+            user_id: id,
+            access_label:
+              plano.trim() ||
+              "Pro",
+            amount_paid
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
 
     async function bloquearUsuario(
       id
@@ -2077,10 +2242,6 @@
     }
 
 
-    // ==================================================
-    // ATIVAR
-    // ==================================================
-
     async function ativarUsuario(
       id
     ) {
@@ -2108,9 +2269,50 @@
     }
 
 
-    // ==================================================
-    // LIBERAR APARELHO
-    // ==================================================
+    async function encerrarAgora(
+      id
+    ) {
+
+      const confirmar =
+        confirm(
+          "Encerrar o acesso deste usuário agora? Ele perderá o acesso imediatamente."
+        );
+
+
+      if (
+        !confirmar
+      ) {
+        return;
+      }
+
+
+      try {
+
+        await chamarAdmin(
+          "expire_now",
+          {
+            user_id: id
+          }
+        );
+
+
+        await carregarUsuarios();
+
+
+        alert(
+          "Acesso encerrado."
+        );
+
+
+      } catch (erro) {
+
+        alert(
+          erro.message
+        );
+
+      }
+    }
+
 
     async function liberarDispositivo(
       id
@@ -2118,7 +2320,7 @@
 
       const confirmar =
         confirm(
-          "Liberar esta conta para um novo aparelho? O aparelho atual deixará de ser reconhecido."
+          "Liberar esta conta para um novo aparelho?"
         );
 
 
@@ -2151,10 +2353,6 @@
       }
     }
 
-
-    // ==================================================
-    // TROCAR SENHA
-    // ==================================================
 
     async function trocarSenha(
       id
@@ -2212,17 +2410,13 @@
     }
 
 
-    // ==================================================
-    // EXCLUIR
-    // ==================================================
-
     async function excluirUsuario(
       id
     ) {
 
       const confirmar =
         confirm(
-          "Tem certeza que deseja excluir este usuário? O acesso será removido permanentemente."
+          "Tem certeza que deseja excluir este usuário permanentemente?"
         );
 
 
@@ -2256,19 +2450,11 @@
     }
 
 
-    // ==================================================
-    // BUSCA
-    // ==================================================
-
     searchUser.addEventListener(
       "input",
       renderizarUsuarios
     );
 
-
-    // ==================================================
-    // ATUALIZAR
-    // ==================================================
 
     refreshButton.addEventListener(
       "click",
@@ -2276,16 +2462,11 @@
     );
 
 
-    // ==================================================
-    // LOGOUT
-    // ==================================================
-
     logoutButton.addEventListener(
       "click",
       () => {
 
         limparSessao();
-
 
         window.location.replace(
           LOGIN_ADMIN_URL
@@ -2294,10 +2475,6 @@
       }
     );
 
-
-    // ==================================================
-    // ATUALIZA TEMPO AUTOMATICAMENTE
-    // ==================================================
 
     setInterval(
       () => {
@@ -2309,16 +2486,13 @@
           atualizarStats();
 
           renderizarUsuarios();
+
         }
 
       },
       60000
     );
 
-
-    // ==================================================
-    // INICIALIZAÇÃO
-    // ==================================================
 
     async function iniciarAdmin() {
 
@@ -2337,9 +2511,6 @@
 
 
       try {
-
-        // A própria API confirma
-        // se a conta realmente é admin.
 
         const resultado =
           await chamarAdmin(
