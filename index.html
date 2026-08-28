@@ -74,6 +74,10 @@
 
 <body class="auth-checking">
 
+  <!-- =========================================
+       HEADER
+  ========================================== -->
+
   <header class="topbar">
 
     <div class="brand">
@@ -116,7 +120,13 @@
   </header>
 
 
+  <!-- =========================================
+       CONTEÚDO
+  ========================================== -->
+
   <main class="container">
+
+    <!-- HERO -->
 
     <section class="hero">
 
@@ -132,12 +142,16 @@
       </h2>
 
       <p id="heroDescription">
-        Acompanhe momentum, tendência, ranking e
-        movimento dos produtos em um único Radar.
+        Produtos que estão ganhando força agora
+        dentro da Shopee.
       </p>
 
     </section>
 
+
+    <!-- =========================================
+         ESTATÍSTICAS
+    ========================================== -->
 
     <section class="stats-grid">
 
@@ -148,13 +162,15 @@
         </span>
 
         <div>
+
           <small id="totalProdutosLabel">
-            NO RADAR
+            PRODUTOS
           </small>
 
           <strong id="totalProdutos">
             0
           </strong>
+
         </div>
 
       </div>
@@ -167,13 +183,15 @@
         </span>
 
         <div>
+
           <small id="totalOportunidadesLabel">
-            DESTAQUES
+            OPORTUNIDADES
           </small>
 
           <strong id="totalOportunidades">
             0
           </strong>
+
         </div>
 
       </div>
@@ -186,19 +204,25 @@
         </span>
 
         <div>
-          <small>
+
+          <small id="totalVideosLabel">
             CARREGADOS
           </small>
 
           <strong id="totalVideos">
             0
           </strong>
+
         </div>
 
       </div>
 
     </section>
 
+
+    <!-- =========================================
+         ABAS SUPERIORES
+    ========================================== -->
 
     <nav class="tabs">
 
@@ -237,6 +261,10 @@
     </nav>
 
 
+    <!-- =========================================
+         ESTRATÉGIA ZERO VENDAS
+    ========================================== -->
+
     <div
       id="zeroStrategyBox"
       class="strategy-box"
@@ -249,12 +277,17 @@
       <p>
         Esta área mostra produtos com 0 vendas totais
         registradas. A ideia é publicar o vídeo cedo,
-        antes de o produto ganhar concorrência. Quando
-        o produto começar a vender, ele deixa esta lista.
+        antes de o produto ganhar concorrência.
+        Quando o produto começar a vender,
+        ele deixa esta lista.
       </p>
 
     </div>
 
+
+    <!-- =========================================
+         PESQUISA
+    ========================================== -->
 
     <section class="filters">
 
@@ -344,7 +377,14 @@
     </section>
 
 
-    <section class="radar-sort">
+    <!-- =========================================
+         ORDENAÇÃO
+    ========================================== -->
+
+    <section
+      id="sortSection"
+      class="radar-sort"
+    >
 
       <span class="sort-title">
         Ordenar por
@@ -397,16 +437,23 @@
     </section>
 
 
+    <!-- =========================================
+         CABEÇALHO DOS RESULTADOS
+    ========================================== -->
+
     <section class="section-heading">
 
       <div>
 
-        <span class="eyebrow">
+        <span
+          id="resultsEyebrow"
+          class="eyebrow"
+        >
           ANÁLISE EM TEMPO REAL
         </span>
 
         <h3 id="resultsTitle">
-          Momentum da Shopee
+          📡 Radar de Oportunidades
         </h3>
 
       </div>
@@ -415,12 +462,17 @@
       <div class="live-indicator">
 
         <span></span>
+
         AO VIVO
 
       </div>
 
     </section>
 
+
+    <!-- =========================================
+         GRID
+    ========================================== -->
 
     <section
       id="productsGrid"
@@ -440,6 +492,10 @@
     </section>
 
 
+    <!-- =========================================
+         CARREGAMENTO INFINITO
+    ========================================== -->
+
     <div
       id="infiniteLoader"
       class="infinite-loader"
@@ -449,7 +505,7 @@
       <div class="loader"></div>
 
       <span>
-        Buscando mais produtos...
+        Buscando mais resultados...
       </span>
 
     </div>
@@ -460,6 +516,10 @@
       style="height:20px;"
     ></div>
 
+
+    <!-- =========================================
+         SEM RESULTADOS
+    ========================================== -->
 
     <section
       id="emptyState"
@@ -472,7 +532,7 @@
       </div>
 
       <h3>
-        Nenhum produto encontrado
+        Nenhum resultado encontrado
       </h3>
 
       <p>
@@ -484,58 +544,77 @@
   </main>
 
 
+  <!-- =========================================
+       MENU INFERIOR
+  ========================================== -->
+
   <nav class="bottom-nav">
 
     <button
       class="bottom-item active"
-      data-filter="all"
+      data-filter="radar"
       type="button"
     >
+
       <span>
         💎
       </span>
 
       Radar
+
     </button>
+
 
     <button
       class="bottom-item"
       data-filter="hot"
       type="button"
     >
+
       <span>
         🔥
       </span>
 
       Vendidos
+
     </button>
+
 
     <button
       class="bottom-item"
       data-filter="zero"
       type="button"
     >
+
       <span>
         🎯
       </span>
 
       Ranquear
+
     </button>
+
 
     <button
       class="bottom-item"
-      data-filter="favorites"
+      data-filter="packs"
       type="button"
     >
+
       <span>
-        ♡
+        📦
       </span>
 
-      Favoritos
+      Packs
+
     </button>
 
   </nav>
 
+
+  <!-- =========================================
+       MODAL
+  ========================================== -->
 
   <div
     id="productModal"
@@ -562,6 +641,10 @@
 
   </div>
 
+
+  <!-- =========================================
+       AUTENTICAÇÃO
+  ========================================== -->
 
   <script>
 
@@ -612,6 +695,7 @@
           "shopeeRadarUser"
         );
 
+
       if (
         !token ||
         !usuarioSalvo
@@ -629,6 +713,7 @@
           await fetch(
             `${AUTH_SUPABASE_URL}/auth/v1/user`,
             {
+
               method: "GET",
 
               headers: {
@@ -640,11 +725,14 @@
                   `Bearer ${token}`
 
               }
+
             }
           );
 
 
-        if (!respostaUsuario.ok) {
+        if (
+          !respostaUsuario.ok
+        ) {
 
           irParaLogin();
           return;
@@ -671,6 +759,7 @@
           await fetch(
             `${AUTH_SUPABASE_URL}/rest/v1/profiles?id=eq.${usuario.id}&select=plan,status,expires_at`,
             {
+
               headers: {
 
                 "apikey":
@@ -680,11 +769,14 @@
                   `Bearer ${token}`
 
               }
+
             }
           );
 
 
-        if (!respostaPerfil.ok) {
+        if (
+          !respostaPerfil.ok
+        ) {
 
           irParaLogin();
           return;
@@ -694,6 +786,7 @@
 
         const perfis =
           await respostaPerfil.json();
+
 
         const perfil =
           Array.isArray(perfis)
@@ -712,12 +805,15 @@
         }
 
 
-        if (perfil.expires_at) {
+        if (
+          perfil.expires_at
+        ) {
 
           const vencimento =
             new Date(
               perfil.expires_at
             );
+
 
           if (
             Number.isNaN(
@@ -776,6 +872,10 @@
 
   </script>
 
+
+  <!-- =========================================
+       APP
+  ========================================== -->
 
   <script src="app.js"></script>
 
