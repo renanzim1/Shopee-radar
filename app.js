@@ -1,1288 +1,676 @@
-// ======================================================
-// SHOPEE RADAR — APP.JS
-// VERSÃO AJUSTADA — CARDS MOBILE + TOP NUMÉRICO
-// ======================================================
+/* =========================================================
+   SHOPEE RADAR — APP.JS FINAL
+   PARTE 1/3
 
-// APIS
-const MOMENTUM_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-momentum";
-const ZERO_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-zero";
-const RANKING_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-ranking";
-const VIDEOS_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-videos";
+   MODOS:
+   - Radar
+   - Mais vendidos
+   - Ranquear
+   - Packs
+========================================================= */
+
+
+/* =========================================================
+   APIs
+========================================================= */
+
+const SUPABASE_FUNCTIONS =
+  "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1";
+
+const MOMENTUM_API =
+  `${SUPABASE_FUNCTIONS}/shopee-radar-momentum`;
+
+const ZERO_API =
+  `${SUPABASE_FUNCTIONS}/shopee-radar-zero`;
+
+const RANKING_API =
+  `${SUPABASE_FUNCTIONS}/shopee-radar-ranking`;
+
+/*
+  A API continua tendo o nome "videos" no backend.
+
+  Não precisamos mudar o nome da Edge Function.
+  Para o usuário, ela será apresentada como PACKS.
+*/
+const PACKS_API =
+  `${SUPABASE_FUNCTIONS}/shopee-radar-videos`;
+
+
+/* =========================================================
+   CONFIGURAÇÃO
+========================================================= */
+
 const LIMITE_POR_PAGINA = 20;
 
-// ESTADO
-let produtos = [];
+const STORAGE_ACCESS_TOKEN =
+  "shopeeRadarAccessToken";
+
+const STORAGE_REFRESH_TOKEN =
+  "shopeeRadarRefreshToken";
+
+const STORAGE_USER =
+  "shopeeRadarUser";
+
+const STORAGE_FAVORITOS =
+  "shopeeRadarFavorites";
+
+
+/* =========================================================
+   ELEMENTOS
+========================================================= */
+
+const productsGrid =
+  document.getElementById("productsGrid");
+
+const searchInput =
+  document.getElementById("searchInput");
+
+const categoryFilter =
+  document.getElementById("categoryFilter");
+
+const resultsTitle =
+  document.getElementById("resultsTitle");
+
+const resultsEyebrow =
+  document.getElementById("resultsEyebrow");
+
+const heroDescription =
+  document.getElementById("heroDescription");
+
+const totalProdutos =
+  document.getElementById("totalProdutos");
+
+const totalOportunidades =
+  document.getElementById("totalOportunidades");
+
+const totalVideos =
+  document.getElementById("totalVideos");
+
+const totalProdutosLabel =
+  document.getElementById("totalProdutosLabel");
+
+const totalOportunidadesLabel =
+  document.getElementById("totalOportunidadesLabel");
+
+const totalVideosLabel =
+  document.getElementById("totalVideosLabel");
+
+const emptyState =
+  document.getElementById("emptyState");
+
+const infiniteLoader =
+  document.getElementById("infiniteLoader");
+
+const scrollSentinel =
+  document.getElementById("scrollSentinel");
+
+const zeroStrategyBox =
+  document.getElementById("zeroStrategyBox");
+
+const sortSection =
+  document.getElementById("sortSection");
+
+const productModal =
+  document.getElementById("productModal");
+
+const modalBody =
+  document.getElementById("modalBody");
+
+const closeModal =
+  document.getElementById("closeModal");
+
+
+/* =========================================================
+   ESTADO
+========================================================= */
+
+let modoAtual = "radar";
+
+let ordenacaoAtual =
+  "relevance";
+
 let paginaAtual = 1;
-let temProximaPagina = true;
+
 let carregando = false;
-let filtroAtual = "radar";
-let ordenacaoAtual = "relevance";
-let modoFavoritos = false;
-let buscaDigitada = "";
-let nichoAtual = "all";
-let totalServidor = 0;
-let resumoServidor = {};
 
-// TOKEN
-function obterTokenRadar() {
-  return localStorage.getItem("shopeeRadarAccessToken") || "";
-}
+let possuiMais = true;
 
-function limparSessaoRadarApp() {
-  localStorage.removeItem("shopeeRadarAccessToken");
-  localStorage.removeItem("shopeeRadarRefreshToken");
-  localStorage.removeItem("shopeeRadarUser");
-}
+let primeiraCarga = true;
 
-function redirecionarLogin() {
-  limparSessaoRadarApp();
-  window.location.replace("login.html");
-}
+let produtos = [];
 
-function criarHeadersAPI() {
-  return {
-    Accept: "application/json",
-    Authorization: `Bearer ${obterTokenRadar()}`
-  };
-}
+let packs = [];
 
-// ELEMENTOS
-const productsGrid = document.getElementById("productsGrid");
-const emptyState = document.getElementById("emptyState");
-const totalProdutos = document.getElementById("totalProdutos");
-const totalOportunidades = document.getElementById("totalOportunidades");
-const totalVideos = document.getElementById("totalVideos");
-const totalProdutosLabel = document.getElementById("totalProdutosLabel");
-const totalOportunidadesLabel = document.getElementById("totalOportunidadesLabel");
-const searchInput = document.getElementById("searchInput");
-const categoryFilter = document.getElementById("categoryFilter");
-const resultsTitle = document.getElementById("resultsTitle");
-const heroDescription = document.getElementById("heroDescription");
-const zeroStrategyBox = document.getElementById("zeroStrategyBox");
-const infiniteLoader = document.getElementById("infiniteLoader");
-const productModal = document.getElementById("productModal");
-const modalBody = document.getElementById("modalBody");
-const closeModal = document.getElementById("closeModal");
+let debouncePesquisa = null;
 
-// ======================================================
-// AJUSTES VISUAIS
-// ======================================================
 
-(function aplicarAjustesCards() {
-  const style = document.createElement("style");
-  style.id = "radar-card-fixes";
-
-  style.textContent = `
-    .product-stats{
-      display:grid !important;
-      grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-      gap:8px !important;
-    }
-
-    .product-stat{
-      min-width:0 !important;
-      height:auto !important;
-      min-height:68px !important;
-      padding:10px 8px !important;
-      display:flex !important;
-      flex-direction:column !important;
-      justify-content:center !important;
-      align-items:flex-start !important;
-      overflow:visible !important;
-    }
-
-    .product-stat span{
-      display:block !important;
-      width:100% !important;
-      white-space:normal !important;
-      overflow:visible !important;
-      text-overflow:clip !important;
-      word-break:normal !important;
-      overflow-wrap:normal !important;
-      line-height:1.15 !important;
-      font-size:8px !important;
-      letter-spacing:0 !important;
-      margin-bottom:5px !important;
-    }
-
-    .product-stat strong{
-      display:block !important;
-      width:100% !important;
-      white-space:normal !important;
-      overflow:visible !important;
-      text-overflow:clip !important;
-      line-height:1.1 !important;
-    }
-
-    .radar-mini-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:8px;
-      margin-top:9px;
-    }
-
-    .radar-mini-box{
-      min-width:0;
-      min-height:72px;
-      padding:9px;
-      border-radius:9px;
-      background:#0b0e14;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:flex-start;
-    }
-
-    .radar-mini-box small{
-      display:block;
-      width:100%;
-      color:#737b8b;
-      font-size:8px;
-      line-height:1.2;
-      white-space:normal;
-      overflow:visible;
-    }
-
-    .radar-mini-box strong{
-      display:block;
-      margin-top:4px;
-      font-size:20px;
-      line-height:1.05;
-      white-space:normal;
-    }
-
-    @media (max-width:420px){
-      .product-stat{
-        padding:9px 7px !important;
-        min-height:66px !important;
-      }
-
-      .product-stat span{
-        font-size:7.5px !important;
-      }
-
-      .product-stat strong{
-        font-size:16px !important;
-      }
-
-      .radar-mini-box{
-        padding:8px;
-        min-height:68px;
-      }
-
-      .radar-mini-box small{
-        font-size:7.5px;
-      }
-
-      .radar-mini-box strong{
-        font-size:19px;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
-})();
-
-// ======================================================
-// FAVORITOS
-// ======================================================
-
-let favoritos = [];
-
-try {
-  favoritos =
-    JSON.parse(
-      localStorage.getItem("shopeeRadarFavoritos")
-    ) || [];
-
-  if (!Array.isArray(favoritos)) {
-    favoritos = [];
-  }
-} catch {
-  favoritos = [];
-}
-
-function salvarFavoritos() {
-  try {
-    localStorage.setItem(
-      "shopeeRadarFavoritos",
-      JSON.stringify(favoritos)
-    );
-  } catch (erro) {
-    console.error(
-      "Erro ao salvar favoritos:",
-      erro
-    );
-  }
-}
-
-function estaFavoritado(id) {
-  return favoritos.some(
-    p => String(p.id) === String(id)
-  );
-}
-
-function encontrarProduto(id) {
-  return (
-    produtos.find(
-      p => String(p.id) === String(id)
-    ) ||
-    favoritos.find(
-      p => String(p.id) === String(id)
-    )
-  );
-}
-
-function alternarFavorito(id) {
-  const produto = encontrarProduto(id);
-
-  if (!produto) return;
-
-  if (estaFavoritado(id)) {
-    favoritos = favoritos.filter(
-      p => String(p.id) !== String(id)
-    );
-  } else {
-    favoritos.unshift({
-      ...produto
-    });
-  }
-
-  salvarFavoritos();
-
-  if (modoFavoritos) {
-    renderizarProdutos(favoritos);
-  } else {
-    aplicarOrdenacao();
-  }
-}
-
-// ======================================================
-// UTILIDADES
-// ======================================================
-
-function numeroSeguro(valor) {
-  const n = Number(valor ?? 0);
-  return Number.isFinite(n) ? n : 0;
-}
+/* =========================================================
+   UTILIDADES
+========================================================= */
 
 function escapar(valor) {
-  return String(valor ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+  return String(
+    valor ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
 }
 
-function normalizarTexto(valor) {
-  return String(valor ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+
+function numeroSeguro(valor) {
+
+  const numero =
+    Number(valor);
+
+  return Number.isFinite(numero)
+    ? numero
+    : 0;
+
 }
+
+
+function inteiro(valor) {
+
+  return Math.round(
+    numeroSeguro(valor)
+  );
+
+}
+
 
 function dinheiro(valor) {
-  return numeroSeguro(valor)
-    .toLocaleString(
-      "pt-BR",
-      {
-        style: "currency",
-        currency: "BRL"
-      }
-    );
+
+  const numero =
+    numeroSeguro(valor);
+
+  return numero.toLocaleString(
+    "pt-BR",
+    {
+      style: "currency",
+      currency: "BRL"
+    }
+  );
+
 }
 
-function formatarNumero(valor) {
-  const n = numeroSeguro(valor);
 
-  if (n >= 1000000) {
-    return (
-      (n / 1000000)
-        .toFixed(1)
-        .replace(".", ",") +
-      " mi"
-    );
-  }
+function numeroFormatado(valor) {
 
-  if (n >= 1000) {
-    return (
-      (n / 1000)
-        .toFixed(
-          n >= 10000 ? 0 : 1
-        )
-        .replace(".", ",") +
-      " mil"
-    );
-  }
+  const numero =
+    numeroSeguro(valor);
 
-  return n.toLocaleString(
+  return numero.toLocaleString(
     "pt-BR"
   );
+
 }
 
-function formatarData(valor) {
-  if (!valor) return "";
 
-  try {
-    return new Date(valor)
-      .toLocaleString(
-        "pt-BR",
-        {
-          day: "2-digit",
-          month: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      );
-  } catch {
-    return "";
-  }
+function percentual(valor) {
+
+  const numero =
+    numeroSeguro(valor);
+
+  return `${numero.toLocaleString(
+    "pt-BR",
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    }
+  )}%`;
+
 }
 
-// ======================================================
-// NICHOS
-// ======================================================
 
-const MAPA_NICHOS = {
-  moda: [
-    "vestido",
-    "blusa",
-    "camisa",
-    "camiseta",
-    "regata",
-    "cropped",
-    "calca",
-    "jeans",
-    "legging",
-    "short",
-    "bermuda",
-    "saia",
-    "macacao",
-    "conjunto feminino",
-    "roupa feminina",
-    "roupa masculina",
-    "tenis",
-    "sapato",
-    "sandalia",
-    "chinelo",
-    "bolsa",
-    "mochila",
-    "calcinha",
-    "sutia",
-    "pijama"
-  ],
+function dataFormatada(valor) {
 
-  casa: [
-    "casa",
-    "cozinha",
-    "panela",
-    "frigideira",
-    "talher",
-    "prato",
-    "copo",
-    "caneca",
-    "garrafa",
-    "jarra",
-    "pote",
-    "marmita",
-    "organizador",
-    "prateleira",
-    "toalha",
-    "lencol",
-    "fronha",
-    "cama",
-    "sofa",
-    "manta",
-    "tapete",
-    "cortina",
-    "almofada",
-    "travesseiro",
-    "banheiro",
-    "cabide",
-    "cesto",
-    "mop",
-    "vassoura",
-    "rodo",
-    "limpeza",
-    "escorredor",
-    "peneira",
-    "batedor",
-    "mixer"
-  ],
-
-  cozinha: [
-    "panela",
-    "frigideira",
-    "talher",
-    "prato",
-    "copo",
-    "caneca",
-    "garrafa",
-    "jarra",
-    "pote",
-    "marmita",
-    "cozinha",
-    "escorredor",
-    "ralador",
-    "cortador",
-    "batedor",
-    "mixer",
-    "air fryer",
-    "airfryer",
-    "cafeteira",
-    "chaleira",
-    "tabua",
-    "peneira"
-  ],
-
-  beleza: [
-    "maquiagem",
-    "batom",
-    "rimel",
-    "mascara cilios",
-    "base facial",
-    "corretivo",
-    "blush",
-    "sombra",
-    "delineador",
-    "skincare",
-    "hidratante",
-    "creme corporal",
-    "locao",
-    "serum",
-    "sabonete",
-    "shampoo",
-    "condicionador",
-    "mascara capilar",
-    "perfume",
-    "colonia",
-    "desodorante",
-    "body splash",
-    "protetor solar",
-    "esmalte",
-    "depilador",
-    "natura",
-    "avon",
-    "boticario"
-  ],
-
-  eletronicos: [
-    "eletronico",
-    "smartwatch",
-    "relogio inteligente",
-    "fone",
-    "headphone",
-    "earbuds",
-    "caixa de som",
-    "bluetooth",
-    "carregador",
-    "cabo usb",
-    "power bank",
-    "camera",
-    "webcam",
-    "microfone",
-    "projetor",
-    "led",
-    "lampada",
-    "adaptador",
-    "celular",
-    "smartphone",
-    "iphone",
-    "android",
-    "samsung",
-    "xiaomi",
-    "motorola",
-    "redmi",
-    "notebook",
-    "computador",
-    "monitor",
-    "teclado",
-    "mouse",
-    "ssd",
-    "pendrive",
-    "roteador"
-  ],
-
-  pet: [
-    "pet",
-    "cachorro",
-    "cao",
-    "caes",
-    "gato",
-    "gatos",
-    "racao",
-    "petisco",
-    "coleira",
-    "peitoral",
-    "comedouro",
-    "bebedouro",
-    "areia gato",
-    "areia sanitaria",
-    "casinha pet",
-    "cama pet",
-    "arranhador"
-  ],
-
-  fitness: [
-    "fitness",
-    "academia",
-    "musculacao",
-    "halter",
-    "peso academia",
-    "elastico exercicio",
-    "treino",
-    "yoga",
-    "pilates",
-    "crossfit",
-    "corrida",
-    "esporte",
-    "squeeze",
-    "tapete yoga",
-    "luva academia"
-  ],
-
-  automotivo: [
-    "automotivo",
-    "automotiva",
-    "carro",
-    "veiculo",
-    "moto",
-    "motocicleta",
-    "pneu",
-    "volante",
-    "retrovisor",
-    "capacete",
-    "farol",
-    "limpa para brisa",
-    "tapete carro",
-    "capa banco",
-    "carregador veicular",
-    "lavagem automotiva",
-    "polimento"
-  ],
-
-  ferramentas: [
-    "ferramenta",
-    "furadeira",
-    "parafusadeira",
-    "serra",
-    "martelo",
-    "alicate",
-    "chave philips",
-    "chave fenda",
-    "chave catraca",
-    "soquete",
-    "broca",
-    "trena",
-    "solda",
-    "ferro de solda",
-    "compressor",
-    "esmerilhadeira",
-    "lixadeira",
-    "multimetro",
-    "caixa ferramentas"
-  ]
-};
-
-function produtoPertenceNicho(
-  produto,
-  nicho
-) {
-  if (
-    !nicho ||
-    nicho === "all"
-  ) {
-    return true;
+  if (!valor) {
+    return "—";
   }
 
-  const palavras =
-    MAPA_NICHOS[nicho];
+  const data =
+    new Date(valor);
 
   if (
-    !Array.isArray(palavras) ||
-    !palavras.length
+    Number.isNaN(
+      data.getTime()
+    )
   ) {
-    return true;
+    return "—";
   }
 
-  const texto =
-    normalizarTexto(
-      [
-        produto.name,
-        produto.shop_name
-      ].join(" ")
-    );
-
-  return palavras.some(
-    p =>
-      texto.includes(
-        normalizarTexto(p)
-      )
+  return data.toLocaleDateString(
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "2-digit"
+    }
   );
+
 }
-// ======================================================
-// NORMALIZAÇÃO
-// ======================================================
 
-function normalizarMomentum(p) {
+
+/* =========================================================
+   AUTENTICAÇÃO DAS APIs
+========================================================= */
+
+function obterAccessToken() {
+
+  return localStorage.getItem(
+    STORAGE_ACCESS_TOKEN
+  ) || "";
+
+}
+
+
+function criarHeadersAPI() {
+
+  const token =
+    obterAccessToken();
+
+  const headers = {
+    Accept:
+      "application/json"
+  };
+
+  if (token) {
+
+    headers.Authorization =
+      `Bearer ${token}`;
+
+  }
+
+  return headers;
+
+}
+
+
+/* =========================================================
+   SESSÃO EXPIRADA
+========================================================= */
+
+function tratarNaoAutorizado() {
+
+  localStorage.removeItem(
+    STORAGE_ACCESS_TOKEN
+  );
+
+  localStorage.removeItem(
+    STORAGE_REFRESH_TOKEN
+  );
+
+  localStorage.removeItem(
+    STORAGE_USER
+  );
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+
+/* =========================================================
+   NORMALIZAÇÃO DE PRODUTOS
+========================================================= */
+
+function normalizarProduto(p) {
+
   return {
-    id: String(
-      p.product_id ??
-      p.id ??
-      ""
-    ),
 
-    tipo: "momentum",
+    ...p,
+
+    id:
+      String(
+        p.id ??
+        p.item_id ??
+        p.product_id ??
+        ""
+      ),
+
+    tipo:
+      "produto",
 
     name:
+      p.name ??
       p.product_name ??
+      p.title ??
       "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
-
-    product_url:
-      p.product_url ?? "",
-
-    affiliate_url:
-      p.affiliate_url ??
-      p.product_url ??
-      "",
 
     shop_name:
       p.shop_name ??
+      p.shopName ??
+      p.seller_name ??
       "Shopee",
 
-    price:
-      numeroSeguro(p.price),
+    image_url:
+      p.image_url ??
+      p.image ??
+      p.thumbnail ??
+      p.imageUrl ??
+      "",
 
-    sold_count:
+    price:
       numeroSeguro(
-        p.sold_count
+        p.price ??
+        p.min_price ??
+        p.price_min
+      ),
+
+    sales:
+      numeroSeguro(
+        p.sales ??
+        p.sold ??
+        p.sales_count ??
+        p.historical_sold
       ),
 
     rating:
-      numeroSeguro(p.rating),
-
-    momentum_score:
       numeroSeguro(
-        p.momentum_score
+        p.rating ??
+        p.rating_star ??
+        p.ratingStar
       ),
 
-    momentum_posicao:
+    commission_rate:
       numeroSeguro(
-        p.momentum_posicao
+        p.commission_rate ??
+        p.commissionRate ??
+        p.commission_percentage
       ),
 
-    momentum_nivel:
-      p.momentum_nivel ??
-      "observar",
+    commission:
+      numeroSeguro(
+        p.commission ??
+        p.commission_amount ??
+        p.estimated_commission
+      ),
 
-    momentum_rotulo:
-      p.momentum_rotulo ??
-      "👀 OBSERVAR",
+    score:
+      numeroSeguro(
+        p.score ??
+        p.radar_score ??
+        p.momentum_score ??
+        p.rank_score
+      ),
 
     trend_score:
       numeroSeguro(
-        p.trend_score
+        p.trend_score ??
+        p.momentum_score ??
+        p.score
       ),
 
-    trend_nivel:
-      p.trend_nivel ??
-      "⚪ Presença baixa",
-
-    capturas_24h:
-      numeroSeguro(
-        p.capturas_24h
+    category:
+      String(
+        p.category ??
+        p.category_name ??
+        p.niche ??
+        ""
       ),
-
-    vendas_confirmadas_24h:
-      numeroSeguro(
-        p.vendas_confirmadas_24h
-      ),
-
-    rank_atual:
-      numeroSeguro(
-        p.rank_atual
-      ),
-
-    rank_anterior:
-      numeroSeguro(
-        p.rank_anterior
-      ),
-
-    rank_change:
-      numeroSeguro(
-        p.rank_change
-      ),
-
-    ultima_captura:
-      p.ultima_captura ??
-      p.captured_at ??
-      null,
-
-    sinais_reais:
-      numeroSeguro(
-        p.sinais_reais
-      )
-  };
-}
-
-function normalizarZero(p) {
-  return {
-    id: String(
-      p.product_id ??
-      p.id ??
-      ""
-    ),
-
-    tipo: "zero",
-
-    name:
-      p.product_name ??
-      "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
-
-    product_url:
-      p.product_url ?? "",
 
     affiliate_url:
       p.affiliate_url ??
       p.product_url ??
+      p.offer_link ??
+      p.url ??
       "",
-
-    shop_name:
-      p.shop_name ??
-      "Shopee",
-
-    price:
-      numeroSeguro(p.price),
-
-    sold_count: 0,
-
-    rating:
-      numeroSeguro(p.rating),
-
-    times_seen:
-      numeroSeguro(
-        p.times_seen
-      ),
-
-    rank_atual:
-      numeroSeguro(
-        p.current_rank
-      ),
-
-    rank_change:
-      numeroSeguro(
-        p.rank_change
-      ),
-
-    ultima_captura:
-      p.last_seen_at ??
-      null,
-
-    estrategia_rotulo:
-      p.estrategia_rotulo ??
-      "🎯 Ranquear seus vídeos",
-
-    motivo:
-      p.motivo ??
-      "Produto com 0 vendas totais registradas."
-  };
-}
-
-function normalizarRanking(p) {
-  return {
-    id: String(
-      p.product_id ??
-      p.id ??
-      ""
-    ),
-
-    tipo: "ranking",
-
-    name:
-      p.product_name ??
-      p.name ??
-      "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
 
     product_url:
-      p.product_url ?? "",
-
-    affiliate_url:
-      p.affiliate_url ??
       p.product_url ??
+      p.affiliate_url ??
+      p.offer_link ??
+      p.url ??
       "",
 
-    shop_name:
-      p.shop_name ??
-      "Shopee",
-
-    price:
-      numeroSeguro(p.price),
-
-    sold_count:
-      numeroSeguro(
-        p.sold_count
-      ),
-
-    rating:
-      numeroSeguro(
-        p.rating
-      ),
-
-    ultima_captura:
+    created_at:
+      p.created_at ??
+      p.updated_at ??
       p.captured_at ??
-      p.last_seen_at ??
+      null,
+
+    updated_at:
+      p.updated_at ??
+      p.captured_at ??
+      p.created_at ??
       null
+
   };
+
 }
 
-// ======================================================
-// VÍDEOS
-// ======================================================
 
-function montarLinkTelegram(
-  canal,
-  postId
-) {
-  canal =
-    String(canal ?? "")
-      .replace(/^@/, "")
-      .trim();
+/* =========================================================
+   NORMALIZAÇÃO DOS PACKS
+========================================================= */
 
-  postId =
-    String(postId ?? "")
-      .trim();
-
-  if (
-    !canal ||
-    !postId
-  ) {
-    return "";
-  }
-
-  return `https://t.me/${encodeURIComponent(canal)}/${encodeURIComponent(postId)}`;
-}
-
-function extrairOrigemTelegram(v) {
-  let canal =
-    v.source_channel ??
-    "";
-
-  let postId =
-    v.source_post_id ??
-    "";
-
-  const identificador =
-    String(
-      v.shopee_video_id ??
-      ""
-    );
-
-  if (
-    (!canal || !postId) &&
-    identificador.startsWith(
-      "telegram:"
-    )
-  ) {
-    const partes =
-      identificador.split(":");
-
-    if (
-      partes.length >= 3
-    ) {
-      canal =
-        canal ||
-        partes[1];
-
-      postId =
-        postId ||
-        partes[2];
-    }
-  }
-
-  return {
-    canal,
-    postId
-  };
-}
-
-function normalizarVideo(v) {
-  const origem =
-    extrairOrigemTelegram(v);
-
-  const telegramUrl =
-    montarLinkTelegram(
-      origem.canal,
-      origem.postId
-    );
-
-  const plataforma =
-    String(
-      v.source_platform ??
-      ""
-    ).toLowerCase();
+function normalizarPack(v) {
 
   /*
-    IMPORTANTE:
-    Para vídeos encontrados no Telegram,
-    abrimos a publicação original.
+    O ID criado pelo coletor costuma ter formato:
 
-    Não usamos o endereço CDN temporário
-    como botão principal porque ele pode
-    expirar ou não abrir corretamente no
-    navegador do celular.
+    telegram:canal:post
+
+    Com isso conseguimos reconstruir o link
+    da publicação original mesmo quando a API
+    não devolve source_post_id separadamente.
   */
 
-  let watchUrl = "";
+  const partes =
+    String(
+      v.shopee_video_id || ""
+    ).split(":");
+
+
+  const canal =
+    String(
+      v.source_channel ||
+      partes[1] ||
+      ""
+    )
+      .replace(
+        /^@/,
+        ""
+      )
+      .trim();
+
+
+  const postId =
+    String(
+      v.source_post_id ||
+      partes[2] ||
+      ""
+    ).trim();
+
+
+  let sourceUrl =
+    String(
+      v.source_url ||
+      ""
+    ).trim();
+
 
   if (
-    plataforma === "telegram" ||
-    telegramUrl
+    !sourceUrl &&
+    v.source_platform ===
+      "telegram" &&
+    canal &&
+    postId
   ) {
-    watchUrl =
-      telegramUrl;
-  } else {
-    watchUrl =
-      v.watch_url ??
-      v.video_url ??
-      "";
+
+    sourceUrl =
+      `https://t.me/${canal}/${postId}`;
+
   }
 
-  const temProduto =
-    Boolean(
-      v.has_product ||
-      v.product_url
-    );
+
+  const produtoUrl =
+    String(
+      v.product_url ??
+      v.product_url_external ??
+      ""
+    ).trim();
+
+
+  const thumbnail =
+    String(
+      v.thumbnail_url ??
+      ""
+    ).trim();
+
+
+  const descricao =
+    String(
+      v.description ??
+      ""
+    ).trim();
+
 
   return {
-    id: String(
-      v.id ??
-      v.shopee_video_id ??
-      ""
-    ),
 
-    tipo: "video",
+    id:
+      String(
+        v.id ??
+        v.shopee_video_id ??
+        `${canal}-${postId}`
+      ),
+
+    tipo:
+      "pack",
 
     shopee_video_id:
       v.shopee_video_id ??
       "",
 
-    top:
-      numeroSeguro(v.top),
-
-    name:
-      v.description?.trim() ||
-      (
-        origem.canal
-          ? "Vídeo em alta"
-          : "Vídeo descoberto"
-      ),
+    title:
+      descricao ||
+      "Pack de vídeos para afiliados",
 
     description:
-      v.description ??
-      "",
-
-    image_url:
-      v.thumbnail_url ??
-      "",
+      descricao,
 
     thumbnail_url:
-      v.thumbnail_url ??
-      "",
+      thumbnail,
 
-    /*
-      Mantemos video_url apenas como
-      informação interna. O botão usa
-      watch_url.
-    */
-    video_url:
-      v.video_url ??
-      "",
-
-    watch_url:
-      watchUrl,
-
-    product_url:
-      v.product_url ??
-      "",
-
-    affiliate_url:
-      v.product_url ??
-      "",
-
-    creator_name:
-      v.creator_name ??
-      "",
-
-    creator_username:
-      v.creator_username ??
-      "",
-
-    shop_name:
-      origem.canal
-        ? `@${origem.canal}`
-        : (
-            v.creator_username
-              ? `@${v.creator_username}`
-              : "Vídeo encontrado"
-          ),
-
-    trend_score:
-      numeroSeguro(
-        v.trend_score
-      ),
-
-    trend_tier:
-      v.trend_tier ??
-      "descoberto",
-
-    trend_label:
-      v.trend_label ??
-      "🎬 Vídeo descoberto",
+    image_url:
+      thumbnail,
 
     source_platform:
       v.source_platform ??
-      "",
+      "telegram",
 
     source_channel:
-      origem.canal,
+      canal,
 
     source_post_id:
-      origem.postId,
+      postId,
 
-    /*
-      Só tratamos métricas como verificadas
-      quando existe valor MAIOR que zero.
+    source_url:
+      sourceUrl,
 
-      Assim o app não mostra:
-      0 visualizações
-      0 curtidas
-      como se fossem dados reais.
-    */
-    views:
-      numeroSeguro(v.views),
+    watch_url:
+      sourceUrl,
 
-    likes:
-      numeroSeguro(v.likes),
+    product_url:
+      produtoUrl,
 
-    comments:
-      numeroSeguro(v.comments),
-
-    metrics_verified:
-      numeroSeguro(v.views) > 0 ||
-      numeroSeguro(v.likes) > 0 ||
-      numeroSeguro(v.comments) > 0,
+    affiliate_url:
+      produtoUrl,
 
     has_product:
-      temProduto,
-
-    published_at:
-      v.published_at ??
-      null,
-
-    ultima_captura:
-      v.created_at ??
-      null,
+      Boolean(
+        produtoUrl ||
+        v.has_product
+      ),
 
     created_at:
       v.created_at ??
+      v.published_at ??
       null,
 
-    price: 0,
-    sold_count: 0,
-    rating: 0
+    published_at:
+      v.published_at ??
+      v.created_at ??
+      null
+
   };
+
 }
 
-function removerDuplicados(lista) {
-  const mapa =
-    new Map();
 
-  for (
-    const p of lista
-  ) {
-    if (
-      !p ||
-      !p.id
-    ) {
-      continue;
-    }
+/* =========================================================
+   URL DA API
+========================================================= */
 
-    const chave =
-      p.tipo === "video"
-        ? `video:${p.id}`
-        : `produto:${p.id}`;
+function montarURL(
+  modo,
+  pagina = 1
+) {
 
-    if (
-      !mapa.has(chave)
-    ) {
-      mapa.set(
-        chave,
-        p
-      );
-    }
-  }
+  let base =
+    MOMENTUM_API;
 
-  return [
-    ...mapa.values()
-  ];
-}
-
-// ======================================================
-// URL DAS APIS
-// ======================================================
-
-function montarURL(pagina) {
 
   if (
-    filtroAtual === "videos"
+    modo === "zero"
   ) {
-    const url =
-      new URL(
-        VIDEOS_API
-      );
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
+    base =
+      ZERO_API;
 
-    url.searchParams.set(
-      "limit",
-      String(
-        LIMITE_POR_PAGINA
-      )
-    );
-
-    return {
-      url:
-        url.toString(),
-
-      tipo:
-        "video"
-    };
   }
+
 
   if (
-    filtroAtual === "zero"
+    modo === "hot" ||
+    modo === "rating"
   ) {
-    const url =
-      new URL(
-        ZERO_API
-      );
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
+    base =
+      RANKING_API;
 
-    url.searchParams.set(
-      "limit",
-      String(
-        LIMITE_POR_PAGINA
-      )
-    );
-
-    if (
-      buscaDigitada
-    ) {
-      url.searchParams.set(
-        "q",
-        buscaDigitada
-      );
-    }
-
-    let sort =
-      "recent";
-
-    if (
-      ordenacaoAtual ===
-      "rating"
-    ) {
-      sort =
-        "rating";
-    }
-
-    if (
-      ordenacaoAtual ===
-      "trend"
-    ) {
-      sort =
-        "seen";
-    }
-
-    url.searchParams.set(
-      "sort",
-      sort
-    );
-
-    return {
-      url:
-        url.toString(),
-
-      tipo:
-        "zero"
-    };
   }
+
 
   if (
-    filtroAtual === "hot" ||
-    filtroAtual === "rating"
+    modo === "packs"
   ) {
-    const url =
-      new URL(
-        RANKING_API
-      );
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
+    base =
+      PACKS_API;
 
-    url.searchParams.set(
-      "limit",
-      String(
-        LIMITE_POR_PAGINA
-      )
-    );
-
-    url.searchParams.set(
-      "mode",
-      filtroAtual === "hot"
-        ? "sales"
-        : "rating"
-    );
-
-    return {
-      url:
-        url.toString(),
-
-      tipo:
-        "ranking"
-    };
   }
+
 
   const url =
-    new URL(
-      MOMENTUM_API
-    );
+    new URL(base);
+
 
   url.searchParams.set(
     "page",
     String(pagina)
   );
+
 
   url.searchParams.set(
     "limit",
@@ -1291,1759 +679,1894 @@ function montarURL(pagina) {
     )
   );
 
-  return {
-    url:
-      url.toString(),
-
-    tipo:
-      "momentum"
-  };
-}
-
-// ======================================================
-// CARREGAMENTO
-// ======================================================
-
-async function carregarProdutos(
-  pagina = 1,
-  adicionar = false
-) {
-  if (
-    carregando ||
-    modoFavoritos ||
-    (
-      adicionar &&
-      !temProximaPagina
-    )
-  ) {
-    return;
-  }
-
-  if (
-    !obterTokenRadar()
-  ) {
-    redirecionarLogin();
-    return;
-  }
-
-  carregando = true;
-
-  if (
-    adicionar
-  ) {
-    if (
-      infiniteLoader
-    ) {
-      infiniteLoader.hidden =
-        false;
-    }
-  } else {
-    mostrarLoading();
-  }
-
-  try {
-    const config =
-      montarURL(
-        pagina
-      );
-
-    const resposta =
-      await fetch(
-        config.url,
-        {
-          method: "GET",
-          headers:
-            criarHeadersAPI(),
-          cache:
-            "no-store"
-        }
-      );
-
-    if (
-      resposta.status === 401 ||
-      resposta.status === 403
-    ) {
-      redirecionarLogin();
-      return;
-    }
-
-    let dados;
-
-    try {
-      dados =
-        await resposta.json();
-    } catch {
-      throw new Error(
-        "Resposta inválida da API."
-      );
-    }
-
-    if (
-      !resposta.ok ||
-      dados.ok === false
-    ) {
-      throw new Error(
-        dados.erro ||
-        dados.message ||
-        "Não foi possível carregar os dados."
-      );
-    }
-
-    let novos = [];
-
-    if (
-      config.tipo ===
-      "video"
-    ) {
-      novos =
-        (
-          Array.isArray(
-            dados.videos
-          )
-            ? dados.videos
-            : []
-        ).map(
-          normalizarVideo
-        );
-    } else {
-      const lista =
-        Array.isArray(
-          dados.produtos
-        )
-          ? dados.produtos
-          : [];
-
-      novos =
-        lista.map(
-          config.tipo ===
-            "momentum"
-            ? normalizarMomentum
-            : config.tipo ===
-                "zero"
-              ? normalizarZero
-              : normalizarRanking
-        );
-    }
-
-    novos =
-      removerDuplicados(
-        novos
-      );
-
-    produtos =
-      adicionar
-        ? removerDuplicados([
-            ...produtos,
-            ...novos
-          ])
-        : novos;
-
-    paginaAtual =
-      numeroSeguro(
-        dados.paginaAtual ??
-        dados.page ??
-        pagina
-      ) || pagina;
-
-    if (
-      typeof
-        dados.temProximaPagina ===
-      "boolean"
-    ) {
-      temProximaPagina =
-        dados.temProximaPagina;
-    } else if (
-      typeof
-        dados.has_more ===
-      "boolean"
-    ) {
-      temProximaPagina =
-        dados.has_more;
-    } else {
-      temProximaPagina =
-        novos.length >=
-        LIMITE_POR_PAGINA;
-    }
-
-    totalServidor =
-      numeroSeguro(
-        dados.total
-      );
-
-    resumoServidor =
-      dados.resumo ||
-      {};
-
-    atualizarInterfaceModo();
-
-    aplicarOrdenacao();
-
-  } catch (erro) {
-    console.error(
-      "Erro Shopee Radar:",
-      erro
-    );
-
-    if (
-      !adicionar
-    ) {
-      mostrarErro(
-        erro instanceof Error
-          ? erro.message
-          : String(erro)
-      );
-    }
-  } finally {
-    carregando =
-      false;
-
-    if (
-      infiniteLoader
-    ) {
-      infiniteLoader.hidden =
-        true;
-    }
-  }
-}
-
-// ======================================================
-// FILTROS LOCAIS
-// ======================================================
-
-function obterListaFiltrada() {
-  let lista =
-    removerDuplicados([
-      ...produtos
-    ]);
-
-  const busca =
-    normalizarTexto(
-      buscaDigitada
-    );
-
-  if (
-    busca &&
-    filtroAtual !== "zero"
-  ) {
-    lista =
-      lista.filter(
-        p => {
-          if (
-            p.tipo ===
-            "video"
-          ) {
-            return normalizarTexto(
-              [
-                p.name,
-                p.description,
-                p.creator_name,
-                p.creator_username,
-                p.source_channel
-              ].join(" ")
-            ).includes(
-              busca
-            );
-          }
-
-          return normalizarTexto(
-            [
-              p.name,
-              p.shop_name
-            ].join(" ")
-          ).includes(
-            busca
-          );
-        }
-      );
-  }
 
   /*
-    Os vídeos ainda não possuem categoria
-    de produto confiável em todos os registros.
-    Portanto o filtro de nicho não deve
-    esconder vídeos aleatoriamente.
+    Parâmetros específicos
+    do ranking de produtos.
   */
+
   if (
-    filtroAtual !== "videos" &&
-    nichoAtual !== "all"
+    modo === "hot"
   ) {
-    lista =
-      lista.filter(
-        p =>
-          produtoPertenceNicho(
-            p,
-            nichoAtual
-          )
-      );
-  }
 
-  return lista;
-}
-
-// ======================================================
-// CONTADORES
-// ======================================================
-
-function atualizarContadores(
-  listaVisivel = null
-) {
-  const lista =
-    Array.isArray(
-      listaVisivel
-    )
-      ? listaVisivel
-      : obterListaFiltrada();
-
-  const filtrando =
-    nichoAtual !== "all" ||
-    Boolean(
-      buscaDigitada
+    url.searchParams.set(
+      "tipo",
+      "sales"
     );
 
+  }
+
+
   if (
-    filtroAtual === "videos"
+    modo === "rating"
   ) {
-    if (
-      totalProdutos
-    ) {
-      totalProdutos.textContent =
-        totalServidor ||
-        produtos.length;
+
+    url.searchParams.set(
+      "tipo",
+      "rating"
+    );
+
+  }
+
+
+  return url.toString();
+
+}
+
+
+/* =========================================================
+   BUSCA NA API
+========================================================= */
+
+async function buscarPagina(
+  modo,
+  pagina
+) {
+
+  const resposta =
+    await fetch(
+      montarURL(
+        modo,
+        pagina
+      ),
+      {
+        method:
+          "GET",
+
+        headers:
+          criarHeadersAPI()
+      }
+    );
+
+
+  if (
+    resposta.status === 401
+  ) {
+
+    tratarNaoAutorizado();
+
+    throw new Error(
+      "Sessão expirada."
+    );
+
+  }
+
+
+  if (
+    !resposta.ok
+  ) {
+
+    let mensagem =
+      `Erro ${resposta.status}`;
+
+    try {
+
+      const erro =
+        await resposta.json();
+
+      mensagem =
+        erro.erro ||
+        erro.error ||
+        erro.message ||
+        mensagem;
+
+    } catch (_) {
+      // mantém mensagem padrão
     }
 
-    if (
-      totalVideos
-    ) {
-      totalVideos.textContent =
-        totalServidor ||
-        produtos.length;
+    throw new Error(
+      mensagem
+    );
+
+  }
+
+
+  return resposta.json();
+
+}
+
+
+/* =========================================================
+   EXTRAIR LISTA DA RESPOSTA
+========================================================= */
+
+function extrairLista(
+  dados,
+  modo
+) {
+
+  if (
+    modo === "packs"
+  ) {
+
+    const lista =
+      Array.isArray(
+        dados?.videos
+      )
+        ? dados.videos
+        : Array.isArray(
+            dados?.packs
+          )
+          ? dados.packs
+          : Array.isArray(dados)
+            ? dados
+            : [];
+
+    return lista.map(
+      normalizarPack
+    );
+
+  }
+
+
+  const candidatos = [
+
+    dados?.produtos,
+
+    dados?.products,
+
+    dados?.items,
+
+    dados?.ranking,
+
+    dados?.data,
+
+    Array.isArray(dados)
+      ? dados
+      : null
+
+  ];
+
+
+  const lista =
+    candidatos.find(
+      Array.isArray
+    ) || [];
+
+
+  return lista.map(
+    normalizarProduto
+  );
+
+}
+
+
+/* =========================================================
+   POSSUI MAIS RESULTADOS
+========================================================= */
+
+function descobrirHasMore(
+  dados,
+  quantidade
+) {
+
+  if (
+    typeof dados?.has_more ===
+      "boolean"
+  ) {
+
+    return dados.has_more;
+
+  }
+
+
+  if (
+    typeof dados?.hasMore ===
+      "boolean"
+  ) {
+
+    return dados.hasMore;
+
+  }
+
+
+  return (
+    quantidade >=
+    LIMITE_POR_PAGINA
+  );
+
+}
+
+
+/* =========================================================
+   FILTRO DE PESQUISA
+========================================================= */
+
+function textoPesquisa() {
+
+  return String(
+    searchInput?.value ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+function categoriaSelecionada() {
+
+  return String(
+    categoryFilter?.value ||
+    "all"
+  ).toLowerCase();
+
+}
+
+
+/* =========================================================
+   FILTRAR PRODUTOS
+========================================================= */
+
+function filtrarProdutos(
+  lista
+) {
+
+  const pesquisa =
+    textoPesquisa();
+
+  const categoria =
+    categoriaSelecionada();
+
+
+  return lista.filter(
+    (produto) => {
+
+      const texto = [
+
+        produto.name,
+
+        produto.shop_name,
+
+        produto.category
+
+      ]
+        .join(" ")
+        .toLowerCase();
+
+
+      const batePesquisa =
+        !pesquisa ||
+        texto.includes(
+          pesquisa
+        );
+
+
+      const categoriaProduto =
+        String(
+          produto.category ||
+          ""
+        ).toLowerCase();
+
+
+      const bateCategoria =
+        categoria === "all" ||
+        categoriaProduto.includes(
+          categoria
+        );
+
+
+      return (
+        batePesquisa &&
+        bateCategoria
+      );
+
     }
+  );
+
+}
+
+
+/* =========================================================
+   FILTRAR PACKS
+========================================================= */
+
+function filtrarPacks(
+  lista
+) {
+
+  const pesquisa =
+    textoPesquisa();
+
+
+  /*
+    Os packs ainda não possuem
+    classificação confiável por nicho.
+
+    Portanto o filtro de categoria
+    NÃO remove packs.
+  */
+
+  return lista.filter(
+    (pack) => {
+
+      if (!pesquisa) {
+        return true;
+      }
+
+
+      const texto = [
+
+        pack.title,
+
+        pack.description,
+
+        pack.source_channel,
+
+        pack.source_platform
+
+      ]
+        .join(" ")
+        .toLowerCase();
+
+
+      return texto.includes(
+        pesquisa
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   LISTA VISÍVEL
+========================================================= */
+
+function obterListaFiltrada() {
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    return filtrarPacks(
+      packs
+    );
+
+  }
+
+
+  return filtrarProdutos(
+    produtos
+  );
+
+}
+/* =========================================================
+   SHOPEE RADAR — APP.JS FINAL
+   PARTE 2/3
+========================================================= */
+
+
+/* =========================================================
+   ORDENAÇÃO
+========================================================= */
+
+function ordenarProdutos(lista) {
+
+  const copia =
+    [...lista];
+
+
+  switch (
+    ordenacaoAtual
+  ) {
+
+    case "trend":
+
+      copia.sort(
+        (a, b) =>
+          numeroSeguro(
+            b.trend_score
+          ) -
+          numeroSeguro(
+            a.trend_score
+          )
+      );
+
+      break;
+
+
+    case "sales":
+
+      copia.sort(
+        (a, b) =>
+          numeroSeguro(
+            b.sales
+          ) -
+          numeroSeguro(
+            a.sales
+          )
+      );
+
+      break;
+
+
+    case "rating":
+
+      copia.sort(
+        (a, b) =>
+          numeroSeguro(
+            b.rating
+          ) -
+          numeroSeguro(
+            a.rating
+          )
+      );
+
+      break;
+
+
+    case "recent":
+
+      copia.sort(
+        (a, b) => {
+
+          const dataA =
+            new Date(
+              a.updated_at ||
+              a.created_at ||
+              0
+            ).getTime();
+
+          const dataB =
+            new Date(
+              b.updated_at ||
+              b.created_at ||
+              0
+            ).getTime();
+
+
+          return (
+            dataB -
+            dataA
+          );
+
+        }
+      );
+
+      break;
+
+
+    case "relevance":
+    default:
+
+      copia.sort(
+        (a, b) =>
+          numeroSeguro(
+            b.score
+          ) -
+          numeroSeguro(
+            a.score
+          )
+      );
+
+      break;
+
+  }
+
+
+  return copia;
+
+}
+
+
+/* =========================================================
+   ORDENAÇÃO DOS PACKS
+========================================================= */
+
+function ordenarPacks(lista) {
+
+  const copia =
+    [...lista];
+
+
+  /*
+    Packs são materiais descobertos.
+
+    Não vamos ordenar por views,
+    likes ou score porque esses
+    dados não estão confirmados.
+
+    O padrão será mostrar os
+    descobertos mais recentemente.
+  */
+
+  copia.sort(
+    (a, b) => {
+
+      const dataA =
+        new Date(
+          a.created_at ||
+          a.published_at ||
+          0
+        ).getTime();
+
+
+      const dataB =
+        new Date(
+          b.created_at ||
+          b.published_at ||
+          0
+        ).getTime();
+
+
+      return (
+        dataB -
+        dataA
+      );
+
+    }
+  );
+
+
+  return copia;
+
+}
+
+
+/* =========================================================
+   LISTA FINAL
+========================================================= */
+
+function obterListaFinal() {
+
+  const lista =
+    obterListaFiltrada();
+
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    return ordenarPacks(
+      lista
+    );
+
+  }
+
+
+  return ordenarProdutos(
+    lista
+  );
+
+}
+
+
+/* =========================================================
+   ESTATÍSTICAS
+========================================================= */
+
+function atualizarContadores() {
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    const total =
+      packs.length;
+
+
+    const comProduto =
+      packs.filter(
+        (pack) =>
+          pack.has_product
+      ).length;
+
+
+    const canais =
+      new Set(
+        packs
+          .map(
+            (pack) =>
+              pack.source_channel
+          )
+          .filter(Boolean)
+      ).size;
+
+
+    if (totalProdutos) {
+
+      totalProdutos.textContent =
+        numeroFormatado(
+          total
+        );
+
+    }
+
 
     if (
       totalOportunidades
     ) {
+
       totalOportunidades.textContent =
-        lista.filter(
-          p =>
-            p.has_product
-        ).length;
+        numeroFormatado(
+          comProduto
+        );
+
     }
 
-    return;
-  }
 
-  if (
-    totalProdutos
-  ) {
-    totalProdutos.textContent =
-      filtrando
-        ? lista.length
-        : (
-            totalServidor ||
-            produtos.length
-          );
-  }
+    if (totalVideos) {
 
-  if (
-    totalVideos
-  ) {
-    totalVideos.textContent =
-      produtos.length;
-  }
+      totalVideos.textContent =
+        numeroFormatado(
+          canais
+        );
 
-  if (
-    !totalOportunidades
-  ) {
-    return;
-  }
-
-  if (
-    filtroAtual === "zero"
-  ) {
-    totalOportunidades.textContent =
-      lista.filter(
-        p =>
-          numeroSeguro(
-            p.times_seen
-          ) >= 2
-      ).length;
-
-    return;
-  }
-
-  if (
-    filtroAtual === "radar"
-  ) {
-    totalOportunidades.textContent =
-      filtrando
-        ? lista.filter(
-            p =>
-              numeroSeguro(
-                p.momentum_score
-              ) >= 70
-          ).length
-        : numeroSeguro(
-            resumoServidor
-              .total_oportunidades
-          );
-
-    return;
-  }
-
-  totalOportunidades.textContent =
-    lista.length;
-}
-
-// ======================================================
-// INTERFACE POR MODO
-// ======================================================
-
-function atualizarInterfaceModo() {
-
-  if (
-    filtroAtual === "videos"
-  ) {
-    if (
-      resultsTitle
-    ) {
-      resultsTitle.textContent =
-        "🎬 Vídeos em Alta";
     }
 
-    if (
-      heroDescription
-    ) {
-      heroDescription.textContent =
-        "Vídeos encontrados automaticamente pelo Radar com acesso à publicação e ao produto associado.";
-    }
 
     if (
       totalProdutosLabel
     ) {
+
       totalProdutosLabel.textContent =
-        "VÍDEOS";
+        "PACKS";
+
     }
+
 
     if (
       totalOportunidadesLabel
     ) {
+
       totalOportunidadesLabel.textContent =
         "COM PRODUTO";
+
     }
 
+
     if (
-      zeroStrategyBox
+      totalVideosLabel
     ) {
-      zeroStrategyBox.hidden =
-        true;
+
+      totalVideosLabel.textContent =
+        "CANAIS";
+
     }
+
 
     return;
+
   }
+
+
+  const lista =
+    produtos;
+
+
+  const destaques =
+    lista.filter(
+      (produto) =>
+        numeroSeguro(
+          produto.score
+        ) >= 70
+    ).length;
+
+
+  if (totalProdutos) {
+
+    totalProdutos.textContent =
+      numeroFormatado(
+        lista.length
+      );
+
+  }
+
 
   if (
-    filtroAtual === "zero"
+    totalOportunidades
   ) {
-    if (
-      resultsTitle
-    ) {
-      resultsTitle.textContent =
-        "🎯 Produtos com Zero Vendas";
-    }
 
-    if (
-      heroDescription
-    ) {
-      heroDescription.textContent =
-        "Encontre produtos ainda sem vendas detectadas e tente posicionar seus vídeos antes da concorrência.";
-    }
+    totalOportunidades.textContent =
+      numeroFormatado(
+        destaques
+      );
 
-    if (
-      totalProdutosLabel
-    ) {
-      totalProdutosLabel.textContent =
-        "PRODUTOS";
-    }
-
-    if (
-      totalOportunidadesLabel
-    ) {
-      totalOportunidadesLabel.textContent =
-        "OPORTUNIDADES";
-    }
-
-    if (
-      zeroStrategyBox
-    ) {
-      zeroStrategyBox.hidden =
-        false;
-    }
-
-    return;
   }
 
-  if (
-    filtroAtual === "hot"
-  ) {
-    if (
-      resultsTitle
-    ) {
-      resultsTitle.textContent =
-        "🔥 Mais Vendidos";
-    }
 
-    if (
-      heroDescription
-    ) {
-      heroDescription.textContent =
-        "Produtos encontrados pelo Radar com maior força de vendas.";
-    }
+  if (totalVideos) {
 
-    if (
-      zeroStrategyBox
-    ) {
-      zeroStrategyBox.hidden =
-        true;
-    }
+    totalVideos.textContent =
+      numeroFormatado(
+        lista.length
+      );
 
-    return;
   }
 
-  if (
-    filtroAtual === "rating"
-  ) {
-    if (
-      resultsTitle
-    ) {
-      resultsTitle.textContent =
-        "⭐ Melhor Avaliados";
-    }
-
-    if (
-      heroDescription
-    ) {
-      heroDescription.textContent =
-        "Produtos encontrados pelo Radar organizados por avaliação.";
-    }
-
-    if (
-      zeroStrategyBox
-    ) {
-      zeroStrategyBox.hidden =
-        true;
-    }
-
-    return;
-  }
-
-  if (
-    resultsTitle
-  ) {
-    resultsTitle.textContent =
-      "📡 Radar de Oportunidades";
-  }
-
-  if (
-    heroDescription
-  ) {
-    heroDescription.textContent =
-      "Produtos que estão ganhando força agora dentro da Shopee.";
-  }
 
   if (
     totalProdutosLabel
   ) {
+
     totalProdutosLabel.textContent =
-      "PRODUTOS";
+      "NO RADAR";
+
   }
+
 
   if (
     totalOportunidadesLabel
   ) {
+
     totalOportunidadesLabel.textContent =
-      "OPORTUNIDADES";
+      "DESTAQUES";
+
   }
+
+
+  if (
+    totalVideosLabel
+  ) {
+
+    totalVideosLabel.textContent =
+      "CARREGADOS";
+
+  }
+
+}
+
+
+/* =========================================================
+   INTERFACE POR MODO
+========================================================= */
+
+function atualizarInterfaceModo() {
 
   if (
     zeroStrategyBox
   ) {
-    zeroStrategyBox.hidden =
-      true;
-  }
-      }
-// ======================================================
-// ORDENAÇÃO
-// ======================================================
 
-function aplicarOrdenacao() {
-  let lista =
-    obterListaFiltrada();
-
-  // Vídeos já chegam ranqueados pela API.
-  if (
-    filtroAtual === "videos"
-  ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(a.top) -
-          numeroSeguro(b.top) ||
-        numeroSeguro(
-          b.trend_score
-        ) -
-          numeroSeguro(
-            a.trend_score
-          )
+    zeroStrategyBox.classList.toggle(
+      "active",
+      modoAtual === "zero"
     );
 
-    atualizarContadores(lista);
-    renderizarProdutos(lista);
+  }
+
+
+  if (
+    categoryFilter
+  ) {
+
+    categoryFilter.disabled =
+      modoAtual === "packs";
+
+  }
+
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    if (resultsEyebrow) {
+
+      resultsEyebrow.textContent =
+        "MATERIAIS PARA AFILIADOS";
+
+    }
+
+
+    if (resultsTitle) {
+
+      resultsTitle.textContent =
+        "📦 Packs para Afiliados";
+
+    }
+
+
+    if (heroDescription) {
+
+      heroDescription.textContent =
+        "Encontre packs públicos de vídeos para divulgar produtos da Shopee.";
+
+    }
+
+
+    if (searchInput) {
+
+      searchInput.placeholder =
+        "Pesquisar pack ou canal...";
+
+    }
+
+
+    if (sortSection) {
+
+      sortSection.style.display =
+        "none";
+
+    }
+
+
     return;
+
   }
+
+
+  if (searchInput) {
+
+    searchInput.placeholder =
+      "Pesquisar produto...";
+
+  }
+
+
+  if (sortSection) {
+
+    sortSection.style.display =
+      "";
+
+  }
+
 
   if (
-    ordenacaoAtual ===
-    "price_asc"
+    modoAtual === "zero"
   ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(a.price) -
-        numeroSeguro(b.price)
-    );
+
+    if (resultsEyebrow) {
+
+      resultsEyebrow.textContent =
+        "ENTRE ANTES DA CONCORRÊNCIA";
+
+    }
+
+
+    if (resultsTitle) {
+
+      resultsTitle.textContent =
+        "🎯 Produtos para Ranquear";
+
+    }
+
+
+    if (heroDescription) {
+
+      heroDescription.textContent =
+        "Encontre produtos ainda no começo e publique antes da concorrência aumentar.";
+
+    }
+
+
+    return;
+
   }
+
 
   if (
-    ordenacaoAtual ===
-    "price_desc"
+    modoAtual === "hot"
   ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(b.price) -
-        numeroSeguro(a.price)
-    );
+
+    if (resultsEyebrow) {
+
+      resultsEyebrow.textContent =
+        "PRODUTOS COM FORÇA";
+
+    }
+
+
+    if (resultsTitle) {
+
+      resultsTitle.textContent =
+        "🔥 Mais Vendidos";
+
+    }
+
+
+    if (heroDescription) {
+
+      heroDescription.textContent =
+        "Veja produtos que já demonstram forte movimento de vendas na Shopee.";
+
+    }
+
+
+    return;
+
   }
+
 
   if (
-    ordenacaoAtual ===
-    "sales"
+    modoAtual === "rating"
   ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(
-          b.sold_count
-        ) -
-        numeroSeguro(
-          a.sold_count
-        )
-    );
+
+    if (resultsEyebrow) {
+
+      resultsEyebrow.textContent =
+        "QUALIDADE E ACEITAÇÃO";
+
+    }
+
+
+    if (resultsTitle) {
+
+      resultsTitle.textContent =
+        "⭐ Melhores Avaliações";
+
+    }
+
+
+    if (heroDescription) {
+
+      heroDescription.textContent =
+        "Encontre produtos bem avaliados para escolher ofertas com melhor aceitação.";
+
+    }
+
+
+    return;
+
   }
 
-  if (
-    ordenacaoAtual ===
-    "rating"
-  ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(b.rating) -
-        numeroSeguro(a.rating)
-    );
+
+  if (resultsEyebrow) {
+
+    resultsEyebrow.textContent =
+      "ANÁLISE EM TEMPO REAL";
+
   }
 
-  if (
-    ordenacaoAtual ===
-    "trend"
-  ) {
-    lista.sort(
-      (a, b) =>
-        numeroSeguro(
-          b.momentum_score ??
-          b.times_seen
-        ) -
-        numeroSeguro(
-          a.momentum_score ??
-          a.times_seen
-        )
-    );
+
+  if (resultsTitle) {
+
+    resultsTitle.textContent =
+      "📡 Radar de Oportunidades";
+
   }
 
-  atualizarContadores(lista);
-  renderizarProdutos(lista);
+
+  if (heroDescription) {
+
+    heroDescription.textContent =
+      "Encontre produtos antes de saturarem e acompanhe oportunidades em um único Radar.";
+
+  }
+
 }
 
-// ======================================================
-// LOADING / ERRO
-// ======================================================
 
-function mostrarLoading() {
-  if (!productsGrid) {
-    return;
-  }
+/* =========================================================
+   CLASSE DO BADGE DO PRODUTO
+========================================================= */
 
-  if (emptyState) {
-    emptyState.hidden = true;
-  }
-
-  productsGrid.innerHTML =
-    Array.from({
-      length: 6
-    })
-      .map(
-        () => `
-          <article class="product-card loading-card">
-            <div class="product-image-wrap">
-              <div
-                style="
-                  width:100%;
-                  aspect-ratio:1/1;
-                  background:#171a22;
-                  border-radius:12px;
-                "
-              ></div>
-            </div>
-
-            <div class="product-info">
-              <div
-                style="
-                  height:15px;
-                  background:#171a22;
-                  border-radius:8px;
-                  margin-bottom:8px;
-                "
-              ></div>
-
-              <div
-                style="
-                  height:12px;
-                  width:65%;
-                  background:#171a22;
-                  border-radius:8px;
-                "
-              ></div>
-            </div>
-          </article>
-        `
-      )
-      .join("");
-}
-
-function mostrarErro(mensagem) {
-  if (!productsGrid) {
-    return;
-  }
-
-  productsGrid.innerHTML = "";
-
-  if (!emptyState) {
-    return;
-  }
-
-  emptyState.hidden = false;
-
-  const titulo =
-    emptyState.querySelector("h3");
-
-  const texto =
-    emptyState.querySelector("p");
-
-  if (titulo) {
-    titulo.textContent =
-      "Não foi possível carregar";
-  }
-
-  if (texto) {
-    texto.textContent =
-      mensagem ||
-      "Tente novamente em alguns segundos.";
-  }
-}
-
-// ======================================================
-// CARD DE VÍDEO
-// ======================================================
-
-function criarCardVideo(p) {
-  const top =
-    numeroSeguro(p.top) > 0
-      ? `TOP ${Math.round(
-          numeroSeguro(p.top)
-        )}`
-      : "EM ALTA";
+function textoOportunidade(
+  produto
+) {
 
   const score =
-    Math.round(
-      numeroSeguro(
-        p.trend_score
-      )
+    numeroSeguro(
+      produto.score
     );
 
-  const canal =
-    p.source_channel
-      ? `@${String(
-          p.source_channel
-        ).replace(/^@/, "")}`
-      : "Vídeo encontrado";
 
-  const temImagem =
-    Boolean(
-      p.thumbnail_url ||
-      p.image_url
-    );
+  if (
+    score >= 80
+  ) {
+
+    return "🔥 OPORTUNIDADE";
+
+  }
+
+
+  if (
+    score >= 60
+  ) {
+
+    return "📈 EM ALTA";
+
+  }
+
+
+  return "💎 RADAR";
+
+}
+
+
+/* =========================================================
+   CARD DE PRODUTO
+========================================================= */
+
+function criarCardProduto(
+  produto
+) {
 
   const imagem =
-    p.thumbnail_url ||
-    p.image_url ||
-    "";
+    produto.image_url
+      ? `
+        <img
+          class="product-image"
+          src="${escapar(produto.image_url)}"
+          alt="${escapar(produto.name)}"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        >
+      `
+      : `
+        <div
+          class="product-image"
+          style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:40px;
+            background:#11151e;
+          "
+        >
+          📦
+        </div>
+      `;
 
-  const assistir =
-    Boolean(p.watch_url);
 
-  const produto =
-    Boolean(p.product_url);
+  const comissao =
+    produto.commission > 0
+      ? dinheiro(
+          produto.commission
+        )
+      : percentual(
+          produto.commission_rate
+        );
+
 
   return `
     <article
-      class="product-card video-card"
-      data-id="${escapar(p.id)}"
+      class="product-card"
+      data-product-id="${escapar(produto.id)}"
     >
-      <div class="product-image-wrap">
 
-        ${
-          temImagem
-            ? `
-              <img
-                src="${escapar(imagem)}"
-                alt="Vídeo em alta"
-                loading="lazy"
-                onerror="
-                  this.style.display='none';
-                  if(this.nextElementSibling){
-                    this.nextElementSibling.style.display='flex';
-                  }
-                "
-              >
+      ${imagem}
 
-              <div
-                style="
-                  display:none;
-                  width:100%;
-                  aspect-ratio:1/1;
-                  align-items:center;
-                  justify-content:center;
-                  flex-direction:column;
-                  gap:7px;
-                  background:
-                    radial-gradient(
-                      circle at center,
-                      #1c202b,
-                      #0d1017
-                    );
-                "
-              >
-                <span
-                  style="
-                    font-size:40px;
-                  "
-                >
-                  🎬
-                </span>
-
-                <small
-                  style="
-                    color:#777f8f;
-                    font-size:9px;
-                  "
-                >
-                  VÍDEO ENCONTRADO
-                </small>
-              </div>
-            `
-            : `
-              <div
-                style="
-                  display:flex;
-                  width:100%;
-                  aspect-ratio:1/1;
-                  align-items:center;
-                  justify-content:center;
-                  flex-direction:column;
-                  gap:7px;
-                  background:
-                    radial-gradient(
-                      circle at center,
-                      #1c202b,
-                      #0d1017
-                    );
-                "
-              >
-                <span
-                  style="
-                    font-size:40px;
-                  "
-                >
-                  🎬
-                </span>
-
-                <small
-                  style="
-                    color:#777f8f;
-                    font-size:9px;
-                  "
-                >
-                  VÍDEO ENCONTRADO
-                </small>
-              </div>
-            `
-        }
+      <div
+        class="product-card-content"
+      >
 
         <div
-          class="product-badge"
-          style="
-            position:absolute;
-            left:9px;
-            top:9px;
-            z-index:3;
-          "
+          class="product-card-top"
         >
-          ${escapar(top)}
+
+          <span
+            class="opportunity-badge"
+          >
+            ${escapar(
+              textoOportunidade(
+                produto
+              )
+            )}
+          </span>
+
+          <span
+            class="score-badge"
+          >
+            ${inteiro(
+              produto.score
+            )}
+          </span>
+
         </div>
 
-      </div>
-
-      <div class="product-info">
-
-        <div
-          style="
-            color:#ff6530;
-            font-size:9px;
-            font-weight:800;
-            line-height:1.2;
-            margin-bottom:6px;
-          "
-        >
-          ${escapar(
-            p.trend_label ||
-            "📈 Vídeo descoberto"
-          )}
-        </div>
 
         <h3
           class="product-name"
-          style="
-            margin-bottom:5px;
-          "
         >
-          Vídeo em alta
+          ${escapar(
+            produto.name
+          )}
         </h3>
 
-        <div class="product-shop">
-          ${escapar(canal)}
-        </div>
 
-        <div class="radar-mini-grid">
+        <span
+          class="product-shop"
+        >
+          ${escapar(
+            produto.shop_name
+          )}
+        </span>
 
-          <div class="radar-mini-box">
-            <small>
-              SCORE DO RADAR
-            </small>
-
-            <strong>
-              ${score}/100
-            </strong>
-          </div>
-
-          <div class="radar-mini-box">
-            <small>
-              PRODUTO
-            </small>
-
-            <strong>
-              ${
-                p.has_product
-                  ? "✓"
-                  : "—"
-              }
-            </strong>
-          </div>
-
-        </div>
 
         <div
-          style="
-            display:grid;
-            grid-template-columns:1fr;
-            gap:7px;
-            margin-top:10px;
-          "
+          class="product-stats"
         >
 
-          ${
-            assistir
-              ? `
-                <a
-                  href="${escapar(
-                    p.watch_url
-                  )}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-video-action
-                  style="
-                    display:block;
-                    width:100%;
-                    box-sizing:border-box;
-                    text-align:center;
-                    text-decoration:none;
-                    background:#ff5b25;
-                    color:#fff;
-                    padding:10px 8px;
-                    border-radius:9px;
-                    font-size:10px;
-                    font-weight:900;
-                  "
-                >
-                  ▶ VER VÍDEO
-                </a>
-              `
-              : `
-                <button
-                  type="button"
-                  disabled
-                  style="
-                    width:100%;
-                    border:0;
-                    background:#20232c;
-                    color:#747b89;
-                    padding:10px 8px;
-                    border-radius:9px;
-                    font-size:10px;
-                    font-weight:800;
-                  "
-                >
-                  VÍDEO INDISPONÍVEL
-                </button>
-              `
-          }
+          <div
+            class="product-stat"
+          >
 
-          ${
-            produto
-              ? `
-                <a
-                  href="${escapar(
-                    p.product_url
-                  )}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-video-action
-                  style="
-                    display:block;
-                    width:100%;
-                    box-sizing:border-box;
-                    text-align:center;
-                    text-decoration:none;
-                    background:#11151e;
-                    color:#fff;
-                    border:1px solid rgba(255,255,255,.10);
-                    padding:10px 8px;
-                    border-radius:9px;
-                    font-size:10px;
-                    font-weight:900;
-                  "
-                >
-                  🛒 VER PRODUTO
-                </a>
-              `
-              : ""
-          }
-
-        </div>
-
-      </div>
-    </article>
-  `;
-}
-
-// ======================================================
-// CARD ZERO VENDAS
-// ======================================================
-
-function criarCardZero(p) {
-  const favorito =
-    estaFavoritado(p.id);
-
-  const visto =
-    numeroSeguro(
-      p.times_seen
-    );
-
-  const rank =
-    numeroSeguro(
-      p.rank_atual
-    );
-
-  return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
-      <div class="product-image-wrap">
-
-        ${
-          p.image_url
-            ? `
-              <img
-                src="${escapar(
-                  p.image_url
-                )}"
-                alt="${escapar(
-                  p.name
-                )}"
-                loading="lazy"
-              >
-            `
-            : `
-              <div
-                style="
-                  width:100%;
-                  aspect-ratio:1/1;
-                  background:#11151f;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  font-size:38px;
-                "
-              >
-                🛒
-              </div>
-            `
-        }
-
-        <div class="product-badge">
-          0 VENDAS
-        </div>
-
-        <button
-          type="button"
-          class="favorite-btn ${
-            favorito
-              ? "active"
-              : ""
-          }"
-          data-favorite-id="${escapar(
-            p.id
-          )}"
-        >
-          ${
-            favorito
-              ? "♥"
-              : "♡"
-          }
-        </button>
-
-      </div>
-
-      <div class="product-info">
-
-        <h3 class="product-name">
-          ${escapar(p.name)}
-        </h3>
-
-        <div class="product-shop">
-          ${escapar(
-            p.shop_name
-          )}
-        </div>
-
-        <div class="product-stats">
-
-          <div class="product-stat">
             <span>
-              VISTO PELO RADAR
+              VENDIDOS
             </span>
 
             <strong>
-              ${formatarNumero(
-                visto
-              )}x
-            </strong>
-          </div>
-
-          <div class="product-stat">
-            <span>
-              POSIÇÃO
-            </span>
-
-            <strong>
-              ${
-                rank > 0
-                  ? "#" + rank
-                  : "—"
-              }
-            </strong>
-          </div>
-
-        </div>
-
-        <div
-          style="
-            margin-top:10px;
-            padding:10px;
-            border-radius:9px;
-            background:#11151f;
-            font-size:10px;
-            line-height:1.4;
-          "
-        >
-          ${escapar(
-            p.estrategia_rotulo
-          )}
-        </div>
-
-        <div class="product-footer">
-
-          <div>
-            <small>
-              PRODUTO
-            </small>
-            <strong>
-              SHOPEE
-            </strong>
-          </div>
-
-          <div class="product-price">
-            <small>
-              PREÇO
-            </small>
-
-            <strong>
-              ${dinheiro(
-                p.price
+              ${numeroFormatado(
+                produto.sales
               )}
             </strong>
+
           </div>
 
-        </div>
 
-      </div>
-    </article>
-  `;
-}
+          <div
+            class="product-stat"
+          >
 
-// ======================================================
-// CARD MOMENTUM
-// ======================================================
-
-function criarCardMomentum(p) {
-  const favorito =
-    estaFavoritado(p.id);
-
-  const score =
-    Math.round(
-      numeroSeguro(
-        p.momentum_score
-      )
-    );
-
-  const trend =
-    Math.round(
-      numeroSeguro(
-        p.trend_score
-      )
-    );
-
-  const vendas =
-    numeroSeguro(
-      p.vendas_confirmadas_24h
-    );
-
-  const posicao =
-    numeroSeguro(
-      p.momentum_posicao
-    );
-
-  return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
-
-      <div class="product-image-wrap">
-
-        ${
-          p.image_url
-            ? `
-              <img
-                src="${escapar(
-                  p.image_url
-                )}"
-                alt="${escapar(
-                  p.name
-                )}"
-                loading="lazy"
-              >
-            `
-            : `
-              <div
-                style="
-                  width:100%;
-                  aspect-ratio:1/1;
-                  background:#11151f;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  font-size:38px;
-                "
-              >
-                📡
-              </div>
-            `
-        }
-
-        <div class="product-badge">
-          ${
-            posicao > 0
-              ? `TOP ${Math.round(
-                  posicao
-                )}`
-              : escapar(
-                  p.momentum_rotulo
-                )
-          }
-        </div>
-
-        <button
-          type="button"
-          class="favorite-btn ${
-            favorito
-              ? "active"
-              : ""
-          }"
-          data-favorite-id="${escapar(
-            p.id
-          )}"
-        >
-          ${
-            favorito
-              ? "♥"
-              : "♡"
-          }
-        </button>
-
-      </div>
-
-      <div class="product-info">
-
-        <h3 class="product-name">
-          ${escapar(
-            p.name
-          )}
-        </h3>
-
-        <div class="product-shop">
-          ${escapar(
-            p.shop_name
-          )}
-        </div>
-
-        <div class="product-stats">
-
-          <div class="product-stat">
-            <span>
-              FORÇA AGORA
-            </span>
-
-            <strong>
-              ${score}/100
-            </strong>
-          </div>
-
-          <div class="product-stat">
-            <span>
-              TENDÊNCIA
-            </span>
-
-            <strong>
-              ${trend}/100
-            </strong>
-          </div>
-
-          <div class="product-stat">
-            <span>
-              VENDAS DETECTADAS
-            </span>
-
-            <strong>
-              ${
-                vendas > 0
-                  ? "+"
-                  : ""
-              }${formatarNumero(
-                vendas
-              )}
-            </strong>
-          </div>
-
-          <div class="product-stat">
-            <span>
-              VISTO PELO RADAR
-            </span>
-
-            <strong>
-              ${formatarNumero(
-                p.capturas_24h
-              )}x
-            </strong>
-          </div>
-
-        </div>
-
-        <div class="product-footer">
-
-          <div>
-            <small>
-              PRODUTO
-            </small>
-            <strong>
-              SHOPEE
-            </strong>
-          </div>
-
-          <div class="product-price">
-            <small>
-              PREÇO
-            </small>
-
-            <strong>
-              ${dinheiro(
-                p.price
-              )}
-            </strong>
-          </div>
-
-        </div>
-
-      </div>
-    </article>
-  `;
-}
-
-// ======================================================
-// CARD RANKING
-// ======================================================
-
-function criarCardRanking(p) {
-  const favorito =
-    estaFavoritado(p.id);
-
-  return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
-
-      <div class="product-image-wrap">
-
-        ${
-          p.image_url
-            ? `
-              <img
-                src="${escapar(
-                  p.image_url
-                )}"
-                alt="${escapar(
-                  p.name
-                )}"
-                loading="lazy"
-              >
-            `
-            : `
-              <div
-                style="
-                  width:100%;
-                  aspect-ratio:1/1;
-                  background:#11151f;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  font-size:38px;
-                "
-              >
-                🔥
-              </div>
-            `
-        }
-
-        <button
-          type="button"
-          class="favorite-btn ${
-            favorito
-              ? "active"
-              : ""
-          }"
-          data-favorite-id="${escapar(
-            p.id
-          )}"
-        >
-          ${
-            favorito
-              ? "♥"
-              : "♡"
-          }
-        </button>
-
-      </div>
-
-      <div class="product-info">
-
-        <h3 class="product-name">
-          ${escapar(
-            p.name
-          )}
-        </h3>
-
-        <div class="product-shop">
-          ${escapar(
-            p.shop_name
-          )}
-        </div>
-
-        <div class="product-stats">
-
-          <div class="product-stat">
-            <span>
-              VENDAS
-            </span>
-
-            <strong>
-              ${formatarNumero(
-                p.sold_count
-              )}
-            </strong>
-          </div>
-
-          <div class="product-stat">
             <span>
               AVALIAÇÃO
             </span>
 
             <strong>
-              ${numeroSeguro(
-                p.rating
-              ).toFixed(1)}
+              ${
+                produto.rating > 0
+                  ? produto.rating.toFixed(1)
+                  : "—"
+              }
             </strong>
+
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+
+            <span>
+              COMISSÃO
+            </span>
+
+            <strong>
+              ${escapar(
+                comissao
+              )}
+            </strong>
+
+          </div>
+
+
+          <div
+            class="product-stat"
+          >
+
+            <span>
+              TENDÊNCIA
+            </span>
+
+            <strong>
+              ${inteiro(
+                produto.trend_score
+              )}
+            </strong>
+
           </div>
 
         </div>
 
-        <div class="product-footer">
+
+        <div
+          class="product-footer"
+        >
 
           <div>
+
             <small>
-              PRODUTO
+              RADAR SCORE
             </small>
+
             <strong>
-              SHOPEE
+              ${inteiro(
+                produto.score
+              )}/100
             </strong>
+
           </div>
 
-          <div class="product-price">
+
+          <div
+            class="product-price"
+          >
+
             <small>
               PREÇO
             </small>
 
             <strong>
-              ${dinheiro(
-                p.price
-              )}
+              ${
+                produto.price > 0
+                  ? dinheiro(
+                      produto.price
+                    )
+                  : "—"
+              }
             </strong>
+
           </div>
 
         </div>
 
       </div>
+
     </article>
   `;
+
 }
 
-// ======================================================
-// RENDERIZAÇÃO
-// ======================================================
 
-function renderizarProdutos(lista) {
-  if (!productsGrid) {
+/* =========================================================
+   CARD DE PACK
+========================================================= */
+
+function criarCardPack(
+  pack
+) {
+
+  /*
+    Só mostramos uma imagem quando
+    realmente existe thumbnail.
+
+    Caso contrário usamos uma capa
+    compacta. Não inventamos foto.
+  */
+
+  const media =
+    pack.thumbnail_url
+      ? `
+        <img
+          src="${escapar(
+            pack.thumbnail_url
+          )}"
+          alt="Prévia do pack"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          onerror="
+            this.style.display='none';
+            this.nextElementSibling.style.display='flex';
+          "
+        >
+
+        <div
+          class="pack-placeholder"
+          style="display:none;"
+        >
+
+          <span
+            class="pack-placeholder-icon"
+          >
+            📦
+          </span>
+
+          <span>
+            PACK PARA AFILIADOS
+          </span>
+
+        </div>
+      `
+      : `
+        <div
+          class="pack-placeholder"
+        >
+
+          <span
+            class="pack-placeholder-icon"
+          >
+            📦
+          </span>
+
+          <span>
+            PACK PARA AFILIADOS
+          </span>
+
+        </div>
+      `;
+
+
+  const canal =
+    pack.source_channel
+      ? `@${pack.source_channel}`
+      : "Origem encontrada";
+
+
+  const botaoPack =
+    pack.source_url
+      ? `
+        <a
+          class="
+            pack-button
+            pack-button-primary
+          "
+          href="${escapar(
+            pack.source_url
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-pack-link
+        >
+          📦 ABRIR PACK
+        </a>
+      `
+      : `
+        <span
+          class="
+            pack-button
+            pack-button-disabled
+          "
+        >
+          PACK INDISPONÍVEL
+        </span>
+      `;
+
+
+  const botaoProduto =
+    pack.product_url
+      ? `
+        <a
+          class="
+            pack-button
+            pack-button-secondary
+          "
+          href="${escapar(
+            pack.product_url
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-pack-link
+        >
+          🛒 VER PRODUTO
+        </a>
+      `
+      : "";
+
+
+  return `
+    <article
+      class="pack-card"
+      data-pack-id="${escapar(
+        pack.id
+      )}"
+    >
+
+      <div
+        class="pack-media"
+      >
+
+        ${media}
+
+        <span
+          class="pack-badge"
+        >
+          📦 PACK ENCONTRADO
+        </span>
+
+      </div>
+
+
+      <div
+        class="pack-content"
+      >
+
+        <div
+          class="pack-label"
+        >
+          MATERIAL PARA AFILIADOS
+        </div>
+
+
+        <h3
+          class="pack-title"
+        >
+          ${escapar(
+            pack.title
+          )}
+        </h3>
+
+
+        <div
+          class="pack-channel"
+        >
+          ${escapar(
+            canal
+          )}
+        </div>
+
+
+        <div
+          class="pack-info-grid"
+        >
+
+          <div
+            class="pack-info"
+          >
+
+            <small>
+              ORIGEM
+            </small>
+
+            <strong>
+              ${
+                pack.source_platform ===
+                "telegram"
+                  ? "Telegram"
+                  : escapar(
+                      pack.source_platform ||
+                      "Encontrado"
+                    )
+              }
+            </strong>
+
+          </div>
+
+
+          <div
+            class="pack-info"
+          >
+
+            <small>
+              PRODUTO
+            </small>
+
+            <strong>
+              ${
+                pack.has_product
+                  ? "✓ ASSOCIADO"
+                  : "—"
+              }
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="pack-actions"
+        >
+
+          ${botaoPack}
+
+          ${botaoProduto}
+
+        </div>
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+/* =========================================================
+   RENDERIZAR GRID
+========================================================= */
+
+function renderizarGrid() {
+
+  if (
+    !productsGrid
+  ) {
     return;
   }
 
-  const listaUnica =
-    removerDuplicados(
-      lista
-    );
+
+  const lista =
+    obterListaFinal();
+
+
+  atualizarContadores();
+
 
   if (
-    !listaUnica.length
+    lista.length === 0
   ) {
+
     productsGrid.innerHTML =
       "";
 
-    if (
-      emptyState
-    ) {
+    if (emptyState) {
+
       emptyState.hidden =
         false;
 
-      const titulo =
-        emptyState.querySelector(
-          "h3"
-        );
-
-      const texto =
-        emptyState.querySelector(
-          "p"
-        );
-
-      if (titulo) {
-        titulo.textContent =
-          filtroAtual ===
-          "videos"
-            ? "Nenhum vídeo encontrado"
-            : "Nenhum produto encontrado";
-      }
-
-      if (texto) {
-        texto.textContent =
-          filtroAtual ===
-          "videos"
-            ? "O Radar ainda não encontrou vídeos para esse filtro."
-            : "Tente mudar sua pesquisa ou filtro.";
-      }
     }
 
     return;
+
   }
+
 
   if (emptyState) {
+
     emptyState.hidden =
       true;
+
   }
 
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    productsGrid.innerHTML =
+      lista
+        .map(
+          criarCardPack
+        )
+        .join("");
+
+    return;
+
+  }
+
+
   productsGrid.innerHTML =
-    listaUnica
+    lista
       .map(
-        p => {
-          if (
-            p.tipo ===
-            "video"
-          ) {
-            return criarCardVideo(
-              p
-            );
-          }
-
-          if (
-            p.tipo ===
-            "zero"
-          ) {
-            return criarCardZero(
-              p
-            );
-          }
-
-          if (
-            p.tipo ===
-            "momentum"
-          ) {
-            return criarCardMomentum(
-              p
-            );
-          }
-
-          return criarCardRanking(
-            p
-          );
-        }
+        criarCardProduto
       )
       .join("");
 
-  ativarEventosCards();
 }
 
-// ======================================================
-// EVENTOS DOS CARDS
-// ======================================================
 
-function ativarEventosCards() {
-  document
-    .querySelectorAll(
-      ".product-card"
-    )
-    .forEach(
-      card => {
-        card.addEventListener(
-          "click",
-          e => {
-            if (
-              e.target.closest(
-                ".favorite-btn"
-              ) ||
-              e.target.closest(
-                "[data-video-action]"
-              )
-            ) {
-              return;
-            }
+/* =========================================================
+   LOADING PRINCIPAL
+========================================================= */
 
-            const p =
-              encontrarProduto(
-                card.dataset.id
-              );
+function mostrarLoadingInicial() {
 
-            if (p) {
-              abrirModal(p);
-            }
-          }
-        );
-      }
-    );
+  if (
+    !productsGrid
+  ) {
+    return;
+  }
 
-  document
-    .querySelectorAll(
-      ".favorite-btn"
-    )
-    .forEach(
-      botao => {
-        botao.addEventListener(
-          "click",
-          e => {
-            e.preventDefault();
-            e.stopPropagation();
 
-            alternarFavorito(
-              botao.dataset
-                .favoriteId
-            );
-          }
-        );
-      }
-    );
+  const texto =
+    modoAtual === "packs"
+      ? "Buscando packs..."
+      : "Consultando Radar...";
 
-  document
-    .querySelectorAll(
-      "[data-video-action]"
-    )
-    .forEach(
-      link => {
-        link.addEventListener(
-          "click",
-          e => {
-            e.stopPropagation();
-          }
-        );
-      }
-    );
+
+  productsGrid.innerHTML =
+    `
+      <div
+        class="loading"
+      >
+
+        <div
+          class="loader"
+        ></div>
+
+        <p>
+          ${texto}
+        </p>
+
+      </div>
+    `;
+
 }
 
-// ======================================================
-// MODAL
-// ======================================================
 
-function abrirModal(p) {
+/* =========================================================
+   CARREGAR RESULTADOS
+========================================================= */
+
+async function carregarResultados({
+  reset = false
+} = {}) {
+
+  if (
+    carregando
+  ) {
+    return;
+  }
+
+
+  if (
+    !possuiMais &&
+    !reset
+  ) {
+    return;
+  }
+
+
+  carregando =
+    true;
+
+
+  if (reset) {
+
+    paginaAtual = 1;
+
+    possuiMais = true;
+
+    primeiraCarga = true;
+
+
+    if (
+      modoAtual === "packs"
+    ) {
+
+      packs = [];
+
+    } else {
+
+      produtos = [];
+
+    }
+
+
+    mostrarLoadingInicial();
+
+  } else {
+
+    if (infiniteLoader) {
+
+      infiniteLoader.hidden =
+        false;
+
+    }
+
+  }
+
+
+  try {
+
+    const dados =
+      await buscarPagina(
+        modoAtual,
+        paginaAtual
+      );
+
+
+    const novaLista =
+      extrairLista(
+        dados,
+        modoAtual
+      );
+
+
+    if (
+      modoAtual === "packs"
+    ) {
+
+      const existentes =
+        new Set(
+          packs.map(
+            (item) =>
+              item.id
+          )
+        );
+
+
+      for (
+        const pack
+        of novaLista
+      ) {
+
+        if (
+          !existentes.has(
+            pack.id
+          )
+        ) {
+
+          packs.push(
+            pack
+          );
+
+          existentes.add(
+            pack.id
+          );
+
+        }
+
+      }
+
+    } else {
+
+      const existentes =
+        new Set(
+          produtos.map(
+            (item) =>
+              item.id
+          )
+        );
+
+
+      for (
+        const produto
+        of novaLista
+      ) {
+
+        if (
+          !existentes.has(
+            produto.id
+          )
+        ) {
+
+          produtos.push(
+            produto
+          );
+
+          existentes.add(
+            produto.id
+          );
+
+        }
+
+      }
+
+    }
+
+
+    possuiMais =
+      descobrirHasMore(
+        dados,
+        novaLista.length
+      );
+
+
+    if (
+      novaLista.length > 0
+    ) {
+
+      paginaAtual += 1;
+
+    }
+
+
+    primeiraCarga =
+      false;
+
+
+    renderizarGrid();
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao carregar:",
+      erro
+    );
+
+
+    if (
+      productsGrid &&
+      primeiraCarga
+    ) {
+
+      productsGrid.innerHTML =
+        `
+          <div
+            class="empty-state"
+            style="
+              grid-column:1/-1;
+            "
+          >
+
+            <div>
+              ⚠️
+            </div>
+
+            <h3>
+              Não foi possível carregar
+            </h3>
+
+            <p>
+              ${escapar(
+                erro.message ||
+                "Tente novamente."
+              )}
+            </p>
+
+          </div>
+        `;
+
+    }
+
+
+  } finally {
+
+    carregando =
+      false;
+
+
+    if (
+      infiniteLoader
+    ) {
+
+      infiniteLoader.hidden =
+        true;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   TROCAR DE MODO
+========================================================= */
+
+async function trocarModo(
+  novoModo
+) {
+
+  if (
+    ![
+      "radar",
+      "hot",
+      "rating",
+      "zero",
+      "packs"
+    ].includes(
+      novoModo
+    )
+  ) {
+
+    novoModo =
+      "radar";
+
+  }
+
+
+  modoAtual =
+    novoModo;
+
+
+  document
+    .querySelectorAll(
+      "[data-filter]"
+    )
+    .forEach(
+      (elemento) => {
+
+        elemento.classList.toggle(
+          "active",
+          elemento.dataset.filter ===
+            modoAtual
+        );
+
+      }
+    );
+
+
+  atualizarInterfaceModo();
+
+
+  await carregarResultados({
+    reset: true
+  });
+
+}
+
+
+/* =========================================================
+   MODAL DE PRODUTO
+========================================================= */
+
+function abrirModalProduto(
+  produto
+) {
+
   if (
     !productModal ||
     !modalBody
@@ -3051,421 +2574,148 @@ function abrirModal(p) {
     return;
   }
 
-  // ----------------------------
-  // MODAL DE VÍDEO
-  // ----------------------------
 
-  if (
-    p.tipo === "video"
-  ) {
-    const canal =
-      p.source_channel
-        ? `@${String(
-            p.source_channel
-          ).replace(/^@/, "")}`
-        : "Vídeo encontrado";
+  const link =
+    produto.affiliate_url ||
+    produto.product_url ||
+    "";
 
-    modalBody.innerHTML = `
-      <div>
 
-        <h2>
-          🎬 ${
-            numeroSeguro(
-              p.top
-            ) > 0
-              ? `TOP ${Math.round(
-                  p.top
-                )}`
-              : "Vídeo em Alta"
-          }
+  modalBody.innerHTML =
+    `
+      <div
+        style="
+          padding-right:42px;
+        "
+      >
+
+        <h2
+          style="
+            font-size:20px;
+            line-height:1.2;
+          "
+        >
+          ${escapar(
+            produto.name
+          )}
         </h2>
 
         <p
           style="
-            color:#9299a8;
             margin-top:7px;
+            color:#9299a8;
+            font-size:12px;
           "
         >
-          ${escapar(canal)}
-        </p>
-
-        <div
-          style="
-            margin-top:16px;
-            padding:14px;
-            background:#11151f;
-            border-radius:12px;
-          "
-        >
-
-          <strong>
-            📊 Inteligência do Radar
-          </strong>
-
-          <p>
-            Score:
-            <strong>
-              ${Math.round(
-                numeroSeguro(
-                  p.trend_score
-                )
-              )}/100
-            </strong>
-          </p>
-
-          <p>
-            Sinal:
-            <strong>
-              ${escapar(
-                p.trend_label
-              )}
-            </strong>
-          </p>
-
-          <p>
-            Produto associado:
-            <strong>
-              ${
-                p.has_product
-                  ? "Sim"
-                  : "Não identificado"
-              }
-            </strong>
-          </p>
-
-          ${
-            p.metrics_verified
-              ? `
-                <p>
-                  Visualizações:
-                  <strong>
-                    ${formatarNumero(
-                      p.views
-                    )}
-                  </strong>
-                </p>
-
-                <p>
-                  Curtidas:
-                  <strong>
-                    ${formatarNumero(
-                      p.likes
-                    )}
-                  </strong>
-                </p>
-
-                <p>
-                  Comentários:
-                  <strong>
-                    ${formatarNumero(
-                      p.comments
-                    )}
-                  </strong>
-                </p>
-              `
-              : `
-                <p
-                  style="
-                    color:#7f8796;
-                    font-size:11px;
-                    line-height:1.45;
-                  "
-                >
-                  Métricas públicas não
-                  verificadas. O Radar não
-                  inventa visualizações,
-                  curtidas ou vendas.
-                </p>
-              `
-          }
-
-        </div>
-
-        <div
-          style="
-            display:grid;
-            grid-template-columns:1fr;
-            gap:8px;
-            margin-top:14px;
-          "
-        >
-
-          ${
-            p.watch_url
-              ? `
-                <a
-                  href="${escapar(
-                    p.watch_url
-                  )}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style="
-                    display:block;
-                    text-align:center;
-                    text-decoration:none;
-                    background:#ff5b25;
-                    color:white;
-                    padding:13px;
-                    border-radius:10px;
-                    font-weight:900;
-                  "
-                >
-                  ▶ VER VÍDEO
-                </a>
-              `
-              : ""
-          }
-
-          ${
-            p.product_url
-              ? `
-                <a
-                  href="${escapar(
-                    p.product_url
-                  )}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style="
-                    display:block;
-                    text-align:center;
-                    text-decoration:none;
-                    background:#171b24;
-                    color:white;
-                    border:1px solid rgba(255,255,255,.1);
-                    padding:13px;
-                    border-radius:10px;
-                    font-weight:900;
-                  "
-                >
-                  🛒 VER PRODUTO
-                </a>
-              `
-              : ""
-          }
-
-        </div>
-
-      </div>
-    `;
-
-    productModal.hidden =
-      false;
-
-    document.body.style
-      .overflow =
-      "hidden";
-
-    return;
-  }
-
-  // ----------------------------
-  // MODAL DOS PRODUTOS
-  // ----------------------------
-
-  const link =
-    p.affiliate_url ||
-    p.product_url ||
-    "";
-
-  let extra = "";
-
-  if (
-    p.tipo === "momentum"
-  ) {
-    const topNumerico =
-      p.momentum_posicao > 0
-        ? Math.round(
-            p.momentum_posicao
-          )
-        : null;
-
-    extra = `
-      <div
-        style="
-          margin-top:16px;
-          padding:14px;
-          background:#11151f;
-          border-radius:12px;
-        "
-      >
-
-        <strong>
-          📊 Inteligência do Radar
-        </strong>
-
-        <p>
-          🔥 Força agora:
-          <strong>
-            ${Math.round(
-              p.momentum_score
-            )}/100
-          </strong>
-        </p>
-
-        <p>
-          📈 Tendência:
-          <strong>
-            ${escapar(
-              p.trend_nivel
-            )}
-          </strong>
-        </p>
-
-        <p>
-          📈 Força da tendência:
-          <strong>
-            ${Math.round(
-              p.trend_score
-            )}/100
-          </strong>
-        </p>
-
-        <p>
-          🛒 Vendas detectadas:
-          <strong>
-            ${
-              numeroSeguro(
-                p.vendas_confirmadas_24h
-              ) > 0
-                ? "+"
-                : ""
-            }${formatarNumero(
-              p.vendas_confirmadas_24h
-            )}
-          </strong>
-        </p>
-
-        <p>
-          👀 Visto pelo Radar:
-          <strong>
-            ${formatarNumero(
-              p.capturas_24h
-            )} vezes
-          </strong>
-        </p>
-
-        <p>
-          📊 Posição encontrada:
-          <strong>
-            ${
-              p.rank_atual > 0
-                ? "#" +
-                  p.rank_atual
-                : "Sem posição"
-            }
-          </strong>
-        </p>
-
-        <p>
-          📍 Posição no Radar:
-          <strong>
-            ${
-              topNumerico
-                ? "#" +
-                  topNumerico
-                : "Sem posição"
-            }
-          </strong>
-        </p>
-
-      </div>
-    `;
-  }
-
-  if (
-    p.tipo === "zero"
-  ) {
-    extra = `
-      <div
-        style="
-          margin-top:16px;
-          padding:14px;
-          background:#11151f;
-          border-radius:12px;
-        "
-      >
-
-        <strong>
-          🎯 Estratégia Zero Vendas
-        </strong>
-
-        <p>
           ${escapar(
-            p.estrategia_rotulo
+            produto.shop_name
           )}
         </p>
 
-        <p>
-          ${escapar(
-            p.motivo
-          )}
-        </p>
-
-        <p>
-          Visto pelo Radar:
-          <strong>
-            ${formatarNumero(
-              p.times_seen
-            )} vezes
-          </strong>
-        </p>
-
       </div>
-    `;
-  }
 
-  modalBody.innerHTML = `
-    <div>
 
       ${
-        p.image_url
+        produto.image_url
           ? `
             <img
               src="${escapar(
-                p.image_url
+                produto.image_url
               )}"
               alt="${escapar(
-                p.name
+                produto.name
               )}"
               style="
                 width:100%;
-                max-height:320px;
+                max-height:330px;
                 object-fit:contain;
-                border-radius:12px;
-                background:#11151f;
+                margin-top:18px;
+                border-radius:14px;
+                background:#fff;
               "
             >
           `
           : ""
       }
 
-      <h2
+
+      <div
         style="
+          display:grid;
+          grid-template-columns:
+            repeat(2,minmax(0,1fr));
+          gap:8px;
           margin-top:14px;
         "
       >
-        ${escapar(
-          p.name
-        )}
-      </h2>
 
-      <p
-        style="
-          color:#9299a8;
-        "
-      >
-        ${escapar(
-          p.shop_name
-        )}
-      </p>
+        <div
+          class="product-stat"
+        >
+          <span>
+            VENDIDOS
+          </span>
 
-      <h3>
-        ${dinheiro(
-          p.price
-        )}
-      </h3>
+          <strong>
+            ${numeroFormatado(
+              produto.sales
+            )}
+          </strong>
+        </div>
 
-      ${extra}
+
+        <div
+          class="product-stat"
+        >
+          <span>
+            AVALIAÇÃO
+          </span>
+
+          <strong>
+            ${
+              produto.rating > 0
+                ? produto.rating.toFixed(1)
+                : "—"
+            }
+          </strong>
+        </div>
+
+
+        <div
+          class="product-stat"
+        >
+          <span>
+            RADAR SCORE
+          </span>
+
+          <strong>
+            ${inteiro(
+              produto.score
+            )}/100
+          </strong>
+        </div>
+
+
+        <div
+          class="product-stat"
+        >
+          <span>
+            PREÇO
+          </span>
+
+          <strong>
+            ${
+              produto.price > 0
+                ? dinheiro(
+                    produto.price
+                  )
+                : "—"
+            }
+          </strong>
+        </div>
+
+      </div>
+
 
       ${
         link
@@ -3477,613 +2727,1099 @@ function abrirModal(p) {
               target="_blank"
               rel="noopener noreferrer"
               style="
-                display:block;
-                text-align:center;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                min-height:46px;
+                margin-top:15px;
+                padding:12px;
+                border-radius:11px;
+                background:#ff5a1f;
+                color:#fff;
                 text-decoration:none;
-                background:#ff5b25;
-                color:white;
-                padding:13px;
-                border-radius:10px;
+                font-size:12px;
                 font-weight:900;
-                margin-top:16px;
               "
             >
-              🛒 Abrir na Shopee
+              🛒 ABRIR PRODUTO
             </a>
           `
           : ""
       }
+    `;
 
-    </div>
-  `;
 
   productModal.hidden =
     false;
 
-  document.body.style
-    .overflow =
-    "hidden";
 }
 
-function fecharModalProduto() {
+
+/* =========================================================
+   MODAL DE PACK
+========================================================= */
+
+function abrirModalPack(
+  pack
+) {
+
   if (
-    !productModal
+    !productModal ||
+    !modalBody
   ) {
     return;
   }
 
+
+  const canal =
+    pack.source_channel
+      ? `@${pack.source_channel}`
+      : "Origem encontrada";
+
+
+  modalBody.innerHTML =
+    `
+      <div
+        class="pack-modal-header"
+      >
+
+        <h2>
+          📦 Pack para Afiliados
+        </h2>
+
+        <div
+          class="pack-modal-source"
+        >
+          ${escapar(
+            canal
+          )}
+        </div>
+
+      </div>
+
+
+      <div
+        class="pack-modal-box"
+      >
+
+        <strong>
+          Material encontrado
+        </strong>
+
+        <p>
+          Este material foi localizado
+          em uma fonte pública para
+          afiliados. Abra a publicação
+          original para visualizar o pack.
+        </p>
+
+      </div>
+
+
+      <div
+        class="pack-modal-actions"
+      >
+
+        ${
+          pack.source_url
+            ? `
+              <a
+                href="${escapar(
+                  pack.source_url
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="
+                  pack-button-primary
+                "
+              >
+                📦 ABRIR PACK
+              </a>
+            `
+            : ""
+        }
+
+
+        ${
+          pack.product_url
+            ? `
+              <a
+                href="${escapar(
+                  pack.product_url
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="
+                  pack-button-secondary
+                "
+              >
+                🛒 VER PRODUTO
+              </a>
+            `
+            : ""
+        }
+
+      </div>
+    `;
+
+
   productModal.hidden =
-    true;
+    false;
 
-  document.body.style
-    .overflow =
-    "";
+    }
+/* =========================================================
+   SHOPEE RADAR — APP.JS FINAL
+   PARTE 3/3
+
+   EVENTOS + INTERAÇÕES + INICIALIZAÇÃO
+========================================================= */
+
+
+/* =========================================================
+   FECHAR MODAL
+========================================================= */
+
+function fecharModal() {
+
+  if (!productModal) {
+    return;
+  }
+
+  productModal.hidden = true;
+
+  if (modalBody) {
+    modalBody.innerHTML = "";
+  }
+
 }
 
-if (
-  closeModal
-) {
-  closeModal.addEventListener(
-    "click",
-    fecharModalProduto
-  );
-}
 
-if (
-  productModal
-) {
-  productModal.addEventListener(
+/* =========================================================
+   CLIQUES NO GRID
+========================================================= */
+
+productsGrid
+  ?.addEventListener(
     "click",
-    e => {
-      if (
-        e.target ===
-        productModal
-      ) {
-        fecharModalProduto();
+    (evento) => {
+
+      /*
+        Se o usuário clicar diretamente
+        em um link, deixamos o navegador
+        abrir normalmente.
+
+        Isso é especialmente importante
+        para ABRIR PACK e VER PRODUTO.
+      */
+
+      const link =
+        evento.target.closest("a");
+
+      if (link) {
+        return;
       }
+
+
+      /* ===============================
+         PACK
+      =============================== */
+
+      const cardPack =
+        evento.target.closest(
+          "[data-pack-id]"
+        );
+
+
+      if (cardPack) {
+
+        const id =
+          String(
+            cardPack.dataset.packId ||
+            ""
+          );
+
+
+        const pack =
+          packs.find(
+            (item) =>
+              String(item.id) === id
+          );
+
+
+        if (pack) {
+
+          abrirModalPack(
+            pack
+          );
+
+        }
+
+
+        return;
+
+      }
+
+
+      /* ===============================
+         PRODUTO
+      =============================== */
+
+      const cardProduto =
+        evento.target.closest(
+          "[data-product-id]"
+        );
+
+
+      if (cardProduto) {
+
+        const id =
+          String(
+            cardProduto.dataset.productId ||
+            ""
+          );
+
+
+        const produto =
+          produtos.find(
+            (item) =>
+              String(item.id) === id
+          );
+
+
+        if (produto) {
+
+          abrirModalProduto(
+            produto
+          );
+
+        }
+
+      }
+
     }
   );
-}
+
+
+/* =========================================================
+   FECHAR MODAL PELO X
+========================================================= */
+
+closeModal
+  ?.addEventListener(
+    "click",
+    fecharModal
+  );
+
+
+/* =========================================================
+   FECHAR MODAL PELO FUNDO
+========================================================= */
+
+productModal
+  ?.querySelector(
+    ".modal-overlay"
+  )
+  ?.addEventListener(
+    "click",
+    fecharModal
+  );
+
+
+/* =========================================================
+   ESC FECHA MODAL
+========================================================= */
 
 document.addEventListener(
   "keydown",
-  e => {
+  (evento) => {
+
     if (
-      e.key ===
-      "Escape"
+      evento.key === "Escape" &&
+      productModal &&
+      !productModal.hidden
     ) {
-      fecharModalProduto();
+
+      fecharModal();
+
     }
+
   }
 );
 
-// ======================================================
-// FILTROS PRINCIPAIS
-// ======================================================
 
-function trocarFiltro(
-  novoFiltro
-) {
-  filtroAtual =
-    novoFiltro ||
-    "radar";
-
-  modoFavoritos =
-    false;
-
-  produtos = [];
-
-  paginaAtual = 1;
-
-  temProximaPagina =
-    true;
-
-  totalServidor = 0;
-
-  resumoServidor = {};
-
-  document
-    .querySelectorAll(
-      "[data-filter]"
-    )
-    .forEach(
-      botao => {
-        botao.classList.toggle(
-          "active",
-          botao.dataset.filter ===
-            filtroAtual
-        );
-      }
-    );
-
-  carregarProdutos(
-    1,
-    false
-  );
-}
+/* =========================================================
+   ABAS
+========================================================= */
 
 document
   .querySelectorAll(
     "[data-filter]"
   )
   .forEach(
-    botao => {
+    (botao) => {
+
+      botao.addEventListener(
+        "click",
+        async () => {
+
+          const filtro =
+            String(
+              botao.dataset.filter ||
+              "radar"
+            );
+
+
+          if (
+            filtro === modoAtual
+          ) {
+
+            return;
+
+          }
+
+
+          await trocarModo(
+            filtro
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   PESQUISA
+========================================================= */
+
+searchInput
+  ?.addEventListener(
+    "input",
+    () => {
+
+      clearTimeout(
+        debouncePesquisa
+      );
+
+
+      debouncePesquisa =
+        setTimeout(
+          () => {
+
+            renderizarGrid();
+
+          },
+          180
+        );
+
+    }
+  );
+
+
+/* =========================================================
+   FILTRO DE NICHO
+========================================================= */
+
+categoryFilter
+  ?.addEventListener(
+    "change",
+    () => {
+
+      /*
+        Packs não possuem nicho
+        confiável neste momento.
+      */
+
+      if (
+        modoAtual === "packs"
+      ) {
+
+        return;
+
+      }
+
+
+      renderizarGrid();
+
+    }
+  );
+
+
+/* =========================================================
+   ORDENAÇÃO
+========================================================= */
+
+document
+  .querySelectorAll(
+    "[data-sort]"
+  )
+  .forEach(
+    (botao) => {
+
       botao.addEventListener(
         "click",
         () => {
-          const filtro =
-            botao.dataset.filter;
 
-          if (!filtro) {
-            return;
-          }
+          ordenacaoAtual =
+            String(
+              botao.dataset.sort ||
+              "relevance"
+            );
 
-          trocarFiltro(
-            filtro
-          );
+
+          document
+            .querySelectorAll(
+              "[data-sort]"
+            )
+            .forEach(
+              (item) => {
+
+                item.classList.toggle(
+                  "active",
+                  item === botao
+                );
+
+              }
+            );
+
+
+          renderizarGrid();
+
         }
       );
+
     }
   );
 
-// ======================================================
-// BARRA INFERIOR
-// TROCA FAVORITOS POR VÍDEOS
-// ======================================================
 
-(function configurarBotaoVideos() {
-  /*
-    Primeiro procuramos o botão de
-    Favoritos que já existe no HTML.
+/* =========================================================
+   SCROLL INFINITO
+========================================================= */
 
-    Em vez de criar uma quinta opção,
-    reaproveitamos exatamente o espaço
-    dele para Vídeos.
-  */
+let observerScroll = null;
 
-  let botao =
-    document.querySelector(
-      '[data-action="favorites"]'
-    ) ||
-    document.getElementById(
-      "favoritesButton"
-    );
 
-  /*
-    Alguns HTMLs não usam id/data-action.
-    Nesse caso procuramos pelo texto.
-  */
-  if (!botao) {
-    const candidatos =
-      Array.from(
-        document.querySelectorAll(
-          "button, a, .nav-item, .bottom-nav-item"
-        )
-      );
+function iniciarScrollInfinito() {
 
-    botao =
-      candidatos.find(
-        el =>
-          normalizarTexto(
-            el.textContent
-          ).includes(
-            "favoritos"
-          )
-      ) || null;
+  if (
+    !scrollSentinel
+  ) {
+
+    return;
+
   }
 
-  if (!botao) {
+
+  if (
+    observerScroll
+  ) {
+
+    observerScroll.disconnect();
+
+  }
+
+
+  observerScroll =
+    new IntersectionObserver(
+      async (
+        entradas
+      ) => {
+
+        const entrada =
+          entradas[0];
+
+
+        if (
+          !entrada?.isIntersecting
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          carregando ||
+          !possuiMais ||
+          primeiraCarga
+        ) {
+
+          return;
+
+        }
+
+
+        await carregarResultados({
+          reset: false
+        });
+
+      },
+      {
+        root: null,
+
+        rootMargin:
+          "500px 0px",
+
+        threshold: 0
+      }
+    );
+
+
+  observerScroll.observe(
+    scrollSentinel
+  );
+
+}
+
+
+/* =========================================================
+   ESTADO VISUAL DAS ABAS
+========================================================= */
+
+function sincronizarAbas() {
+
+  document
+    .querySelectorAll(
+      "[data-filter]"
+    )
+    .forEach(
+      (elemento) => {
+
+        elemento.classList.toggle(
+          "active",
+          elemento.dataset.filter ===
+            modoAtual
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   ESTADO VISUAL DA ORDENAÇÃO
+========================================================= */
+
+function sincronizarOrdenacao() {
+
+  document
+    .querySelectorAll(
+      "[data-sort]"
+    )
+    .forEach(
+      (elemento) => {
+
+        elemento.classList.toggle(
+          "active",
+          elemento.dataset.sort ===
+            ordenacaoAtual
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   CORRIGIR LINKS EXTERNOS
+
+   Não fazemos fetch no Telegram pelo
+   navegador.
+
+   Apenas abrimos a publicação original
+   em nova aba/app.
+========================================================= */
+
+document.addEventListener(
+  "click",
+  (evento) => {
+
+    const link =
+      evento.target.closest(
+        "[data-pack-link]"
+      );
+
+
+    if (!link) {
+      return;
+    }
+
+
+    evento.stopPropagation();
+
+  }
+);
+
+
+/* =========================================================
+   TRATAMENTO DE IMAGENS DE PRODUTO
+========================================================= */
+
+productsGrid
+  ?.addEventListener(
+    "error",
+    (evento) => {
+
+      const imagem =
+        evento.target;
+
+
+      if (
+        !imagem ||
+        imagem.tagName !== "IMG"
+      ) {
+
+        return;
+
+      }
+
+
+      if (
+        imagem.classList.contains(
+          "product-image"
+        )
+      ) {
+
+        imagem.style.objectFit =
+          "contain";
+
+      }
+
+    },
+    true
+  );
+
+
+/* =========================================================
+   ATUALIZAR EMPTY STATE
+========================================================= */
+
+function atualizarEmptyState() {
+
+  if (
+    !emptyState
+  ) {
     return;
   }
 
-  /*
-    Remove comportamento antigo
-    relacionado a favoritos.
-  */
-  botao.removeAttribute(
-    "data-action"
-  );
 
-  botao.removeAttribute(
-    "href"
-  );
+  const quantidade =
+    obterListaFinal().length;
 
-  botao.dataset.filter =
-    "videos";
 
-  /*
-    Mantém a estrutura visual do botão
-    quando existe ícone + texto.
-  */
-  const spans =
-    botao.querySelectorAll(
+  emptyState.hidden =
+    quantidade > 0;
+
+
+  const titulo =
+    emptyState.querySelector(
+      "h3"
+    );
+
+
+  const descricao =
+    emptyState.querySelector(
+      "p"
+    );
+
+
+  if (
+    modoAtual === "packs"
+  ) {
+
+    if (titulo) {
+
+      titulo.textContent =
+        "Nenhum pack encontrado";
+
+    }
+
+
+    if (descricao) {
+
+      descricao.textContent =
+        "Tente outra pesquisa.";
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (titulo) {
+
+    titulo.textContent =
+      "Nenhum produto encontrado";
+
+  }
+
+
+  if (descricao) {
+
+    descricao.textContent =
+      "Tente mudar sua pesquisa.";
+
+  }
+
+}
+
+
+/* =========================================================
+   OBSERVAR ALTERAÇÕES DE RENDERIZAÇÃO
+========================================================= */
+
+const renderOriginal =
+  renderizarGrid;
+
+
+renderizarGrid =
+  function () {
+
+    renderOriginal();
+
+    atualizarEmptyState();
+
+  };
+
+
+/* =========================================================
+   LIMPAR PESQUISA AO TROCAR ENTRE
+   PRODUTOS E PACKS
+========================================================= */
+
+let modoAnterior =
+  modoAtual;
+
+
+const trocarModoOriginal =
+  trocarModo;
+
+
+trocarModo =
+  async function (
+    novoModo
+  ) {
+
+    const eraPack =
+      modoAnterior === "packs";
+
+
+    const vaiSerPack =
+      novoModo === "packs";
+
+
+    /*
+      Ao entrar ou sair de Packs,
+      limpamos a pesquisa para uma
+      busca de produto não esconder
+      todos os packs e vice-versa.
+    */
+
+    if (
+      eraPack !== vaiSerPack &&
+      searchInput
+    ) {
+
+      searchInput.value =
+        "";
+
+    }
+
+
+    /*
+      O nicho não se aplica aos packs.
+      Ao voltar ao Radar ele continua
+      disponível normalmente.
+    */
+
+    if (
+      vaiSerPack &&
+      categoryFilter
+    ) {
+
+      categoryFilter.value =
+        "all";
+
+    }
+
+
+    await trocarModoOriginal(
+      novoModo
+    );
+
+
+    modoAnterior =
+      novoModo;
+
+  };
+
+
+/* =========================================================
+   TEXTO DO LOADER INFINITO
+========================================================= */
+
+function atualizarTextoLoader() {
+
+  if (
+    !infiniteLoader
+  ) {
+    return;
+  }
+
+
+  const texto =
+    infiniteLoader.querySelector(
       "span"
     );
 
-  const labels =
-    botao.querySelectorAll(
-      ".label, .nav-label, small"
-    );
 
-  if (
-    labels.length
-  ) {
-    labels[
-      labels.length - 1
-    ].textContent =
-      "Vídeos";
-
-    const primeiro =
-      spans[0];
-
-    if (
-      primeiro &&
-      (
-        primeiro.textContent.includes(
-          "♡"
-        ) ||
-        primeiro.textContent.includes(
-          "♥"
-        )
-      )
-    ) {
-      primeiro.textContent =
-        "🎬";
-    }
-  } else if (
-    spans.length >= 2
-  ) {
-    spans[0].textContent =
-      "🎬";
-
-    spans[
-      spans.length - 1
-    ].textContent =
-      "Vídeos";
-  } else {
-    botao.innerHTML =
-      `
-        <span
-          style="
-            display:block;
-            font-size:25px;
-            line-height:1;
-          "
-        >
-          🎬
-        </span>
-
-        <span>
-          Vídeos
-        </span>
-      `;
-  }
-
-  /*
-    Clone remove event listeners antigos
-    que possam ter sido ligados ao botão
-    de Favoritos antes desta conversão.
-  */
-  const novoBotao =
-    botao.cloneNode(true);
-
-  botao.replaceWith(
-    novoBotao
-  );
-
-  novoBotao.addEventListener(
-    "click",
-    e => {
-      e.preventDefault();
-
-      trocarFiltro(
-        "videos"
-      );
-    }
-  );
-})();
-
-// ======================================================
-// REMOVE A ABA EXTRA DE VÍDEOS
-// ======================================================
-
-(function removerVideoExtra() {
-  /*
-    A versão anterior criou uma quinta
-    opção de Vídeos fora da barra.
-
-    Se ela ainda estiver no HTML/DOM,
-    removemos e mantemos somente o botão
-    que substituiu Favoritos.
-  */
-
-  const botoes =
-    Array.from(
-      document.querySelectorAll(
-        '[data-filter="videos"]'
-      )
-    );
-
-  if (
-    botoes.length <= 1
-  ) {
+  if (!texto) {
     return;
   }
 
-  /*
-    Mantemos preferencialmente o botão
-    que está dentro da navegação inferior.
-  */
-  let manter =
-    botoes.find(
-      el =>
-        el.closest(
-          "nav, .bottom-nav, .mobile-nav, footer"
-        )
-    );
 
-  if (!manter) {
-    manter =
-      botoes[0];
-  }
+  texto.textContent =
+    modoAtual === "packs"
+      ? "Buscando mais packs..."
+      : "Buscando mais produtos...";
 
-  botoes.forEach(
-    el => {
-      if (
-        el !== manter
-      ) {
-        el.remove();
-      }
-    }
-  );
-})();
-
-// ======================================================
-// BUSCA
-// ======================================================
-
-let timerBusca =
-  null;
-
-if (
-  searchInput
-) {
-  searchInput.addEventListener(
-    "input",
-    () => {
-      clearTimeout(
-        timerBusca
-      );
-
-      timerBusca =
-        setTimeout(
-          () => {
-            buscaDigitada =
-              searchInput.value
-                .trim();
-
-            if (
-              filtroAtual ===
-              "zero"
-            ) {
-              produtos = [];
-
-              paginaAtual = 1;
-
-              temProximaPagina =
-                true;
-
-              carregarProdutos(
-                1,
-                false
-              );
-
-              return;
-            }
-
-            aplicarOrdenacao();
-          },
-          300
-        );
-    }
-  );
 }
 
-// ======================================================
-// NICHO
-// ======================================================
 
-if (
-  categoryFilter
-) {
-  categoryFilter.addEventListener(
-    "change",
-    () => {
-      nichoAtual =
-        categoryFilter.value ||
-        "all";
+/* =========================================================
+   OBSERVAR MUDANÇA DE MODO NO LOADER
+========================================================= */
 
-      aplicarOrdenacao();
-    }
-  );
-}
+const atualizarInterfaceOriginal =
+  atualizarInterfaceModo;
 
-// ======================================================
-// ORDENAÇÃO SELECT
-// ======================================================
 
-const sortSelect =
-  document.getElementById(
-    "sortSelect"
-  ) ||
-  document.getElementById(
-    "sortFilter"
-  );
+atualizarInterfaceModo =
+  function () {
 
-if (
-  sortSelect
-) {
-  sortSelect.addEventListener(
-    "change",
-    () => {
-      ordenacaoAtual =
-        sortSelect.value ||
-        "relevance";
+    atualizarInterfaceOriginal();
 
-      if (
-        filtroAtual ===
-        "zero"
-      ) {
-        produtos = [];
+    atualizarTextoLoader();
 
-        paginaAtual = 1;
+  };
 
-        temProximaPagina =
-          true;
 
-        carregarProdutos(
-          1,
-          false
+/* =========================================================
+   GARANTIR QUE NÃO EXISTE FAVORITOS
+   NA BARRA INFERIOR
+========================================================= */
+
+document
+  .querySelectorAll(
+    '.bottom-item[data-filter="favorites"]'
+  )
+  .forEach(
+    (elemento) => {
+
+      /*
+        O index.html final já possui Packs.
+
+        Este trecho é apenas uma proteção
+        caso o navegador carregue HTML
+        antigo do cache.
+      */
+
+      elemento.dataset.filter =
+        "packs";
+
+
+      const icone =
+        elemento.querySelector(
+          "span"
         );
 
-        return;
+
+      if (icone) {
+
+        icone.textContent =
+          "📦";
+
       }
 
-      aplicarOrdenacao();
+
+      const nodes =
+        Array.from(
+          elemento.childNodes
+        );
+
+
+      nodes.forEach(
+        (node) => {
+
+          if (
+            node.nodeType ===
+            Node.TEXT_NODE &&
+            String(
+              node.textContent
+            )
+              .toLowerCase()
+              .includes(
+                "favoritos"
+              )
+          ) {
+
+            node.textContent =
+              " Packs";
+
+          }
+
+        }
+      );
+
     }
   );
-}
 
-// ======================================================
-// SCROLL INFINITO
-// ======================================================
 
-let scrollTimer =
-  null;
+/* =========================================================
+   REMOVER EVENTUAIS ABAS ANTIGAS DE
+   "VÍDEOS EM ALTA"
 
-window.addEventListener(
-  "scroll",
-  () => {
-    clearTimeout(
-      scrollTimer
-    );
+   O menu correto agora é PACKS.
+========================================================= */
 
-    scrollTimer =
-      setTimeout(
-        () => {
-          if (
-            carregando ||
-            modoFavoritos ||
-            !temProximaPagina
-          ) {
-            return;
-          }
+document
+  .querySelectorAll(
+    '[data-filter="videos"]'
+  )
+  .forEach(
+    (elemento) => {
 
-          const distanciaDoFim =
-            document.documentElement
-              .scrollHeight -
-            (
-              window.scrollY +
-              window.innerHeight
-            );
+      /*
+        Não criamos uma quinta aba.
 
-          if (
-            distanciaDoFim <
-            900
-          ) {
-            carregarProdutos(
-              paginaAtual + 1,
-              true
-            );
-          }
-        },
-        100
-      );
-  },
-  {
-    passive: true
-  }
-);
+        Se sobrou uma aba "videos"
+        de alguma versão antiga do HTML,
+        ela é removida.
+      */
 
-// ======================================================
-// AUTO ATUALIZAÇÃO
-// ======================================================
+      elemento.remove();
 
-const INTERVALO_ATUALIZACAO =
-  5 * 60 * 1000;
-
-setInterval(
-  () => {
-    if (
-      document.hidden ||
-      carregando ||
-      modoFavoritos
-    ) {
-      return;
     }
+  );
 
-    produtos = [];
 
-    paginaAtual = 1;
-
-    temProximaPagina =
-      true;
-
-    carregarProdutos(
-      1,
-      false
-    );
-  },
-  INTERVALO_ATUALIZACAO
-);
-
-// ======================================================
-// VOLTAR PARA ABA DO NAVEGADOR
-// ======================================================
+/* =========================================================
+   EVITAR DUPLO CLIQUE EM LINKS
+========================================================= */
 
 document.addEventListener(
-  "visibilitychange",
-  () => {
-    if (
-      document.hidden ||
-      carregando ||
-      modoFavoritos
-    ) {
+  "click",
+  (evento) => {
+
+    const link =
+      evento.target.closest(
+        ".pack-button"
+      );
+
+
+    if (!link) {
       return;
     }
 
-    produtos = [];
 
-    paginaAtual = 1;
+    /*
+      Não abre modal ao clicar
+      no botão do próprio pack.
+    */
 
-    temProximaPagina =
-      true;
+    evento.stopPropagation();
 
-    carregarProdutos(
-      1,
-      false
-    );
   }
 );
 
-// ======================================================
-// INICIALIZAÇÃO
-// ======================================================
 
-async function iniciarShopeeRadar() {
-  if (
-    !obterTokenRadar()
-  ) {
-    redirecionarLogin();
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
+
+async function iniciarRadar() {
+
+  /*
+    O index.html já verifica a sessão.
+
+    Aqui apenas confirmamos que existe
+    um access token antes de chamar
+    as Edge Functions.
+  */
+
+  const token =
+    obterAccessToken();
+
+
+  if (!token) {
+
+    tratarNaoAutorizado();
+
     return;
+
   }
+
+
+  modoAtual =
+    "radar";
+
+
+  ordenacaoAtual =
+    "relevance";
+
+
+  paginaAtual = 1;
+
+  carregando = false;
+
+  possuiMais = true;
+
+  primeiraCarga = true;
+
+  produtos = [];
+
+  packs = [];
+
+
+  sincronizarAbas();
+
+  sincronizarOrdenacao();
 
   atualizarInterfaceModo();
 
-  await carregarProdutos(
-    1,
-    false
-  );
+  atualizarTextoLoader();
+
+  iniciarScrollInfinito();
+
+
+  await carregarResultados({
+    reset: true
+  });
+
 }
 
-iniciarShopeeRadar();
+
+/* =========================================================
+   START
+========================================================= */
+
+if (
+  document.readyState ===
+  "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    iniciarRadar
+  );
+
+} else {
+
+  iniciarRadar();
+
+}
