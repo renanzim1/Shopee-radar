@@ -2029,13 +2029,9 @@ function criarCardMomentum(
       }
 
 
-      <div
-        class="product-card-content"
-      >
+      <div class="product-card-content">
 
-        <div
-          class="product-card-top"
-        >
+        <div class="product-card-top">
 
           <span
             class="opportunity-badge"
@@ -2050,9 +2046,7 @@ function criarCardMomentum(
           </span>
 
 
-          <span
-            class="score-badge"
-          >
+          <span class="score-badge">
             ${Math.round(
               produto.momentum_score
             )}
@@ -2061,18 +2055,14 @@ function criarCardMomentum(
         </div>
 
 
-        <h3
-          class="product-name"
-        >
+        <h3 class="product-name">
           ${escapar(
             produto.name
           )}
         </h3>
 
 
-        <div
-          class="product-shop"
-        >
+        <div class="product-shop">
           🏪 ${escapar(
             produto.shop_name
           )}
@@ -2116,13 +2106,9 @@ function criarCardMomentum(
         </div>
 
 
-        <div
-          class="product-stats"
-        >
+        <div class="product-stats">
 
-          <div
-            class="product-stat"
-          >
+          <div class="product-stat">
             <span>
               VENDIDOS
             </span>
@@ -2135,11 +2121,9 @@ function criarCardMomentum(
           </div>
 
 
-          <div
-            class="product-stat"
-          >
+          <div class="product-stat">
             <span>
-              🛒 VENDAS DETECTADAS
+              🛒 VENDAS AGORA
             </span>
 
             <strong>
@@ -2154,11 +2138,9 @@ function criarCardMomentum(
           </div>
 
 
-          <div
-            class="product-stat"
-          >
+          <div class="product-stat">
             <span>
-              👀 VISTO PELO RADAR
+              👀 VISTO NO RADAR
             </span>
 
             <strong>
@@ -2169,11 +2151,9 @@ function criarCardMomentum(
           </div>
 
 
-          <div
-            class="product-stat"
-          >
+          <div class="product-stat">
             <span>
-              📊 POSIÇÃO ENCONTRADA
+              📊 RANKING ATUAL
             </span>
 
             <strong>
@@ -2213,7 +2193,7 @@ function criarCardMomentum(
                 font-size:7px;
               "
             >
-              📍 POSIÇÃO NO RADAR
+              📍 POSIÇÃO RADAR
             </small>
 
             <strong>
@@ -2245,13 +2225,18 @@ function criarCardMomentum(
                 font-size:7px;
               "
             >
-              🏆 ENTRE OS MAIS FORTES
+              🏆 DESTAQUE
             </small>
 
-            <strong>
-              Entre os ${formatarFaixaPercentil(
+            <strong
+              style="
+                font-size:18px;
+                line-height:1.15;
+              "
+            >
+              TOP ${formatarFaixaPercentil(
                 produto.percentil_top
-              )} mais fortes
+              )}
             </strong>
 
           </div>
@@ -2279,9 +2264,7 @@ function criarCardMomentum(
         }
 
 
-        <div
-          class="product-footer"
-        >
+        <div class="product-footer">
 
           <div>
 
@@ -2298,9 +2281,7 @@ function criarCardMomentum(
           </div>
 
 
-          <div
-            class="product-price"
-          >
+          <div class="product-price">
 
             <small>
               PREÇO
@@ -2321,7 +2302,6 @@ function criarCardMomentum(
     </article>
   `;
 }
-
 
 // ======================================================
 // CARD ZERO
