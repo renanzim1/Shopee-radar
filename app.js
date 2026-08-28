@@ -804,8 +804,6 @@ function produtoPertenceNicho(
       nicho
     ];
 
-  // Se o index ainda tiver categoria antiga
-  // que não usamos mais, não quebra o Radar.
   if (
     !Array.isArray(
       palavras
@@ -1154,7 +1152,6 @@ function montarURL(
   pagina
 ) {
 
-  // ZERO VENDAS
   if (
     filtroAtual ===
     "zero"
@@ -1221,7 +1218,6 @@ function montarURL(
   }
 
 
-  // MAIS VENDIDOS / AVALIAÇÃO
   if (
     filtroAtual ===
       "hot" ||
@@ -1265,7 +1261,6 @@ function montarURL(
   }
 
 
-  // MOMENTUM
   const url =
     new URL(
       MOMENTUM_API
@@ -1759,7 +1754,7 @@ function atualizarInterfaceModo() {
     heroDescription.textContent =
       zero
         ? "Encontre produtos ainda sem nenhuma venda e tente posicionar seu vídeo antes da concorrência."
-        : "Acompanhe momentum, tendência, ranking e movimento dos produtos em um único Radar.";
+        : "Acompanhe a força, tendência, posição e movimento dos produtos em um único Radar.";
   }
 
 
@@ -2112,10 +2107,10 @@ function criarCardMomentum(
               font-size:9px;
             "
           >
-            Trend Score
+            📈 Tendência:
             ${Math.round(
               produto.trend_score
-            )}
+            )}/100
           </div>
 
         </div>
@@ -2144,7 +2139,7 @@ function criarCardMomentum(
             class="product-stat"
           >
             <span>
-              + VENDAS 24H
+              🛒 VENDAS DETECTADAS
             </span>
 
             <strong>
@@ -2163,13 +2158,13 @@ function criarCardMomentum(
             class="product-stat"
           >
             <span>
-              CAPTURAS
+              👀 VISTO PELO RADAR
             </span>
 
             <strong>
               ${formatarNumero(
                 produto.capturas_24h
-              )}
+              )}x
             </strong>
           </div>
 
@@ -2178,7 +2173,7 @@ function criarCardMomentum(
             class="product-stat"
           >
             <span>
-              RANKING
+              📊 POSIÇÃO ENCONTRADA
             </span>
 
             <strong>
@@ -2218,7 +2213,7 @@ function criarCardMomentum(
                 font-size:7px;
               "
             >
-              POSIÇÃO MOMENTUM
+              📍 POSIÇÃO NO RADAR
             </small>
 
             <strong>
@@ -2250,13 +2245,13 @@ function criarCardMomentum(
                 font-size:7px;
               "
             >
-              FAIXA
+              🏆 ENTRE OS MAIS FORTES
             </small>
 
             <strong>
-              Top ${formatarFaixaPercentil(
+              Entre os ${formatarFaixaPercentil(
                 produto.percentil_top
-              )}
+              )} mais fortes
             </strong>
 
           </div>
@@ -2275,7 +2270,7 @@ function criarCardMomentum(
                   font-weight:800;
                 "
               >
-                📈 Subiu ${Math.round(
+                🚀 Subiu ${Math.round(
                   rankChange
                 )} posições
               </div>
@@ -2291,13 +2286,13 @@ function criarCardMomentum(
           <div>
 
             <small>
-              MOMENTUM
+              🔥 FORÇA AGORA
             </small>
 
             <strong>
               ${Math.round(
                 produto.momentum_score
-              )}
+              )}/100
             </strong>
 
           </div>
@@ -2983,17 +2978,17 @@ function abrirModal(
 
 
         <p>
-          Momentum:
+          🔥 Força agora:
           <strong>
             ${Math.round(
               produto.momentum_score
-            )}
+            )}/100
           </strong>
         </p>
 
 
         <p>
-          Tendência:
+          📈 Tendência:
           <strong>
             ${escapar(
               produto.trend_nivel
@@ -3003,46 +2998,76 @@ function abrirModal(
 
 
         <p>
-          Trend Score:
-          ${Math.round(
-            produto.trend_score
-          )}
+          📈 Força da tendência:
+          <strong>
+            ${Math.round(
+              produto.trend_score
+            )}/100
+          </strong>
         </p>
 
 
         <p>
-          Vendas confirmadas 24h:
-          +${formatarNumero(
-            produto
-              .vendas_confirmadas_24h
-          )}
+          🛒 Vendas detectadas:
+          <strong>
+            ${
+              numeroSeguro(
+                produto.vendas_confirmadas_24h
+              ) > 0
+                ? "+"
+                : ""
+            }${formatarNumero(
+              produto.vendas_confirmadas_24h
+            )}
+          </strong>
         </p>
 
 
         <p>
-          Capturas:
-          ${formatarNumero(
-            produto.capturas_24h
-          )}
+          👀 Visto pelo Radar:
+          <strong>
+            ${formatarNumero(
+              produto.capturas_24h
+            )} vezes
+          </strong>
         </p>
 
 
         <p>
-          Ranking:
-          ${
-            produto.rank_atual > 0
-              ? "#" +
-                produto.rank_atual
-              : "Sem posição"
-          }
+          📊 Posição encontrada:
+          <strong>
+            ${
+              produto.rank_atual > 0
+                ? "#" +
+                  produto.rank_atual
+                : "Sem posição"
+            }
+          </strong>
         </p>
 
 
         <p>
-          Faixa:
-          Top ${formatarFaixaPercentil(
-            produto.percentil_top
-          )}
+          📍 Posição no Radar:
+          <strong>
+            ${
+              produto.momentum_posicao > 0
+                ? "#" +
+                  Math.round(
+                    produto.momentum_posicao
+                  )
+                : "Sem posição"
+            }
+          </strong>
+        </p>
+
+
+        <p>
+          🏆 Destaque:
+          <strong>
+            Entre os ${formatarFaixaPercentil(
+              produto.percentil_top
+            )} mais fortes
+          </strong>
         </p>
 
       </div>
@@ -3800,8 +3825,6 @@ if (
         categoryFilter.value;
 
 
-      // Agora é instantâneo.
-      // Não busca 25 páginas sozinho.
       aplicarOrdenacao();
 
     }
