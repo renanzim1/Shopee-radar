@@ -1,14 +1,7 @@
 // ======================================================
 // SHOPEE RADAR — APP.JS
-//
-// VERSÃO ESTÁVEL
-// MOMENTUM + TREND SCORE
-// RANQUEAR SEUS VÍDEOS — ZERO VENDAS
-// NICHOS PRINCIPAIS
-// SCROLL INFINITO
-// FAVORITOS
+// VERSÃO AJUSTADA — CARDS MOBILE + TOP NUMÉRICO
 // ======================================================
-
 
 // ======================================================
 // APIS
@@ -36,25 +29,15 @@ const LIMITE_POR_PAGINA = 20;
 // ======================================================
 
 let produtos = [];
-
 let paginaAtual = 1;
-
 let temProximaPagina = true;
-
 let carregando = false;
-
 let filtroAtual = "radar";
-
 let ordenacaoAtual = "relevance";
-
 let modoFavoritos = false;
-
 let buscaDigitada = "";
-
 let nichoAtual = "all";
-
 let totalServidor = 0;
-
 let resumoServidor = {};
 
 
@@ -70,7 +53,6 @@ function obterTokenRadar() {
   );
 }
 
-
 function limparSessaoRadarApp() {
   localStorage.removeItem(
     "shopeeRadarAccessToken"
@@ -85,7 +67,6 @@ function limparSessaoRadarApp() {
   );
 }
 
-
 function redirecionarLogin() {
   limparSessaoRadarApp();
 
@@ -93,7 +74,6 @@ function redirecionarLogin() {
     "login.html"
   );
 }
-
 
 function criarHeadersAPI() {
   const token =
@@ -194,12 +174,208 @@ const closeModal =
 
 
 // ======================================================
+// CORREÇÃO VISUAL DOS QUADRADOS
+// ======================================================
+
+(function aplicarAjustesCards() {
+
+  const style =
+    document.createElement(
+      "style"
+    );
+
+  style.id =
+    "radar-card-fixes";
+
+  style.textContent = `
+
+    .product-stats {
+      display: grid !important;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+
+    .product-stat {
+      min-width: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 68px !important;
+      padding: 10px 8px !important;
+      box-sizing: border-box !important;
+
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: flex-start !important;
+
+      overflow: visible !important;
+    }
+
+    .product-stat span {
+      display: block !important;
+
+      width: 100% !important;
+
+      white-space: normal !important;
+
+      overflow: visible !important;
+
+      text-overflow: clip !important;
+
+      word-break: normal !important;
+
+      overflow-wrap: normal !important;
+
+      line-height: 1.15 !important;
+
+      font-size: 8px !important;
+
+      letter-spacing: 0 !important;
+
+      margin-bottom: 5px !important;
+    }
+
+    .product-stat strong {
+      display: block !important;
+
+      width: 100% !important;
+
+      white-space: normal !important;
+
+      overflow: visible !important;
+
+      text-overflow: clip !important;
+
+      line-height: 1.1 !important;
+    }
+
+
+    .radar-mini-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 8px;
+
+      margin-top: 9px;
+
+      width: 100%;
+    }
+
+
+    .radar-mini-box {
+      min-width: 0;
+
+      min-height: 72px;
+
+      padding: 9px;
+
+      box-sizing: border-box;
+
+      border-radius: 9px;
+
+      background: #0b0e14;
+
+      display: flex;
+
+      flex-direction: column;
+
+      justify-content: center;
+
+      align-items: flex-start;
+
+      overflow: visible;
+    }
+
+
+    .radar-mini-box small {
+      display: block;
+
+      width: 100%;
+
+      color: #737b8b;
+
+      font-size: 8px;
+
+      line-height: 1.2;
+
+      white-space: normal;
+
+      overflow: visible;
+
+      text-overflow: clip;
+    }
+
+
+    .radar-mini-box strong {
+      display: block;
+
+      width: 100%;
+
+      margin-top: 4px;
+
+      font-size: 20px;
+
+      line-height: 1.05;
+
+      white-space: normal;
+
+      overflow: visible;
+    }
+
+
+    @media (max-width: 420px) {
+
+      .product-stat {
+        padding: 9px 7px !important;
+
+        min-height: 66px !important;
+      }
+
+      .product-stat span {
+        font-size: 7.5px !important;
+      }
+
+      .product-stat strong {
+        font-size: 16px !important;
+      }
+
+      .radar-mini-box {
+        padding: 8px;
+
+        min-height: 68px;
+      }
+
+      .radar-mini-box small {
+        font-size: 7.5px;
+      }
+
+      .radar-mini-box strong {
+        font-size: 19px;
+      }
+
+    }
+
+  `;
+
+  document.head.appendChild(
+    style
+  );
+
+})();
+
+
+// ======================================================
 // FAVORITOS
 // ======================================================
 
 let favoritos = [];
 
 try {
+
   favoritos =
     JSON.parse(
       localStorage.getItem(
@@ -216,12 +392,16 @@ try {
   }
 
 } catch {
+
   favoritos = [];
+
 }
 
 
 function salvarFavoritos() {
+
   try {
+
     localStorage.setItem(
       "shopeeRadarFavoritos",
       JSON.stringify(
@@ -230,75 +410,114 @@ function salvarFavoritos() {
     );
 
   } catch (erro) {
+
     console.error(
       "Erro ao salvar favoritos:",
       erro
     );
+
   }
+
 }
 
 
 function estaFavoritado(id) {
+
   return favoritos.some(
     produto =>
-      String(produto.id) ===
-      String(id)
+      String(
+        produto.id
+      ) ===
+      String(
+        id
+      )
   );
+
 }
 
 
 function encontrarProduto(id) {
+
   return (
     produtos.find(
       produto =>
-        String(produto.id) ===
-        String(id)
+        String(
+          produto.id
+        ) ===
+        String(
+          id
+        )
     ) ||
+
     favoritos.find(
       produto =>
-        String(produto.id) ===
-        String(id)
+        String(
+          produto.id
+        ) ===
+        String(
+          id
+        )
     )
   );
+
 }
 
 
 function alternarFavorito(id) {
+
   const produto =
-    encontrarProduto(id);
+    encontrarProduto(
+      id
+    );
 
   if (!produto) {
     return;
   }
 
+
   if (
-    estaFavoritado(id)
+    estaFavoritado(
+      id
+    )
   ) {
+
     favoritos =
       favoritos.filter(
         item =>
-          String(item.id) !==
-          String(id)
+          String(
+            item.id
+          ) !==
+          String(
+            id
+          )
       );
 
   } else {
+
     favoritos.unshift({
       ...produto
     });
+
   }
 
+
   salvarFavoritos();
+
 
   if (
     modoFavoritos
   ) {
+
     renderizarProdutos(
       favoritos
     );
 
   } else {
+
     aplicarOrdenacao();
+
   }
+
 }
 
 
@@ -307,6 +526,7 @@ function alternarFavorito(id) {
 // ======================================================
 
 function numeroSeguro(valor) {
+
   const numero =
     Number(
       valor ?? 0
@@ -317,55 +537,73 @@ function numeroSeguro(valor) {
   )
     ? numero
     : 0;
+
 }
 
 
 function escapar(valor) {
+
   return String(
     valor ?? ""
   )
+
     .replaceAll(
       "&",
       "&amp;"
     )
+
     .replaceAll(
       "<",
       "&lt;"
     )
+
     .replaceAll(
       ">",
       "&gt;"
     )
+
     .replaceAll(
       '"',
       "&quot;"
     )
+
     .replaceAll(
       "'",
       "&#039;"
     );
+
 }
 
 
 function normalizarTexto(valor) {
+
   return String(
     valor ?? ""
   )
-    .normalize("NFD")
+
+    .normalize(
+      "NFD"
+    )
+
     .replace(
       /[\u0300-\u036f]/g,
       ""
     )
+
     .toLowerCase()
+
     .replace(
       /[^a-z0-9\s]/g,
       " "
     )
+
     .replace(
       /\s+/g,
       " "
     )
+
     .trim();
+
 }
 
 
@@ -374,6 +612,7 @@ function normalizarTexto(valor) {
 // ======================================================
 
 function dinheiro(valor) {
+
   return numeroSeguro(
     valor
   ).toLocaleString(
@@ -386,18 +625,23 @@ function dinheiro(valor) {
         "BRL"
     }
   );
+
 }
 
 
 function formatarNumero(valor) {
+
   const numero =
     numeroSeguro(
       valor
     );
 
+
   if (
-    numero >= 1000000
+    numero >=
+    1000000
   ) {
+
     return (
       (
         numero /
@@ -410,11 +654,15 @@ function formatarNumero(valor) {
         ) +
       " mi"
     );
+
   }
 
+
   if (
-    numero >= 1000
+    numero >=
+    1000
   ) {
+
     return (
       (
         numero /
@@ -431,37 +679,26 @@ function formatarNumero(valor) {
         ) +
       " mil"
     );
+
   }
+
 
   return numero.toLocaleString(
     "pt-BR"
   );
-}
 
-
-function formatarDecimal(
-  valor,
-  casas = 1
-) {
-  return numeroSeguro(
-    valor
-  )
-    .toFixed(
-      casas
-    )
-    .replace(
-      ".",
-      ","
-    );
 }
 
 
 function formatarData(valor) {
+
   if (!valor) {
     return "";
   }
 
+
   try {
+
     return new Date(
       valor
     ).toLocaleString(
@@ -482,54 +719,16 @@ function formatarData(valor) {
     );
 
   } catch {
+
     return "";
-  }
-}
 
-
-function formatarFaixaPercentil(
-  valor
-) {
-  let numero =
-    numeroSeguro(
-      valor
-    );
-
-  if (
-    numero <= 0
-  ) {
-    numero = 1;
   }
 
-  if (
-    numero < 1
-  ) {
-    numero = 1;
-  }
-
-  if (
-    numero < 10
-  ) {
-    return (
-      formatarDecimal(
-        numero,
-        1
-      ) +
-      "%"
-    );
-  }
-
-  return (
-    Math.round(
-      numero
-    ) +
-    "%"
-  );
 }
 
 
 // ======================================================
-// NICHOS PRINCIPAIS
+// NICHOS
 // ======================================================
 
 const MAPA_NICHOS = {
@@ -792,6 +991,7 @@ function produtoPertenceNicho(
   produto,
   nicho
 ) {
+
   if (
     !nicho ||
     nicho === "all"
@@ -799,10 +999,12 @@ function produtoPertenceNicho(
     return true;
   }
 
+
   const palavras =
     MAPA_NICHOS[
       nicho
     ];
+
 
   if (
     !Array.isArray(
@@ -813,6 +1015,7 @@ function produtoPertenceNicho(
     return true;
   }
 
+
   const texto =
     normalizarTexto(
       [
@@ -820,6 +1023,7 @@ function produtoPertenceNicho(
         produto.shop_name
       ].join(" ")
     );
+
 
   return palavras.some(
     palavra =>
@@ -829,6 +1033,7 @@ function produtoPertenceNicho(
         )
       )
   );
+
 }
 
 
@@ -837,6 +1042,7 @@ function produtoPertenceNicho(
 // ======================================================
 
 function normalizarMomentum(p) {
+
   return {
 
     id:
@@ -895,14 +1101,6 @@ function normalizarMomentum(p) {
         p.momentum_posicao
       ),
 
-    percentil_top:
-      Math.max(
-        1,
-        numeroSeguro(
-          p.percentil_top
-        )
-      ),
-
     momentum_nivel:
       p.momentum_nivel ??
       "observar",
@@ -956,6 +1154,7 @@ function normalizarMomentum(p) {
       )
 
   };
+
 }
 
 
@@ -964,6 +1163,7 @@ function normalizarMomentum(p) {
 // ======================================================
 
 function normalizarZero(p) {
+
   return {
 
     id:
@@ -1038,6 +1238,7 @@ function normalizarZero(p) {
       "Produto com 0 vendas totais registradas."
 
   };
+
 }
 
 
@@ -1046,6 +1247,7 @@ function normalizarZero(p) {
 // ======================================================
 
 function normalizarRanking(p) {
+
   return {
 
     id:
@@ -1101,6 +1303,7 @@ function normalizarRanking(p) {
       null
 
   };
+
 }
 
 
@@ -1109,13 +1312,16 @@ function normalizarRanking(p) {
 // ======================================================
 
 function removerDuplicados(lista) {
+
   const mapa =
     new Map();
+
 
   for (
     const produto
     of lista
   ) {
+
     if (
       !produto ||
       !produto.id
@@ -1123,24 +1329,33 @@ function removerDuplicados(lista) {
       continue;
     }
 
+
     const id =
       String(
         produto.id
       );
 
+
     if (
-      !mapa.has(id)
+      !mapa.has(
+        id
+      )
     ) {
+
       mapa.set(
         id,
         produto
       );
+
     }
+
   }
+
 
   return [
     ...mapa.values()
   ];
+
 }
 
 
@@ -1156,10 +1371,12 @@ function montarURL(
     filtroAtual ===
     "zero"
   ) {
+
     const url =
       new URL(
         ZERO_API
       );
+
 
     url.searchParams.set(
       "page",
@@ -1168,6 +1385,7 @@ function montarURL(
       )
     );
 
+
     url.searchParams.set(
       "limit",
       String(
@@ -1175,17 +1393,22 @@ function montarURL(
       )
     );
 
+
     if (
       buscaDigitada
     ) {
+
       url.searchParams.set(
         "q",
         buscaDigitada
       );
+
     }
+
 
     let sort =
       "recent";
+
 
     if (
       ordenacaoAtual ===
@@ -1195,6 +1418,7 @@ function montarURL(
         "rating";
     }
 
+
     if (
       ordenacaoAtual ===
       "trend"
@@ -1203,18 +1427,23 @@ function montarURL(
         "seen";
     }
 
+
     url.searchParams.set(
       "sort",
       sort
     );
 
+
     return {
+
       url:
         url.toString(),
 
       tipo:
         "zero"
+
     };
+
   }
 
 
@@ -1224,10 +1453,12 @@ function montarURL(
     filtroAtual ===
       "rating"
   ) {
+
     const url =
       new URL(
         RANKING_API
       );
+
 
     url.searchParams.set(
       "page",
@@ -1236,12 +1467,14 @@ function montarURL(
       )
     );
 
+
     url.searchParams.set(
       "limit",
       String(
         LIMITE_POR_PAGINA
       )
     );
+
 
     url.searchParams.set(
       "mode",
@@ -1251,13 +1484,17 @@ function montarURL(
           : "rating"
     );
 
+
     return {
+
       url:
         url.toString(),
 
       tipo:
         "ranking"
+
     };
+
   }
 
 
@@ -1266,12 +1503,14 @@ function montarURL(
       MOMENTUM_API
     );
 
+
   url.searchParams.set(
     "page",
     String(
       pagina
     )
   );
+
 
   url.searchParams.set(
     "limit",
@@ -1280,13 +1519,17 @@ function montarURL(
     )
   );
 
+
   return {
+
     url:
       url.toString(),
 
     tipo:
       "momentum"
+
   };
+
 }
 
 
@@ -1306,6 +1549,7 @@ async function carregarProdutos(
     return;
   }
 
+
   if (
     adicionar &&
     !temProximaPagina
@@ -1313,13 +1557,19 @@ async function carregarProdutos(
     return;
   }
 
+
   const token =
     obterTokenRadar();
 
+
   if (!token) {
+
     redirecionarLogin();
+
     return;
+
   }
+
 
   carregando =
     true;
@@ -1328,34 +1578,36 @@ async function carregarProdutos(
   if (
     adicionar
   ) {
+
     if (
       infiniteLoader
     ) {
+
       infiniteLoader.hidden =
         false;
+
     }
 
   } else {
+
     mostrarLoading();
+
   }
 
 
   try {
+
     const config =
       montarURL(
         pagina
       );
-
-    console.log(
-      "Shopee Radar:",
-      config.url
-    );
 
 
     const resposta =
       await fetch(
         config.url,
         {
+
           method:
             "GET",
 
@@ -1364,29 +1616,39 @@ async function carregarProdutos(
 
           cache:
             "no-store"
+
         }
       );
 
 
     if (
-      resposta.status === 401 ||
-      resposta.status === 403
+      resposta.status ===
+        401 ||
+      resposta.status ===
+        403
     ) {
+
       redirecionarLogin();
+
       return;
+
     }
 
 
     let dados;
 
+
     try {
+
       dados =
         await resposta.json();
 
     } catch {
+
       throw new Error(
         "Resposta inválida da API."
       );
+
     }
 
 
@@ -1394,11 +1656,13 @@ async function carregarProdutos(
       !resposta.ok ||
       dados.ok === false
     ) {
+
       throw new Error(
         dados.erro ||
         dados.message ||
         "Não foi possível carregar os produtos."
       );
+
     }
 
 
@@ -1410,6 +1674,7 @@ async function carregarProdutos(
       config.tipo ===
       "momentum"
     ) {
+
       novos =
         (
           Array.isArray(
@@ -1420,6 +1685,7 @@ async function carregarProdutos(
         ).map(
           normalizarMomentum
         );
+
     }
 
 
@@ -1427,6 +1693,7 @@ async function carregarProdutos(
       config.tipo ===
       "zero"
     ) {
+
       novos =
         (
           Array.isArray(
@@ -1437,6 +1704,7 @@ async function carregarProdutos(
         ).map(
           normalizarZero
         );
+
     }
 
 
@@ -1444,6 +1712,7 @@ async function carregarProdutos(
       config.tipo ===
       "ranking"
     ) {
+
       novos =
         (
           Array.isArray(
@@ -1454,6 +1723,7 @@ async function carregarProdutos(
         ).map(
           normalizarRanking
         );
+
     }
 
 
@@ -1466,6 +1736,7 @@ async function carregarProdutos(
     if (
       adicionar
     ) {
+
       produtos =
         removerDuplicados(
           [
@@ -1475,8 +1746,10 @@ async function carregarProdutos(
         );
 
     } else {
+
       produtos =
         novos;
+
     }
 
 
@@ -1510,14 +1783,17 @@ async function carregarProdutos(
 
 
   } catch (erro) {
+
     console.error(
       "Erro Shopee Radar:",
       erro
     );
 
+
     if (
       !adicionar
     ) {
+
       mostrarErro(
         erro instanceof Error
           ? erro.message
@@ -1525,19 +1801,26 @@ async function carregarProdutos(
               erro
             )
       );
+
     }
 
   } finally {
+
     carregando =
       false;
+
 
     if (
       infiniteLoader
     ) {
+
       infiniteLoader.hidden =
         true;
+
     }
+
   }
+
 }
 
 
@@ -1546,6 +1829,7 @@ async function carregarProdutos(
 // ======================================================
 
 function obterListaFiltrada() {
+
   let lista =
     removerDuplicados(
       [
@@ -1565,9 +1849,11 @@ function obterListaFiltrada() {
     filtroAtual !==
       "zero"
   ) {
+
     lista =
       lista.filter(
         produto => {
+
           const texto =
             normalizarTexto(
               [
@@ -1576,11 +1862,14 @@ function obterListaFiltrada() {
               ].join(" ")
             );
 
+
           return texto.includes(
             busca
           );
+
         }
       );
+
   }
 
 
@@ -1588,6 +1877,7 @@ function obterListaFiltrada() {
     nichoAtual !==
     "all"
   ) {
+
     lista =
       lista.filter(
         produto =>
@@ -1596,10 +1886,12 @@ function obterListaFiltrada() {
             nichoAtual
           )
       );
+
   }
 
 
   return lista;
+
 }
 
 
@@ -1630,6 +1922,7 @@ function atualizarContadores(
   if (
     totalProdutos
   ) {
+
     totalProdutos.textContent =
       filtrando
         ? lista.length
@@ -1637,14 +1930,17 @@ function atualizarContadores(
             totalServidor ||
             produtos.length
           );
+
   }
 
 
   if (
     totalVideos
   ) {
+
     totalVideos.textContent =
       produtos.length;
+
   }
 
 
@@ -1659,6 +1955,7 @@ function atualizarContadores(
     filtroAtual ===
     "zero"
   ) {
+
     totalOportunidades.textContent =
       lista.filter(
         produto =>
@@ -1667,7 +1964,9 @@ function atualizarContadores(
           ) >= 2
       ).length;
 
+
     return;
+
   }
 
 
@@ -1675,9 +1974,11 @@ function atualizarContadores(
     filtroAtual ===
     "radar"
   ) {
+
     if (
       filtrando
     ) {
+
       totalOportunidades.textContent =
         lista.filter(
           produto =>
@@ -1688,6 +1989,7 @@ function atualizarContadores(
         ).length;
 
     } else {
+
       totalOportunidades.textContent =
         numeroSeguro(
           resumoServidor
@@ -1697,14 +1999,18 @@ function atualizarContadores(
           resumoServidor
             .forte_candidato
         );
+
     }
 
+
     return;
+
   }
 
 
   totalOportunidades.textContent =
     lista.length;
+
 }
 
 
@@ -1713,6 +2019,7 @@ function atualizarContadores(
 // ======================================================
 
 function atualizarInterfaceModo() {
+
   const zero =
     filtroAtual ===
     "zero";
@@ -1721,50 +2028,60 @@ function atualizarInterfaceModo() {
   if (
     zeroStrategyBox
   ) {
+
     zeroStrategyBox.classList.toggle(
       "active",
       zero
     );
+
   }
 
 
   if (
     totalProdutosLabel
   ) {
+
     totalProdutosLabel.textContent =
       zero
         ? "PRODUTOS 0 VENDAS"
         : "NO RADAR";
+
   }
 
 
   if (
     totalOportunidadesLabel
   ) {
+
     totalOportunidadesLabel.textContent =
       zero
         ? "RECORRENTES"
         : "DESTAQUES";
+
   }
 
 
   if (
     heroDescription
   ) {
+
     heroDescription.textContent =
       zero
         ? "Encontre produtos ainda sem nenhuma venda e tente posicionar seu vídeo antes da concorrência."
         : "Acompanhe a força, tendência, posição e movimento dos produtos em um único Radar.";
+
   }
 
 
   if (
     resultsTitle
   ) {
+
     if (
       filtroAtual ===
       "zero"
     ) {
+
       resultsTitle.textContent =
         "🎯 Ranquear seus vídeos";
 
@@ -1772,6 +2089,7 @@ function atualizarInterfaceModo() {
       filtroAtual ===
       "hot"
     ) {
+
       resultsTitle.textContent =
         "🔥 Mais vendidos";
 
@@ -1779,14 +2097,19 @@ function atualizarInterfaceModo() {
       filtroAtual ===
       "rating"
     ) {
+
       resultsTitle.textContent =
         "⭐ Melhor avaliação";
 
     } else {
+
       resultsTitle.textContent =
         "🔥 O que está ganhando força";
+
     }
+
   }
+
 }
 
 
@@ -1795,6 +2118,7 @@ function atualizarInterfaceModo() {
 // ======================================================
 
 function aplicarOrdenacao() {
+
   let lista =
     obterListaFiltrada();
 
@@ -1803,6 +2127,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "relevance"
   ) {
+
     lista.sort(
       (
         a,
@@ -1815,6 +2140,7 @@ function aplicarOrdenacao() {
           a.momentum_score
         )
     );
+
   }
 
 
@@ -1822,6 +2148,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "trend"
   ) {
+
     lista.sort(
       (
         a,
@@ -1836,6 +2163,7 @@ function aplicarOrdenacao() {
           a.times_seen
         )
     );
+
   }
 
 
@@ -1843,6 +2171,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "sales"
   ) {
+
     lista.sort(
       (
         a,
@@ -1855,6 +2184,7 @@ function aplicarOrdenacao() {
           a.sold_count
         )
     );
+
   }
 
 
@@ -1862,6 +2192,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "rating"
   ) {
+
     lista.sort(
       (
         a,
@@ -1874,6 +2205,7 @@ function aplicarOrdenacao() {
           a.rating
         )
     );
+
   }
 
 
@@ -1881,6 +2213,7 @@ function aplicarOrdenacao() {
     ordenacaoAtual ===
     "recent"
   ) {
+
     lista.sort(
       (
         a,
@@ -1895,6 +2228,7 @@ function aplicarOrdenacao() {
           0
         ).getTime()
     );
+
   }
 
 
@@ -1902,9 +2236,11 @@ function aplicarOrdenacao() {
     lista
   );
 
+
   renderizarProdutos(
     lista
   );
+
 }
 
 
@@ -1915,12 +2251,14 @@ function aplicarOrdenacao() {
 function obterCorMomentum(
   produto
 ) {
+
   if (
     produto.momentum_nivel ===
     "em_alta"
   ) {
     return "#ff4d4d";
   }
+
 
   if (
     produto.momentum_nivel ===
@@ -1929,6 +2267,7 @@ function obterCorMomentum(
     return "#ff8a3d";
   }
 
+
   if (
     produto.momentum_nivel ===
     "acompanhar"
@@ -1936,7 +2275,90 @@ function obterCorMomentum(
     return "#32d583";
   }
 
+
   return "#9299a8";
+
+}
+
+
+// ======================================================
+// COMPONENTES DOS CARDS
+// ======================================================
+
+function botaoFavorito(
+  produto
+) {
+
+  const favoritado =
+    estaFavoritado(
+      produto.id
+    );
+
+
+  return `
+
+    <button
+      class="favorite-btn"
+      data-favorite-id="${escapar(
+        produto.id
+      )}"
+      style="
+        position:absolute;
+        top:10px;
+        right:10px;
+        z-index:20;
+        width:40px;
+        height:40px;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:50%;
+        background:rgba(10,12,18,.88);
+        color:${
+          favoritado
+            ? "#ff5a1f"
+            : "#fff"
+        };
+        font-size:24px;
+      "
+    >
+      ${
+        favoritado
+          ? "♥"
+          : "♡"
+      }
+    </button>
+
+  `;
+
+}
+
+
+function imagemProduto(
+  produto
+) {
+
+  if (
+    !produto.image_url
+  ) {
+    return "";
+  }
+
+
+  return `
+
+    <img
+      class="product-image"
+      src="${escapar(
+        produto.image_url
+      )}"
+      alt="${escapar(
+        produto.name
+      )}"
+      loading="lazy"
+      decoding="async"
+    >
+
+  `;
+
 }
 
 
@@ -1948,15 +2370,11 @@ function criarCardMomentum(
   produto
 ) {
 
-  const favoritado =
-    estaFavoritado(
-      produto.id
-    );
-
   const cor =
     obterCorMomentum(
       produto
     );
+
 
   const vendas =
     numeroSeguro(
@@ -1964,74 +2382,56 @@ function criarCardMomentum(
         .vendas_confirmadas_24h
     );
 
+
   const rankChange =
     numeroSeguro(
       produto.rank_change
     );
 
 
+  // IMPORTANTE:
+  // O destaque agora é NUMÉRICO.
+  // momentum_posicao 1 = TOP 1
+  // momentum_posicao 2 = TOP 2
+  // momentum_posicao 3 = TOP 3...
+
+  const topNumerico =
+    produto.momentum_posicao > 0
+      ? Math.round(
+          produto.momentum_posicao
+        )
+      : null;
+
+
   return `
+
     <article
       class="product-card"
       data-id="${escapar(
         produto.id
       )}"
-      style="position:relative;"
+      style="
+        position:relative;
+      "
     >
 
-      <button
-        class="favorite-btn"
-        data-favorite-id="${escapar(
-          produto.id
-        )}"
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:40px;
-          height:40px;
-          border:1px solid rgba(255,255,255,.12);
-          border-radius:50%;
-          background:rgba(10,12,18,.88);
-          color:${
-            favoritado
-              ? "#ff5a1f"
-              : "#fff"
-          };
-          font-size:24px;
-        "
+      ${botaoFavorito(
+        produto
+      )}
+
+
+      ${imagemProduto(
+        produto
+      )}
+
+
+      <div
+        class="product-card-content"
       >
-        ${
-          favoritado
-            ? "♥"
-            : "♡"
-        }
-      </button>
 
-
-      ${
-        produto.image_url
-          ? `
-            <img
-              class="product-image"
-              src="${escapar(
-                produto.image_url
-              )}"
-              alt="${escapar(
-                produto.name
-              )}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : ""
-      }
-
-
-      <div class="product-card-content">
-
-        <div class="product-card-top">
+        <div
+          class="product-card-top"
+        >
 
           <span
             class="opportunity-badge"
@@ -2046,7 +2446,9 @@ function criarCardMomentum(
           </span>
 
 
-          <span class="score-badge">
+          <span
+            class="score-badge"
+          >
             ${Math.round(
               produto.momentum_score
             )}
@@ -2055,14 +2457,18 @@ function criarCardMomentum(
         </div>
 
 
-        <h3 class="product-name">
+        <h3
+          class="product-name"
+        >
           ${escapar(
             produto.name
           )}
         </h3>
 
 
-        <div class="product-shop">
+        <div
+          class="product-shop"
+        >
           🏪 ${escapar(
             produto.shop_name
           )}
@@ -2106,9 +2512,14 @@ function criarCardMomentum(
         </div>
 
 
-        <div class="product-stats">
+        <div
+          class="product-stats"
+        >
 
-          <div class="product-stat">
+          <div
+            class="product-stat"
+          >
+
             <span>
               VENDIDOS
             </span>
@@ -2118,10 +2529,14 @@ function criarCardMomentum(
                 produto.sold_count
               )}
             </strong>
+
           </div>
 
 
-          <div class="product-stat">
+          <div
+            class="product-stat"
+          >
+
             <span>
               🛒 VENDAS AGORA
             </span>
@@ -2135,10 +2550,14 @@ function criarCardMomentum(
                 vendas
               )}
             </strong>
+
           </div>
 
 
-          <div class="product-stat">
+          <div
+            class="product-stat"
+          >
+
             <span>
               👀 VISTO NO RADAR
             </span>
@@ -2148,10 +2567,14 @@ function criarCardMomentum(
                 produto.capturas_24h
               )}x
             </strong>
+
           </div>
 
 
-          <div class="product-stat">
+          <div
+            class="product-stat"
+          >
+
             <span>
               📊 RANKING ATUAL
             </span>
@@ -2163,46 +2586,28 @@ function criarCardMomentum(
                   : "—"
               }
             </strong>
+
           </div>
 
         </div>
 
 
         <div
-          style="
-            display:grid;
-            grid-template-columns:
-              repeat(2,minmax(0,1fr));
-            gap:7px;
-            margin-top:9px;
-          "
+          class="radar-mini-grid"
         >
 
           <div
-            style="
-              padding:8px;
-              border-radius:9px;
-              background:#0b0e14;
-            "
+            class="radar-mini-box"
           >
 
-            <small
-              style="
-                display:block;
-                color:#737b8b;
-                font-size:7px;
-              "
-            >
+            <small>
               📍 POSIÇÃO RADAR
             </small>
 
             <strong>
               ${
-                produto.momentum_posicao > 0
-                  ? "#" +
-                    Math.round(
-                      produto.momentum_posicao
-                    )
+                topNumerico
+                  ? `#${topNumerico}`
                   : "—"
               }
             </strong>
@@ -2211,32 +2616,19 @@ function criarCardMomentum(
 
 
           <div
-            style="
-              padding:8px;
-              border-radius:9px;
-              background:#0b0e14;
-            "
+            class="radar-mini-box"
           >
 
-            <small
-              style="
-                display:block;
-                color:#737b8b;
-                font-size:7px;
-              "
-            >
+            <small>
               🏆 DESTAQUE
             </small>
 
-            <strong
-              style="
-                font-size:18px;
-                line-height:1.15;
-              "
-            >
-              TOP ${formatarFaixaPercentil(
-                produto.percentil_top
-              )}
+            <strong>
+              ${
+                topNumerico
+                  ? `TOP ${topNumerico}`
+                  : "—"
+              }
             </strong>
 
           </div>
@@ -2247,6 +2639,7 @@ function criarCardMomentum(
         ${
           rankChange > 0
             ? `
+
               <div
                 style="
                   margin-top:8px;
@@ -2259,12 +2652,15 @@ function criarCardMomentum(
                   rankChange
                 )} posições
               </div>
+
             `
             : ""
         }
 
 
-        <div class="product-footer">
+        <div
+          class="product-footer"
+        >
 
           <div>
 
@@ -2281,7 +2677,9 @@ function criarCardMomentum(
           </div>
 
 
-          <div class="product-price">
+          <div
+            class="product-price"
+          >
 
             <small>
               PREÇO
@@ -2300,8 +2698,11 @@ function criarCardMomentum(
       </div>
 
     </article>
+
   `;
+
 }
+
 
 // ======================================================
 // CARD ZERO
@@ -2311,69 +2712,26 @@ function criarCardZero(
   produto
 ) {
 
-  const favoritado =
-    estaFavoritado(
-      produto.id
-    );
-
-
   return `
+
     <article
       class="product-card"
       data-id="${escapar(
         produto.id
       )}"
-      style="position:relative;"
+      style="
+        position:relative;
+      "
     >
 
-      <button
-        class="favorite-btn"
-        data-favorite-id="${escapar(
-          produto.id
-        )}"
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:40px;
-          height:40px;
-          border:1px solid rgba(255,255,255,.12);
-          border-radius:50%;
-          background:rgba(10,12,18,.88);
-          color:${
-            favoritado
-              ? "#ff5a1f"
-              : "#fff"
-          };
-          font-size:24px;
-        "
-      >
-        ${
-          favoritado
-            ? "♥"
-            : "♡"
-        }
-      </button>
+      ${botaoFavorito(
+        produto
+      )}
 
 
-      ${
-        produto.image_url
-          ? `
-            <img
-              class="product-image"
-              src="${escapar(
-                produto.image_url
-              )}"
-              alt="${escapar(
-                produto.name
-              )}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : ""
-      }
+      ${imagemProduto(
+        produto
+      )}
 
 
       <div
@@ -2447,6 +2805,7 @@ function criarCardZero(
           <div
             class="product-stat"
           >
+
             <span>
               VENDIDOS
             </span>
@@ -2454,12 +2813,14 @@ function criarCardZero(
             <strong>
               0
             </strong>
+
           </div>
 
 
           <div
             class="product-stat"
           >
+
             <span>
               DETECÇÕES
             </span>
@@ -2469,12 +2830,14 @@ function criarCardZero(
                 produto.times_seen
               )}
             </strong>
+
           </div>
 
 
           <div
             class="product-stat"
           >
+
             <span>
               AVALIAÇÃO
             </span>
@@ -2484,12 +2847,14 @@ function criarCardZero(
                 produto.rating
               ).toFixed(1)}
             </strong>
+
           </div>
 
 
           <div
             class="product-stat"
           >
+
             <span>
               ÚLTIMA VEZ
             </span>
@@ -2505,6 +2870,7 @@ function criarCardZero(
                 )
               )}
             </strong>
+
           </div>
 
         </div>
@@ -2548,7 +2914,9 @@ function criarCardZero(
       </div>
 
     </article>
+
   `;
+
 }
 
 
@@ -2560,69 +2928,26 @@ function criarCardRanking(
   produto
 ) {
 
-  const favoritado =
-    estaFavoritado(
-      produto.id
-    );
-
-
   return `
+
     <article
       class="product-card"
       data-id="${escapar(
         produto.id
       )}"
-      style="position:relative;"
+      style="
+        position:relative;
+      "
     >
 
-      <button
-        class="favorite-btn"
-        data-favorite-id="${escapar(
-          produto.id
-        )}"
-        style="
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:40px;
-          height:40px;
-          border:1px solid rgba(255,255,255,.12);
-          border-radius:50%;
-          background:rgba(10,12,18,.88);
-          color:${
-            favoritado
-              ? "#ff5a1f"
-              : "#fff"
-          };
-          font-size:24px;
-        "
-      >
-        ${
-          favoritado
-            ? "♥"
-            : "♡"
-        }
-      </button>
+      ${botaoFavorito(
+        produto
+      )}
 
 
-      ${
-        produto.image_url
-          ? `
-            <img
-              class="product-image"
-              src="${escapar(
-                produto.image_url
-              )}"
-              alt="${escapar(
-                produto.name
-              )}"
-              loading="lazy"
-              decoding="async"
-            >
-          `
-          : ""
-      }
+      ${imagemProduto(
+        produto
+      )}
 
 
       <div
@@ -2725,7 +3050,9 @@ function criarCardRanking(
       </div>
 
     </article>
+
   `;
+
 }
 
 
@@ -2753,6 +3080,7 @@ function renderizarProdutos(
   if (
     !listaUnica.length
   ) {
+
     productsGrid.innerHTML =
       "";
 
@@ -2760,6 +3088,7 @@ function renderizarProdutos(
     if (
       emptyState
     ) {
+
       emptyState.hidden =
         false;
 
@@ -2768,6 +3097,7 @@ function renderizarProdutos(
         emptyState.querySelector(
           "h3"
         );
+
 
       const texto =
         emptyState.querySelector(
@@ -2778,31 +3108,40 @@ function renderizarProdutos(
       if (
         titulo
       ) {
+
         titulo.textContent =
           "Nenhum produto encontrado";
+
       }
 
 
       if (
         texto
       ) {
+
         texto.textContent =
-          nichoAtual !== "all"
+          nichoAtual !==
+            "all"
             ? "Role a página para carregar mais produtos ou escolha outro nicho."
             : "Tente mudar sua pesquisa.";
+
       }
+
     }
 
 
     return;
+
   }
 
 
   if (
     emptyState
   ) {
+
     emptyState.hidden =
       true;
+
   }
 
 
@@ -2814,9 +3153,11 @@ function renderizarProdutos(
           produto.tipo ===
           "zero"
         ) {
+
           return criarCardZero(
             produto
           );
+
         }
 
 
@@ -2824,9 +3165,11 @@ function renderizarProdutos(
           produto.tipo ===
           "momentum"
         ) {
+
           return criarCardMomentum(
             produto
           );
+
         }
 
 
@@ -2835,10 +3178,13 @@ function renderizarProdutos(
         );
 
       }
-    ).join("");
+    ).join(
+      ""
+    );
 
 
   ativarEventosCards();
+
 }
 
 
@@ -2868,9 +3214,11 @@ function ativarEventosCards() {
             if (
               produto
             ) {
+
               abrirModal(
                 produto
               );
+
             }
 
           }
@@ -2941,6 +3289,14 @@ function abrirModal(
     "momentum"
   ) {
 
+    const topNumerico =
+      produto.momentum_posicao > 0
+        ? Math.round(
+            produto.momentum_posicao
+          )
+        : null;
+
+
     extra = `
 
       <div
@@ -2959,6 +3315,7 @@ function abrirModal(
 
         <p>
           🔥 Força agora:
+
           <strong>
             ${Math.round(
               produto.momentum_score
@@ -2969,6 +3326,7 @@ function abrirModal(
 
         <p>
           📈 Tendência:
+
           <strong>
             ${escapar(
               produto.trend_nivel
@@ -2979,6 +3337,7 @@ function abrirModal(
 
         <p>
           📈 Força da tendência:
+
           <strong>
             ${Math.round(
               produto.trend_score
@@ -2989,6 +3348,7 @@ function abrirModal(
 
         <p>
           🛒 Vendas detectadas:
+
           <strong>
             ${
               numeroSeguro(
@@ -3005,16 +3365,19 @@ function abrirModal(
 
         <p>
           👀 Visto pelo Radar:
+
           <strong>
             ${formatarNumero(
               produto.capturas_24h
-            )} vezes
+            )}
+            vezes
           </strong>
         </p>
 
 
         <p>
           📊 Posição encontrada:
+
           <strong>
             ${
               produto.rank_atual > 0
@@ -3028,13 +3391,12 @@ function abrirModal(
 
         <p>
           📍 Posição no Radar:
+
           <strong>
             ${
-              produto.momentum_posicao > 0
+              topNumerico
                 ? "#" +
-                  Math.round(
-                    produto.momentum_posicao
-                  )
+                  topNumerico
                 : "Sem posição"
             }
           </strong>
@@ -3043,10 +3405,14 @@ function abrirModal(
 
         <p>
           🏆 Destaque:
+
           <strong>
-            Entre os ${formatarFaixaPercentil(
-              produto.percentil_top
-            )} mais fortes
+            ${
+              topNumerico
+                ? "TOP " +
+                  topNumerico
+                : "Sem posição"
+            }
           </strong>
         </p>
 
@@ -3113,6 +3479,7 @@ function abrirModal(
     ${
       produto.image_url
         ? `
+
           <img
             src="${escapar(
               produto.image_url
@@ -3128,6 +3495,7 @@ function abrirModal(
               margin-bottom:16px;
             "
           >
+
         `
         : ""
     }
@@ -3207,6 +3575,7 @@ function abrirModal(
         font-weight:800;
       "
     >
+
       ${
         estaFavoritado(
           produto.id
@@ -3214,12 +3583,14 @@ function abrirModal(
           ? "♥ Remover dos favoritos"
           : "♡ Salvar nos favoritos"
       }
+
     </button>
 
 
     ${
       link
         ? `
+
           <a
             href="${escapar(
               link
@@ -3240,6 +3611,7 @@ function abrirModal(
           >
             🛒 Abrir na Shopee
           </a>
+
         `
         : ""
     }
@@ -3274,9 +3646,11 @@ function abrirModal(
         if (
           atualizado
         ) {
+
           abrirModal(
             atualizado
           );
+
         }
 
       }
@@ -3294,8 +3668,10 @@ function fecharModal() {
   if (
     productModal
   ) {
+
     productModal.hidden =
       true;
+
   }
 
 }
@@ -3310,8 +3686,10 @@ function mostrarLoading() {
   if (
     emptyState
   ) {
+
     emptyState.hidden =
       true;
+
   }
 
 
@@ -3334,6 +3712,7 @@ function mostrarLoading() {
       <div
         class="loader"
       ></div>
+
 
       <p>
         Analisando produtos...
@@ -3375,15 +3754,18 @@ function mostrarErro(
         ⚠️
       </div>
 
+
       <h3>
         Não foi possível carregar
       </h3>
+
 
       <p>
         ${escapar(
           mensagem
         )}
       </p>
+
 
       <button
         id="retryRadarButton"
@@ -3413,7 +3795,9 @@ function mostrarErro(
     ?.addEventListener(
       "click",
       () => {
+
         reiniciarRadar();
+
       }
     );
 
@@ -3429,26 +3813,33 @@ function reiniciarRadar() {
   produtos =
     [];
 
+
   paginaAtual =
     1;
+
 
   totalServidor =
     0;
 
+
   resumoServidor =
     {};
+
 
   temProximaPagina =
     true;
 
+
   carregando =
     false;
+
 
   modoFavoritos =
     false;
 
 
   atualizarInterfaceModo();
+
 
   atualizarContadores(
     []
@@ -3475,8 +3866,10 @@ function trocarFiltro(
     filtro ===
     "all"
   ) {
+
     filtro =
       "radar";
+
   }
 
 
@@ -3488,6 +3881,7 @@ function trocarFiltro(
     filtroAtual ===
     "hot"
   ) {
+
     ordenacaoAtual =
       "sales";
 
@@ -3495,6 +3889,7 @@ function trocarFiltro(
     filtroAtual ===
     "rating"
   ) {
+
     ordenacaoAtual =
       "rating";
 
@@ -3502,12 +3897,15 @@ function trocarFiltro(
     filtroAtual ===
     "zero"
   ) {
+
     ordenacaoAtual =
       "recent";
 
   } else {
+
     ordenacaoAtual =
       "relevance";
+
   }
 
 
@@ -3580,11 +3978,13 @@ function trocarFiltro(
 
 
   window.scrollTo({
+
     top:
       0,
 
     behavior:
       "smooth"
+
   });
 
 }
@@ -3616,6 +4016,7 @@ document
 
             event.preventDefault();
 
+
             modoFavoritos =
               true;
 
@@ -3640,8 +4041,10 @@ document
             if (
               resultsTitle
             ) {
+
               resultsTitle.textContent =
                 `♡ Favoritos (${favoritos.length})`;
+
             }
 
 
@@ -3707,10 +4110,13 @@ document
             filtroAtual ===
             "zero"
           ) {
+
             reiniciarRadar();
 
           } else {
+
             aplicarOrdenacao();
+
           }
 
         }
@@ -3747,10 +4153,13 @@ if (
           filtroAtual ===
           "zero"
         ) {
+
           reiniciarRadar();
 
         } else {
+
           aplicarOrdenacao();
+
         }
 
       }
@@ -3775,10 +4184,13 @@ if (
           filtroAtual ===
           "zero"
         ) {
+
           reiniciarRadar();
 
         } else {
+
           aplicarOrdenacao();
+
         }
 
       }
@@ -3868,10 +4280,13 @@ window.addEventListener(
       posicao >=
       altura - 900
     ) {
+
       carregarProximaPagina();
+
     }
 
   },
+
   {
     passive:
       true
@@ -3890,7 +4305,8 @@ setInterval(
       document.visibilityState ===
         "visible" &&
       !modoFavoritos &&
-      paginaAtual === 1 &&
+      paginaAtual ===
+        1 &&
       !carregando
     ) {
 
@@ -3902,6 +4318,7 @@ setInterval(
     }
 
   },
+
   2 * 60 * 1000
 );
 
@@ -3948,7 +4365,9 @@ document.addEventListener(
       productModal &&
       !productModal.hidden
     ) {
+
       fecharModal();
+
     }
 
   }
