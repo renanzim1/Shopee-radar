@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Teste CORS</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 30px 20px;
+      background: #0c0f15;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .box {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 25px;
+      background: #171b23;
+      border-radius: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      border: 0;
+      border-radius: 14px;
+      background: #ff5a2f;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    pre {
+      margin-top: 20px;
+      padding: 15px;
+      background: #080a0e;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+
+    <h1>🧪 Teste GitHub → Netlify</h1>
+
+    <p>
+      Este teste faz um POST do GitHub Pages
+      diretamente para a função da Netlify.
+    </p>
+
+    <button id="testar">
+      TESTAR CONEXÃO
+    </button>
+
+    <pre id="resultado">
+Aguardando teste...
+    </pre>
+
+  </div>
+
+  <script>
+    const botao =
+      document.getElementById("testar");
+
+    const resultado =
+      document.getElementById("resultado");
+
+    botao.addEventListener(
+      "click",
+      async () => {
+
+        resultado.textContent =
+          "Testando...";
+
+        try {
+
+          const response =
+            await fetch(
+              "https://shopee-video-teste.netlify.app/.netlify/functions/cors-test",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify({
+                    teste: true
+                  })
+              }
+            );
+
+          const texto =
+            await response.text();
+
+          resultado.textContent =
+            "SUCESSO ✅\n\n" +
+            "HTTP: " +
+            response.status +
+            "\n\n" +
+            texto;
+
+        } catch (error) {
+
+          resultado.textContent =
+            "FALHOU ❌\n\n" +
+            error.name +
+            "\n\n" +
+            error.message;
+        }
+      }
+    );
+  </script>
+
+</body>
+</html>
