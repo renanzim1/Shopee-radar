@@ -1,5 +1,6 @@
 /* =====================================================
-   SHOPEE RADAR — STYLE.CSS FINAL
+   SHOPEE RADAR — STYLE.CSS
+   RADAR + DOWNLOAD DE VÍDEO
    Mobile First
 ===================================================== */
 
@@ -21,6 +22,8 @@
 
   --orange: #ff5a1f;
   --orange-2: #ff7a1a;
+  --orange-light: #ff8a4c;
+
   --green: #32d583;
   --yellow: #ffc857;
 
@@ -53,7 +56,7 @@ body {
     Arial,
     sans-serif;
 
-  padding-bottom: 95px;
+  padding-bottom: 100px;
 }
 
 button,
@@ -69,6 +72,10 @@ button {
 
 a {
   color: inherit;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 
@@ -145,8 +152,7 @@ a {
   font-weight: 800;
   letter-spacing: 1.2px;
 
-  color:
-    rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .status-dot {
@@ -158,10 +164,8 @@ a {
   background: #64ff9d;
 
   box-shadow:
-    0 0 0 4px
-      rgba(100, 255, 157, 0.15),
-    0 0 12px
-      rgba(100, 255, 157, 0.7);
+    0 0 0 4px rgba(100, 255, 157, 0.15),
+    0 0 12px rgba(100, 255, 157, 0.7);
 }
 
 .topbar-actions {
@@ -175,8 +179,7 @@ a {
 
   border-radius: 999px;
 
-  background:
-    rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.18);
 
   border:
     1px solid
@@ -196,8 +199,7 @@ a {
 
   border-radius: 10px;
 
-  background:
-    rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.18);
 
   color: #fff;
 
@@ -216,8 +218,7 @@ a {
 
   margin: 0 auto;
 
-  padding:
-    0 14px;
+  padding: 0 14px;
 }
 
 
@@ -226,8 +227,7 @@ a {
 ===================================================== */
 
 .hero {
-  padding:
-    28px 4px 20px;
+  padding: 28px 4px 20px;
 }
 
 .hero-badge {
@@ -239,8 +239,7 @@ a {
 
   border-radius: 7px;
 
-  background:
-    rgba(255, 90, 31, 0.1);
+  background: rgba(255, 90, 31, 0.1);
 
   border:
     1px solid
@@ -256,12 +255,7 @@ a {
 .hero h2 {
   max-width: 600px;
 
-  font-size:
-    clamp(
-      30px,
-      8vw,
-      50px
-    );
+  font-size: clamp(30px, 8vw, 50px);
 
   line-height: 0.98;
 
@@ -294,15 +288,11 @@ a {
   display: grid;
 
   grid-template-columns:
-    repeat(
-      3,
-      minmax(0, 1fr)
-    );
+    repeat(3, minmax(0, 1fr));
 
   gap: 8px;
 
-  margin:
-    4px 0 20px;
+  margin: 4px 0 20px;
 }
 
 .stat-card {
@@ -314,12 +304,9 @@ a {
 
   gap: 7px;
 
-  padding:
-    10px 8px;
+  padding: 10px 8px;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 14px;
 
@@ -373,16 +360,13 @@ a {
 
   overflow-x: auto;
 
-  margin:
-    0 -14px;
+  margin: 0 -14px;
 
-  padding:
-    2px 14px 12px;
+  padding: 2px 14px 12px;
 
   scrollbar-width: none;
 
-  -webkit-overflow-scrolling:
-    touch;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabs::-webkit-scrollbar {
@@ -392,20 +376,15 @@ a {
 .tab {
   flex: 0 0 auto;
 
-  padding:
-    10px 14px;
+  padding: 10px 14px;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 999px;
 
-  background:
-    var(--surface);
+  background: var(--surface);
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-size: 12px;
 
@@ -418,28 +397,13 @@ a {
   color: #fff;
 
   border-color:
-    rgba(
-      255,
-      90,
-      31,
-      0.55
-    );
+    rgba(255, 90, 31, 0.55);
 
   background:
     linear-gradient(
       135deg,
-      rgba(
-        255,
-        90,
-        31,
-        0.28
-      ),
-      rgba(
-        255,
-        90,
-        31,
-        0.08
-      )
+      rgba(255, 90, 31, 0.28),
+      rgba(255, 90, 31, 0.08)
     );
 }
 
@@ -451,29 +415,18 @@ a {
 .strategy-box {
   display: none;
 
-  margin:
-    0 0 18px;
+  margin: 0 0 18px;
 
   padding: 14px;
 
   border:
     1px solid
-    rgba(
-      255,
-      90,
-      31,
-      0.22
-    );
+    rgba(255, 90, 31, 0.22);
 
   border-radius: 14px;
 
   background:
-    rgba(
-      255,
-      90,
-      31,
-      0.06
-    );
+    rgba(255, 90, 31, 0.06);
 }
 
 .strategy-box.active {
@@ -483,8 +436,7 @@ a {
 .strategy-box strong {
   display: block;
 
-  color:
-    var(--orange-2);
+  color: var(--orange-2);
 
   font-size: 14px;
 }
@@ -527,22 +479,17 @@ a {
 
   gap: 8px;
 
-  padding:
-    0 13px;
+  padding: 0 13px;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 13px;
 
-  background:
-    var(--surface);
+  background: var(--surface);
 }
 
 .search-box span {
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-size: 21px;
 }
@@ -556,11 +503,9 @@ a {
 
   outline: 0;
 
-  background:
-    transparent;
+  background: transparent;
 
-  color:
-    var(--text);
+  color: var(--text);
 
   font-size: 13px;
 }
@@ -574,22 +519,17 @@ a {
 
   min-width: 0;
 
-  padding:
-    0 10px;
+  padding: 0 10px;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 13px;
 
   outline: 0;
 
-  background:
-    var(--surface);
+  background: var(--surface);
 
-  color:
-    var(--text);
+  color: var(--text);
 
   font-size: 11px;
 }
@@ -602,8 +542,7 @@ a {
 .radar-sort {
   width: 100%;
 
-  margin:
-    14px 0 20px;
+  margin: 14px 0 20px;
 
   overflow: hidden;
 }
@@ -611,8 +550,7 @@ a {
 .sort-title {
   display: block;
 
-  margin:
-    0 0 9px 2px;
+  margin: 0 0 9px 2px;
 
   color: #7f8798;
 
@@ -620,8 +558,7 @@ a {
 
   font-weight: 800;
 
-  text-transform:
-    uppercase;
+  text-transform: uppercase;
 
   letter-spacing: 1px;
 }
@@ -635,13 +572,11 @@ a {
 
   overflow-x: auto;
 
-  padding:
-    2px 2px 6px;
+  padding: 2px 2px 6px;
 
   scrollbar-width: none;
 
-  -webkit-overflow-scrolling:
-    touch;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sort-options::-webkit-scrollbar {
@@ -649,30 +584,23 @@ a {
 }
 
 .sort-btn {
-  flex:
-    0 0 auto;
+  flex: 0 0 auto;
 
   appearance: none;
 
-  -webkit-appearance:
-    none;
+  -webkit-appearance: none;
 
-  padding:
-    9px 12px;
+  padding: 9px 12px;
 
-  border:
-    1px solid
-    #272d3b;
+  border: 1px solid #272d3b;
 
   border-radius: 12px;
 
   outline: 0;
 
-  background:
-    #10141e;
+  background: #10141e;
 
-  color:
-    #9097a8;
+  color: #9097a8;
 
   font-size: 11px;
 
@@ -687,28 +615,13 @@ a {
   color: #fff;
 
   border-color:
-    rgba(
-      255,
-      90,
-      31,
-      0.65
-    );
+    rgba(255, 90, 31, 0.65);
 
   background:
     linear-gradient(
       135deg,
-      rgba(
-        255,
-        90,
-        31,
-        0.3
-      ),
-      rgba(
-        255,
-        90,
-        31,
-        0.1
-      )
+      rgba(255, 90, 31, 0.3),
+      rgba(255, 90, 31, 0.1)
     );
 }
 
@@ -720,11 +633,9 @@ a {
 .section-heading {
   display: flex;
 
-  justify-content:
-    space-between;
+  justify-content: space-between;
 
-  align-items:
-    flex-end;
+  align-items: flex-end;
 
   gap: 10px;
 
@@ -736,8 +647,7 @@ a {
 
   margin-bottom: 4px;
 
-  color:
-    var(--orange);
+  color: var(--orange);
 
   font-size: 9px;
 
@@ -751,8 +661,7 @@ a {
 
   line-height: 1.1;
 
-  letter-spacing:
-    -0.7px;
+  letter-spacing: -0.7px;
 }
 
 .live-indicator {
@@ -766,8 +675,7 @@ a {
 
   padding-bottom: 3px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-size: 9px;
 
@@ -781,17 +689,11 @@ a {
 
   border-radius: 50%;
 
-  background:
-    var(--green);
+  background: var(--green);
 
   box-shadow:
     0 0 9px
-    rgba(
-      50,
-      213,
-      131,
-      0.8
-    );
+    rgba(50, 213, 131, 0.8);
 }
 
 
@@ -805,10 +707,7 @@ a {
   display: grid;
 
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    repeat(2, minmax(0, 1fr));
 
   gap: 10px;
 
@@ -831,12 +730,9 @@ a {
 
   overflow: hidden;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
-  border-radius:
-    var(--radius);
+  border-radius: var(--radius);
 
   background:
     linear-gradient(
@@ -847,17 +743,11 @@ a {
 
   box-shadow:
     0 8px 25px
-    rgba(
-      0,
-      0,
-      0,
-      0.14
-    );
+    rgba(0, 0, 0, 0.14);
 }
 
 .product-card:active {
-  transform:
-    scale(0.99);
+  transform: scale(0.99);
 }
 
 
@@ -873,13 +763,11 @@ a {
 
   height: auto;
 
-  aspect-ratio:
-    1 / 1;
+  aspect-ratio: 1 / 1;
 
   object-fit: cover;
 
-  object-position:
-    center;
+  object-position: center;
 
   background: #fff;
 }
@@ -909,8 +797,7 @@ a {
 
   display: flex;
 
-  flex-direction:
-    column;
+  flex-direction: column;
 }
 
 
@@ -925,8 +812,7 @@ a {
 
   align-items: center;
 
-  justify-content:
-    space-between;
+  justify-content: space-between;
 
   gap: 5px;
 
@@ -937,21 +823,14 @@ a {
 .product-badge {
   min-width: 0;
 
-  padding:
-    5px 6px;
+  padding: 5px 6px;
 
   border-radius: 7px;
 
   background:
-    rgba(
-      255,
-      90,
-      31,
-      0.12
-    );
+    rgba(255, 90, 31, 0.12);
 
-  color:
-    #ff966d;
+  color: #ff966d;
 
   font-size: 8px;
 
@@ -963,28 +842,20 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 .score-badge {
   flex-shrink: 0;
 
-  padding:
-    5px 6px;
+  padding: 5px 6px;
 
   border-radius: 7px;
 
   background:
-    rgba(
-      50,
-      213,
-      131,
-      0.12
-    );
+    rgba(50, 213, 131, 0.12);
 
-  color:
-    var(--green);
+  color: var(--green);
 
   font-size: 9px;
 
@@ -997,11 +868,9 @@ a {
 ===================================================== */
 
 .product-name {
-  display:
-    -webkit-box;
+  display: -webkit-box;
 
-  -webkit-box-orient:
-    vertical;
+  -webkit-box-orient: vertical;
 
   -webkit-line-clamp: 2;
 
@@ -1015,16 +884,13 @@ a {
 
   max-height: 36px;
 
-  margin:
-    0 0 6px;
+  margin: 0 0 6px;
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 
-  overflow-wrap:
-    anywhere;
+  overflow-wrap: anywhere;
 
   font-size: 13px;
 
@@ -1047,11 +913,9 @@ a {
 
   min-height: 18px;
 
-  margin:
-    0 0 8px;
+  margin: 0 0 8px;
 
-  color:
-    #9ca3b2;
+  color: #9ca3b2;
 
   font-size: 9px;
 
@@ -1061,8 +925,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 
@@ -1077,10 +940,7 @@ a {
   display: grid;
 
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    repeat(2, minmax(0, 1fr));
 
   gap: 5px;
 
@@ -1095,28 +955,20 @@ a {
 
   border-radius: 9px;
 
-  background:
-    #0b0e14;
+  background: #0b0e14;
 
   border:
     1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.025
-    );
+    rgba(255, 255, 255, 0.025);
 }
 
 .product-stat span,
 .radar-mini-box small {
   display: block;
 
-  margin:
-    0 0 3px;
+  margin: 0 0 3px;
 
-  color:
-    #747c8c;
+  color: #747c8c;
 
   font-size: 7px;
 
@@ -1128,8 +980,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 .product-stat strong,
@@ -1138,8 +989,7 @@ a {
 
   margin: 0;
 
-  color:
-    var(--text);
+  color: var(--text);
 
   font-size: 11px;
 
@@ -1151,8 +1001,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 
@@ -1165,11 +1014,9 @@ a {
 
   display: flex;
 
-  justify-content:
-    space-between;
+  justify-content: space-between;
 
-  align-items:
-    flex-end;
+  align-items: flex-end;
 
   gap: 6px;
 
@@ -1191,8 +1038,7 @@ a {
 
   margin-bottom: 3px;
 
-  color:
-    #7f8796;
+  color: #7f8796;
 
   font-size: 6.5px;
 
@@ -1245,22 +1091,12 @@ a {
 
   border:
     1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.12
-    );
+    rgba(255, 255, 255, 0.12);
 
   border-radius: 9px;
 
   background:
-    rgba(
-      8,
-      10,
-      15,
-      0.82
-    );
+    rgba(8, 10, 15, 0.82);
 
   color: #fff;
 
@@ -1272,14 +1108,6 @@ a {
    PACKS
 ===================================================== */
 
-/*
-   Packs possuem regras próprias.
-
-   Isso impede o CSS dos produtos
-   de transformar o card do pack
-   em um card gigante.
-*/
-
 .pack-card {
   width: 100%;
 
@@ -1289,9 +1117,7 @@ a {
 
   overflow: hidden;
 
-  border:
-    1px solid
-    #252b38;
+  border: 1px solid #252b38;
 
   border-radius: 15px;
 
@@ -1311,8 +1137,7 @@ a {
 .pack-media {
   width: 100%;
 
-  aspect-ratio:
-    16 / 10;
+  aspect-ratio: 16 / 10;
 
   position: relative;
 
@@ -1341,8 +1166,7 @@ a {
 
   object-fit: cover;
 
-  object-position:
-    center;
+  object-position: center;
 }
 
 .pack-placeholder {
@@ -1352,18 +1176,15 @@ a {
 
   display: flex;
 
-  flex-direction:
-    column;
+  flex-direction: column;
 
   align-items: center;
 
-  justify-content:
-    center;
+  justify-content: center;
 
   gap: 6px;
 
-  color:
-    #9ba3b2;
+  color: #9ba3b2;
 }
 
 .pack-placeholder-icon {
@@ -1377,8 +1198,7 @@ a {
 
   font-weight: 900;
 
-  letter-spacing:
-    0.8px;
+  letter-spacing: 0.8px;
 }
 
 
@@ -1394,30 +1214,18 @@ a {
 
   z-index: 3;
 
-  max-width:
-    calc(100% - 16px);
+  max-width: calc(100% - 16px);
 
-  padding:
-    5px 7px;
+  padding: 5px 7px;
 
   border-radius: 7px;
 
   background:
-    rgba(
-      8,
-      10,
-      15,
-      0.86
-    );
+    rgba(8, 10, 15, 0.86);
 
   border:
     1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.08
-    );
+    rgba(255, 255, 255, 0.08);
 
   color: #fff;
 
@@ -1425,15 +1233,13 @@ a {
 
   font-weight: 900;
 
-  letter-spacing:
-    0.5px;
+  letter-spacing: 0.5px;
 
   white-space: nowrap;
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 
@@ -1446,8 +1252,7 @@ a {
 
   min-width: 0;
 
-  padding:
-    10px;
+  padding: 10px;
 }
 
 .pack-label {
@@ -1459,8 +1264,7 @@ a {
 
   margin-bottom: 6px;
 
-  color:
-    var(--orange);
+  color: var(--orange);
 
   font-size: 8px;
 
@@ -1468,19 +1272,15 @@ a {
 
   line-height: 1.2;
 
-  text-transform:
-    uppercase;
+  text-transform: uppercase;
 
-  letter-spacing:
-    0.4px;
+  letter-spacing: 0.4px;
 }
 
 .pack-title {
-  display:
-    -webkit-box;
+  display: -webkit-box;
 
-  -webkit-box-orient:
-    vertical;
+  -webkit-box-orient: vertical;
 
   -webkit-line-clamp: 2;
 
@@ -1494,8 +1294,7 @@ a {
 
   max-height: 36px;
 
-  margin:
-    0 0 6px;
+  margin: 0 0 6px;
 
   overflow: hidden;
 
@@ -1507,8 +1306,7 @@ a {
 
   font-weight: 900;
 
-  overflow-wrap:
-    anywhere;
+  overflow-wrap: anywhere;
 }
 
 .pack-channel {
@@ -1518,8 +1316,7 @@ a {
 
   margin-bottom: 9px;
 
-  color:
-    #8f97a6;
+  color: #8f97a6;
 
   font-size: 9px;
 
@@ -1529,8 +1326,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 
@@ -1544,10 +1340,7 @@ a {
   display: grid;
 
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    repeat(2, minmax(0, 1fr));
 
   gap: 5px;
 
@@ -1557,29 +1350,21 @@ a {
 .pack-info {
   min-width: 0;
 
-  padding:
-    7px 6px;
+  padding: 7px 6px;
 
   border-radius: 9px;
 
-  background:
-    #0a0d13;
+  background: #0a0d13;
 
   border:
     1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.025
-    );
+    rgba(255, 255, 255, 0.025);
 }
 
 .pack-info small {
   display: block;
 
-  color:
-    #747c8c;
+  color: #747c8c;
 
   font-size: 6.5px;
 
@@ -1591,8 +1376,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 .pack-info strong {
@@ -1600,8 +1384,7 @@ a {
 
   margin-top: 4px;
 
-  color:
-    #f5f7fb;
+  color: #f5f7fb;
 
   font-size: 10px;
 
@@ -1613,8 +1396,7 @@ a {
 
   overflow: hidden;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 }
 
 
@@ -1627,8 +1409,7 @@ a {
 
   display: grid;
 
-  grid-template-columns:
-    1fr;
+  grid-template-columns: 1fr;
 
   gap: 6px;
 }
@@ -1644,8 +1425,7 @@ a {
 
   justify-content: center;
 
-  padding:
-    8px 7px;
+  padding: 8px 7px;
 
   border: 0;
 
@@ -1674,39 +1454,718 @@ a {
 }
 
 .pack-button-secondary {
-  background:
-    #11151e;
+  background: #11151e;
 
   color: #fff;
 
   border:
     1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.09
-    );
+    rgba(255, 255, 255, 0.09);
 }
 
 .pack-button:active {
-  transform:
-    scale(0.98);
+  transform: scale(0.98);
+}
+
+.pack-button-disabled {
+  background: #161a23;
+
+  color: #666e7c;
+
+  pointer-events: none;
 }
 
 
 /* =====================================================
-   PACK SEM LINK
+   NOVA ÁREA — BAIXAR VÍDEO
 ===================================================== */
 
-.pack-button-disabled {
+.video-downloader-page {
+  width: 100%;
+
+  min-height:
+    calc(100vh - 78px);
+
+  padding:
+    0 14px 45px;
+}
+
+.video-downloader-container {
+  width: 100%;
+
+  max-width: 620px;
+
+  margin: 0 auto;
+}
+
+
+/* =====================================================
+   HERO DO DOWNLOAD
+===================================================== */
+
+.video-downloader-hero {
+  padding:
+    28px 3px 22px;
+}
+
+.video-downloader-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 15px;
+
   background:
-    #161a23;
+    linear-gradient(
+      135deg,
+      rgba(255, 90, 31, 0.26),
+      rgba(255, 122, 26, 0.08)
+    );
 
-  color:
-    #666e7c;
+  border:
+    1px solid
+    rgba(255, 90, 31, 0.25);
 
-  pointer-events: none;
+  font-size: 23px;
+}
+
+.video-downloader-eyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: var(--orange);
+
+  font-size: 9px;
+
+  font-weight: 900;
+
+  letter-spacing: 1.1px;
+}
+
+.video-downloader-hero h2 {
+  max-width: 500px;
+
+  font-size:
+    clamp(
+      31px,
+      9vw,
+      48px
+    );
+
+  line-height: 1;
+
+  letter-spacing: -1.5px;
+
+  font-weight: 900;
+}
+
+.video-downloader-hero h2 span {
+  color: var(--orange);
+}
+
+.video-downloader-hero p {
+  max-width: 500px;
+
+  margin-top: 12px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+
+  line-height: 1.55;
+}
+
+
+/* =====================================================
+   CARD DA FERRAMENTA
+===================================================== */
+
+.video-tool-card {
+  width: 100%;
+
+  margin-bottom: 12px;
+
+  padding: 15px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #151922,
+      #0f1219
+    );
+
+  box-shadow:
+    0 10px 30px
+    rgba(0, 0, 0, 0.12);
+}
+
+.video-tool-heading {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+}
+
+.video-tool-number {
+  width: 30px;
+  height: 30px;
+
+  flex: 0 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 90, 31, 0.12);
+
+  border:
+    1px solid
+    rgba(255, 90, 31, 0.18);
+
+  color: var(--orange-2);
+
+  font-size: 12px;
+
+  font-weight: 900;
+}
+
+.video-tool-heading > div {
+  min-width: 0;
+}
+
+.video-tool-heading strong {
+  display: block;
+
+  color: #fff;
+
+  font-size: 13px;
+
+  line-height: 1.2;
+
+  font-weight: 900;
+}
+
+.video-tool-heading small {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #7f8796;
+
+  font-size: 9px;
+
+  line-height: 1.2;
+}
+
+
+/* =====================================================
+   INPUT DO LINK
+===================================================== */
+
+.video-link-box {
+  width: 100%;
+
+  min-height: 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding:
+    0 13px;
+
+  border:
+    1px solid
+    #2a303d;
+
+  border-radius: 12px;
+
+  background: #090c12;
+}
+
+.video-link-box:focus-within {
+  border-color:
+    rgba(255, 90, 31, 0.7);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(255, 90, 31, 0.07);
+}
+
+.video-link-box > span {
+  flex: 0 0 auto;
+
+  font-size: 16px;
+}
+
+.video-link-box input {
+  width: 100%;
+
+  min-width: 0;
+
+  height: 48px;
+
+  border: 0;
+
+  outline: 0;
+
+  background: transparent;
+
+  color: #fff;
+
+  font-size: 12px;
+}
+
+.video-link-box input::placeholder {
+  color: #606775;
+}
+
+
+/* =====================================================
+   BOTÕES DA FERRAMENTA
+===================================================== */
+
+.video-action-button {
+  width: 100%;
+
+  min-height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 10px;
+
+  padding: 12px;
+
+  border: 0;
+
+  border-radius: 12px;
+
+  font-size: 12px;
+
+  font-weight: 900;
+
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.video-action-button:active {
+  transform: scale(0.985);
+}
+
+.video-action-button:disabled {
+  cursor: default;
+
+  opacity: 0.55;
+}
+
+.video-find-button {
+  background:
+    linear-gradient(
+      135deg,
+      #ff4d1c,
+      #ff6f24
+    );
+
+  color: #fff;
+
+  box-shadow:
+    0 8px 20px
+    rgba(255, 90, 31, 0.14);
+}
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+.video-download-status {
+  margin-top: 11px;
+
+  padding: 11px 12px;
+
+  border:
+    1px solid
+    #282e3b;
+
+  border-radius: 11px;
+
+  background: #0b0e14;
+
+  color: #a7aebb;
+
+  font-size: 11px;
+
+  line-height: 1.45;
+}
+
+.video-download-status.success {
+  color: #86e8b6;
+
+  border-color:
+    rgba(50, 213, 131, 0.25);
+
+  background:
+    rgba(50, 213, 131, 0.06);
+}
+
+.video-download-status.error {
+  color: #ff9d8c;
+
+  border-color:
+    rgba(255, 90, 31, 0.28);
+
+  background:
+    rgba(255, 90, 31, 0.06);
+}
+
+
+/* =====================================================
+   RESULTADO DO VÍDEO
+===================================================== */
+
+.video-result-card {
+  margin-top: 12px;
+}
+
+.video-preview-box {
+  width: 100%;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    #272d39;
+
+  border-radius: 14px;
+
+  background: #000;
+}
+
+.video-preview-box video {
+  display: block;
+
+  width: 100%;
+
+  max-height: 520px;
+
+  aspect-ratio: 9 / 16;
+
+  object-fit: contain;
+
+  background: #000;
+}
+
+
+/* =====================================================
+   QUALIDADE
+===================================================== */
+
+.video-quality-row {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-top: 10px;
+}
+
+.video-quality-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 7px 9px;
+
+  border-radius: 9px;
+
+  background:
+    rgba(50, 213, 131, 0.08);
+
+  border:
+    1px solid
+    rgba(50, 213, 131, 0.18);
+
+  color: #7ee3ae;
+
+  font-size: 9px;
+
+  font-weight: 900;
+}
+
+.video-ready-text {
+  color: #737b89;
+
+  font-size: 8px;
+
+  font-weight: 900;
+
+  letter-spacing: 0.8px;
+}
+
+
+/* =====================================================
+   LIMPEZA DE METADADOS
+===================================================== */
+
+.video-clean-section {
+  margin-top: 15px;
+
+  padding-top: 15px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+.video-clean-button {
+  background:
+    linear-gradient(
+      135deg,
+      #ff8544,
+      #ff9b64
+    );
+
+  color: #17100c;
+
+  box-shadow:
+    0 8px 20px
+    rgba(255, 133, 68, 0.12);
+}
+
+
+/* =====================================================
+   PROCESSANDO LIMPEZA
+===================================================== */
+
+.metadata-clean-progress {
+  min-height: 66px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-top: 10px;
+
+  padding: 12px;
+
+  border:
+    1px solid
+    rgba(255, 138, 76, 0.2);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255, 138, 76, 0.05);
+}
+
+.metadata-clean-spinner {
+  width: 27px;
+  height: 27px;
+
+  flex: 0 0 auto;
+
+  border:
+    3px solid
+    rgba(255, 138, 76, 0.18);
+
+  border-top-color:
+    var(--orange-light);
+
+  border-radius: 50%;
+
+  animation:
+    spin 0.8s
+    linear infinite;
+}
+
+.metadata-clean-progress strong {
+  display: block;
+
+  color: #fff;
+
+  font-size: 11px;
+
+  font-weight: 900;
+}
+
+.metadata-clean-progress span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #8e96a5;
+
+  font-size: 9px;
+}
+
+
+/* =====================================================
+   LIMPEZA CONCLUÍDA
+===================================================== */
+
+.metadata-clean-success {
+  min-height: 65px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-top: 10px;
+
+  padding: 12px;
+
+  border:
+    1px solid
+    rgba(50, 213, 131, 0.23);
+
+  border-radius: 12px;
+
+  background:
+    rgba(50, 213, 131, 0.06);
+}
+
+.metadata-clean-success > span {
+  width: 30px;
+  height: 30px;
+
+  flex: 0 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(50, 213, 131, 0.14);
+
+  color: var(--green);
+
+  font-size: 15px;
+
+  font-weight: 900;
+}
+
+.metadata-clean-success strong {
+  display: block;
+
+  color: #8ae7b8;
+
+  font-size: 11px;
+
+  font-weight: 900;
+}
+
+.metadata-clean-success small {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #7e8795;
+
+  font-size: 9px;
+}
+
+
+/* =====================================================
+   BOTÃO DOWNLOAD FINAL
+===================================================== */
+
+.video-download-button {
+  background:
+    linear-gradient(
+      135deg,
+      #ff8544,
+      #ffa06b
+    );
+
+  color: #17100c;
+
+  box-shadow:
+    0 8px 22px
+    rgba(255, 133, 68, 0.17);
+}
+
+
+/* =====================================================
+   INFORMAÇÃO DE PRIVACIDADE
+===================================================== */
+
+.video-local-info {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 9px;
+
+  margin-top: 12px;
+
+  padding: 12px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.05);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255, 255, 255, 0.018);
+}
+
+.video-local-info > span {
+  flex: 0 0 auto;
+
+  font-size: 13px;
+}
+
+.video-local-info p {
+  color: #747c8b;
+
+  font-size: 9px;
+
+  line-height: 1.5;
 }
 
 
@@ -1715,25 +2174,21 @@ a {
 ===================================================== */
 
 .loading {
-  grid-column:
-    1 / -1;
+  grid-column: 1 / -1;
 
   min-height: 180px;
 
   display: flex;
 
-  flex-direction:
-    column;
+  flex-direction: column;
 
   align-items: center;
 
-  justify-content:
-    center;
+  justify-content: center;
 
   gap: 13px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 }
 
 .loader {
@@ -1741,12 +2196,9 @@ a {
 
   height: 34px;
 
-  border:
-    3px solid
-    var(--border);
+  border: 3px solid var(--border);
 
-  border-top-color:
-    var(--orange);
+  border-top-color: var(--orange);
 
   border-radius: 50%;
 
@@ -1757,24 +2209,20 @@ a {
 
 @keyframes spin {
   to {
-    transform:
-      rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
 .infinite-loader {
-  padding:
-    25px 10px;
+  padding: 25px 10px;
 
   text-align: center;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 }
 
 .infinite-loader .loader {
-  margin:
-    0 auto 10px;
+  margin: 0 auto 10px;
 }
 
 
@@ -1783,13 +2231,11 @@ a {
 ===================================================== */
 
 .empty-state {
-  padding:
-    45px 20px;
+  padding: 45px 20px;
 
   text-align: center;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 }
 
 .empty-state div {
@@ -1801,13 +2247,12 @@ a {
 .empty-state h3 {
   margin-bottom: 5px;
 
-  color:
-    var(--text);
+  color: var(--text);
 }
 
 
 /* =====================================================
-   MENU INFERIOR
+   MENU INFERIOR NOVO
 ===================================================== */
 
 .bottom-nav {
@@ -1822,79 +2267,116 @@ a {
 
   max-width: 1050px;
 
-  display: grid;
-
-  grid-template-columns:
-    repeat(
-      4,
-      1fr
-    );
-
   transform:
     translateX(-50%);
+
+  overflow: hidden;
 
   border-top:
     1px solid
     var(--border);
 
   background:
-    rgba(
-      12,
-      15,
-      21,
-      0.96
-    );
+    rgba(12, 15, 21, 0.97);
 
   backdrop-filter:
     blur(16px);
 
+  -webkit-backdrop-filter:
+    blur(16px);
+}
+
+.bottom-nav-scroll {
+  width: 100%;
+
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 0;
+
+  overflow-x: auto;
+
+  overscroll-behavior-x:
+    contain;
+
+  scroll-snap-type:
+    x proximity;
+
+  scrollbar-width: none;
+
+  -webkit-overflow-scrolling:
+    touch;
+
   padding:
-    8px 5px
+    8px 0
     calc(
       8px +
-      env(
-        safe-area-inset-bottom
-      )
+      env(safe-area-inset-bottom)
     );
 }
 
+.bottom-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .bottom-item {
+  /*
+     4,35 itens cabem na tela.
+     Assim uma parte do botão
+     "Baixar vídeo" fica visível.
+  */
+
+  flex:
+    0 0
+    calc(100% / 4.35);
+
+  min-width:
+    calc(100% / 4.35);
+
+  min-height: 52px;
+
   display: flex;
 
-  flex-direction:
-    column;
+  flex-direction: column;
 
   align-items: center;
 
-  justify-content:
-    center;
+  justify-content: center;
 
   gap: 3px;
 
-  min-width: 0;
+  scroll-snap-align: start;
 
-  padding: 4px;
+  padding: 4px 3px;
 
   border: 0;
 
-  background:
-    transparent;
+  background: transparent;
 
-  color:
-    #727a89;
+  color: #727a89;
 
   font-size: 9px;
 
+  line-height: 1.1;
+
   font-weight: 700;
+
+  white-space: nowrap;
 }
 
 .bottom-item span {
   font-size: 18px;
+
+  line-height: 1;
 }
 
 .bottom-item.active {
-  color:
-    var(--orange);
+  color: var(--orange);
+}
+
+.bottom-download-item {
+  padding-right: 8px;
 }
 
 
@@ -1920,12 +2402,7 @@ a {
   inset: 0;
 
   background:
-    rgba(
-      0,
-      0,
-      0,
-      0.72
-    );
+    rgba(0, 0, 0, 0.72);
 
   backdrop-filter:
     blur(4px);
@@ -1956,8 +2433,7 @@ a {
     var(--border);
 
   animation:
-    modalUp
-    0.22s ease;
+    modalUp 0.22s ease;
 }
 
 @keyframes modalUp {
@@ -2015,8 +2491,7 @@ a {
 .pack-modal-source {
   margin-top: 6px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-size: 12px;
 }
@@ -2028,8 +2503,7 @@ a {
 
   border-radius: 12px;
 
-  background:
-    #0d1017;
+  background: #0d1017;
 
   border:
     1px solid
@@ -2037,15 +2511,13 @@ a {
 }
 
 .pack-modal-box strong {
-  color:
-    var(--orange-2);
+  color: var(--orange-2);
 }
 
 .pack-modal-box p {
   margin-top: 8px;
 
-  color:
-    #aeb4c0;
+  color: #aeb4c0;
 
   font-size: 12px;
 
@@ -2055,8 +2527,7 @@ a {
 .pack-modal-actions {
   display: grid;
 
-  grid-template-columns:
-    1fr;
+  grid-template-columns: 1fr;
 
   gap: 8px;
 
@@ -2068,8 +2539,7 @@ a {
 
   align-items: center;
 
-  justify-content:
-    center;
+  justify-content: center;
 
   min-height: 46px;
 
@@ -2093,35 +2563,26 @@ a {
 > div:last-child:not(.product-footer):not(.product-stats):not(.product-card-top) {
   margin-top: 8px;
 
-  padding:
-    7px 8px;
+  padding: 7px 8px;
 
   border-radius: 8px;
 
   background:
-    rgba(
-      255,
-      184,
-      77,
-      0.06
-    );
+    rgba(255, 184, 77, 0.06);
 
-  color:
-    #aeb4c0;
+  color: #aeb4c0;
 
   font-size: 9px;
 
   line-height: 1.25;
 
-  overflow-wrap:
-    anywhere;
+  overflow-wrap: anywhere;
 }
 
 .product-card-content
 > div:last-child
 strong {
-  color:
-    #f4f6fa;
+  color: #f4f6fa;
 
   font-size: 10px;
 
@@ -2133,9 +2594,7 @@ strong {
    CELULAR MUITO PEQUENO
 ===================================================== */
 
-@media (
-  max-width: 370px
-) {
+@media (max-width: 370px) {
 
   .container {
     padding-left: 9px;
@@ -2168,8 +2627,7 @@ strong {
   .product-stat,
   .radar-mini-box,
   .pack-info {
-    padding:
-      6px 4px;
+    padding: 6px 4px;
   }
 
   .product-stat strong,
@@ -2188,6 +2646,15 @@ strong {
     font-size: 29px;
   }
 
+  .video-downloader-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .video-tool-card {
+    padding: 12px;
+  }
+
 }
 
 
@@ -2195,9 +2662,7 @@ strong {
    TABLET
 ===================================================== */
 
-@media (
-  min-width: 600px
-) {
+@media (min-width: 600px) {
 
   .container {
     padding-left: 20px;
@@ -2214,10 +2679,7 @@ strong {
 
   .products-grid {
     grid-template-columns:
-      repeat(
-        3,
-        minmax(0, 1fr)
-      );
+      repeat(3, minmax(0, 1fr));
 
     gap: 12px;
   }
@@ -2237,6 +2699,11 @@ strong {
     font-size: 12px;
   }
 
+  .video-downloader-page {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
 }
 
 
@@ -2244,9 +2711,7 @@ strong {
    COMPUTADOR
 ===================================================== */
 
-@media (
-  min-width: 900px
-) {
+@media (min-width: 900px) {
 
   body {
     padding-bottom: 40px;
@@ -2258,16 +2723,17 @@ strong {
 
   .products-grid {
     grid-template-columns:
-      repeat(
-        4,
-        minmax(0, 1fr)
-      );
+      repeat(4, minmax(0, 1fr));
 
     gap: 14px;
   }
 
   .bottom-nav {
     display: none;
+  }
+
+  .video-downloader-hero {
+    padding-top: 45px;
   }
 
    }
