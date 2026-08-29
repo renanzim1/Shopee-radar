@@ -121,10 +121,13 @@
 
 
   <!-- =========================================
-       CONTEÚDO
+       CONTEÚDO NORMAL DO RADAR
   ========================================== -->
 
-  <main class="container">
+  <main
+    id="radarMainContent"
+    class="container"
+  >
 
     <!-- HERO -->
 
@@ -340,7 +343,7 @@
           💻 Informática
         </option>
 
-        <option value="celular">
+        <option value="celulares">
           📲 Celulares
         </option>
 
@@ -545,69 +548,365 @@
 
 
   <!-- =========================================
+       ÁREA BAIXAR VÍDEO
+  ========================================== -->
+
+  <main
+    id="videoDownloaderPage"
+    class="video-downloader-page"
+    hidden
+  >
+
+    <div class="video-downloader-container">
+
+      <!-- CABEÇALHO -->
+
+      <section class="video-downloader-hero">
+
+        <div class="video-downloader-icon">
+          ⬇️
+        </div>
+
+        <span class="video-downloader-eyebrow">
+          FERRAMENTA PARA AFILIADOS
+        </span>
+
+        <h2>
+          Baixar vídeo
+          <span>da Shopee.</span>
+        </h2>
+
+        <p>
+          Cole o link do vídeo para encontrar
+          automaticamente a versão Original / HD.
+        </p>
+
+      </section>
+
+
+      <!-- CARD PRINCIPAL -->
+
+      <section class="video-tool-card">
+
+        <div class="video-tool-heading">
+
+          <span class="video-tool-number">
+            1
+          </span>
+
+          <div>
+            <strong>
+              Cole o link
+            </strong>
+
+            <small>
+              Link de vídeo da Shopee
+            </small>
+          </div>
+
+        </div>
+
+
+        <div class="video-link-box">
+
+          <span>
+            🔗
+          </span>
+
+          <input
+            id="shopeeVideoLink"
+            type="url"
+            inputmode="url"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Cole o link da Shopee aqui..."
+          >
+
+        </div>
+
+
+        <button
+          id="findShopeeVideo"
+          class="video-action-button video-find-button"
+          type="button"
+        >
+          🔎 Buscar vídeo
+        </button>
+
+
+        <!-- STATUS -->
+
+        <div
+          id="videoDownloadStatus"
+          class="video-download-status"
+          hidden
+        ></div>
+
+      </section>
+
+
+      <!-- =====================================
+           RESULTADO
+      ====================================== -->
+
+      <section
+        id="videoDownloadResult"
+        class="video-tool-card video-result-card"
+        hidden
+      >
+
+        <div class="video-tool-heading">
+
+          <span class="video-tool-number">
+            2
+          </span>
+
+          <div>
+            <strong>
+              Vídeo encontrado
+            </strong>
+
+            <small>
+              Versão encontrada pelo Radar
+            </small>
+          </div>
+
+        </div>
+
+
+        <!-- PREVIEW -->
+
+        <div class="video-preview-box">
+
+          <video
+            id="shopeeVideoPreview"
+            controls
+            playsinline
+            preload="metadata"
+          ></video>
+
+        </div>
+
+
+        <!-- QUALIDADE -->
+
+        <div class="video-quality-row">
+
+          <div class="video-quality-badge">
+            ✨ Original / HD
+          </div>
+
+          <span class="video-ready-text">
+            PRONTO
+          </span>
+
+        </div>
+
+
+        <!-- LIMPEZA -->
+
+        <div class="video-clean-section">
+
+          <div class="video-tool-heading">
+
+            <span class="video-tool-number">
+              3
+            </span>
+
+            <div>
+              <strong>
+                Limpar metadados
+              </strong>
+
+              <small>
+                Processamento no seu aparelho
+              </small>
+            </div>
+
+          </div>
+
+
+          <button
+            id="cleanVideoMetadata"
+            class="video-action-button video-clean-button"
+            type="button"
+          >
+            🧹 Limpar metadados
+          </button>
+
+
+          <!-- PROCESSANDO -->
+
+          <div
+            id="metadataCleanProgress"
+            class="metadata-clean-progress"
+            hidden
+          >
+
+            <div class="metadata-clean-spinner"></div>
+
+            <div>
+
+              <strong>
+                Limpando vídeo...
+              </strong>
+
+              <span>
+                Não feche esta página.
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- CONCLUÍDO -->
+
+          <div
+            id="metadataCleanSuccess"
+            class="metadata-clean-success"
+            hidden
+          >
+
+            <span>
+              ✓
+            </span>
+
+            <div>
+
+              <strong>
+                Metadados removidos
+              </strong>
+
+              <small>
+                Seu vídeo está pronto.
+              </small>
+
+            </div>
+
+          </div>
+
+
+          <!-- DOWNLOAD -->
+
+          <button
+            id="downloadCleanVideo"
+            class="video-action-button video-download-button"
+            type="button"
+            hidden
+          >
+            ⬇️ Baixar vídeo
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- PRIVACIDADE -->
+
+      <div class="video-local-info">
+
+        <span>
+          🔒
+        </span>
+
+        <p>
+          O vídeo não será salvo no banco de dados
+          do Radar. O processamento será temporário
+          e feito somente para gerar o seu download.
+        </p>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- =========================================
        MENU INFERIOR
   ========================================== -->
 
   <nav class="bottom-nav">
 
-    <button
-      class="bottom-item active"
-      data-filter="radar"
-      type="button"
-    >
+    <div class="bottom-nav-scroll">
 
-      <span>
-        💎
-      </span>
+      <button
+        class="bottom-item active"
+        data-filter="radar"
+        type="button"
+      >
 
-      Radar
+        <span>
+          💎
+        </span>
 
-    </button>
+        Radar
 
-
-    <button
-      class="bottom-item"
-      data-filter="hot"
-      type="button"
-    >
-
-      <span>
-        🔥
-      </span>
-
-      Vendidos
-
-    </button>
+      </button>
 
 
-    <button
-      class="bottom-item"
-      data-filter="zero"
-      type="button"
-    >
+      <button
+        class="bottom-item"
+        data-filter="hot"
+        type="button"
+      >
 
-      <span>
-        🎯
-      </span>
+        <span>
+          🔥
+        </span>
 
-      Ranquear
+        Vendidos
 
-    </button>
+      </button>
 
 
-    <button
-      class="bottom-item"
-      data-filter="packs"
-      type="button"
-    >
+      <button
+        class="bottom-item"
+        data-filter="zero"
+        type="button"
+      >
 
-      <span>
-        📦
-      </span>
+        <span>
+          🎯
+        </span>
 
-      Packs
+        Ranquear
 
-    </button>
+      </button>
+
+
+      <button
+        class="bottom-item"
+        data-filter="packs"
+        type="button"
+      >
+
+        <span>
+          📦
+        </span>
+
+        Packs
+
+      </button>
+
+
+      <button
+        id="videoDownloaderNav"
+        class="bottom-item bottom-download-item"
+        type="button"
+      >
+
+        <span>
+          ⬇️
+        </span>
+
+        Baixar vídeo
+
+      </button>
+
+    </div>
 
   </nav>
 
