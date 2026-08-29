@@ -8,7 +8,7 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Teste CORS</title>
+  <title>Teste CORS sem Preflight</title>
 
   <style>
     body {
@@ -53,11 +53,10 @@
 
   <div class="box">
 
-    <h1>🧪 Teste GitHub → Netlify</h1>
+    <h1>🧪 Teste sem Preflight</h1>
 
     <p>
-      Este teste faz um POST do GitHub Pages
-      diretamente para a função da Netlify.
+      GitHub Pages → Netlify usando POST simples.
     </p>
 
     <button id="testar">
@@ -94,7 +93,7 @@ Aguardando teste...
 
                 headers: {
                   "Content-Type":
-                    "application/json"
+                    "text/plain;charset=UTF-8"
                 },
 
                 body:
