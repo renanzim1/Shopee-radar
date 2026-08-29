@@ -2,6 +2,7 @@
 // SHOPEE RADAR — APP.JS
 // VERSÃO COMPLETA
 // NICHO CORRIGIDO + COMISSÃO SOMENTE VISUAL
+// DOWNLOAD ORIGINAL/HD + LIMPEZA LOCAL DE METADADOS
 // ======================================================
 
 // APIS
@@ -9,6 +10,13 @@ const MOMENTUM_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shop
 const ZERO_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-zero";
 const RANKING_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-ranking";
 const PACKS_API = "https://vepoqxpnvlzzhmajcqzo.supabase.co/functions/v1/shopee-radar-videos";
+
+const SHOPEE_VIDEO_API =
+  "https://shopee-video-teste.netlify.app/.netlify/functions/shopee-test";
+
+const MEDIABUNNY_MODULE =
+  "https://cdn.jsdelivr.net/npm/mediabunny/+esm";
+
 const LIMITE_POR_PAGINA = 20;
 
 // ======================================================
@@ -26,6 +34,15 @@ let buscaDigitada = "";
 let nichoAtual = "all";
 let totalServidor = 0;
 let resumoServidor = {};
+
+// DOWNLOAD
+let modoDownload = false;
+let videoOriginalUrl = "";
+let videoLimpoBlob = null;
+let videoLimpoObjectUrl = "";
+let limpandoVideo = false;
+let buscandoVideo = false;
+let mediabunnyPromise = null;
 
 // ======================================================
 // TOKEN
@@ -63,13 +80,11 @@ const totalProdutos = document.getElementById("totalProdutos");
 const totalOportunidades = document.getElementById("totalOportunidades");
 const totalVideos = document.getElementById("totalVideos");
 
-const totalProdutosLabel = document.getElementById(
-  "totalProdutosLabel"
-);
+const totalProdutosLabel =
+  document.getElementById("totalProdutosLabel");
 
-const totalOportunidadesLabel = document.getElementById(
-  "totalOportunidadesLabel"
-);
+const totalOportunidadesLabel =
+  document.getElementById("totalOportunidadesLabel");
 
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
@@ -80,6 +95,43 @@ const infiniteLoader = document.getElementById("infiniteLoader");
 const productModal = document.getElementById("productModal");
 const modalBody = document.getElementById("modalBody");
 const closeModal = document.getElementById("closeModal");
+
+// DOWNLOAD
+const radarMainContent =
+  document.getElementById("radarMainContent");
+
+const videoDownloaderPage =
+  document.getElementById("videoDownloaderPage");
+
+const videoDownloaderNav =
+  document.getElementById("videoDownloaderNav");
+
+const shopeeVideoLink =
+  document.getElementById("shopeeVideoLink");
+
+const findShopeeVideo =
+  document.getElementById("findShopeeVideo");
+
+const videoDownloadStatus =
+  document.getElementById("videoDownloadStatus");
+
+const videoDownloadResult =
+  document.getElementById("videoDownloadResult");
+
+const shopeeVideoPreview =
+  document.getElementById("shopeeVideoPreview");
+
+const cleanVideoMetadata =
+  document.getElementById("cleanVideoMetadata");
+
+const metadataCleanProgress =
+  document.getElementById("metadataCleanProgress");
+
+const metadataCleanSuccess =
+  document.getElementById("metadataCleanSuccess");
+
+const downloadCleanVideo =
+  document.getElementById("downloadCleanVideo");
 
 // ======================================================
 // UTILIDADES
@@ -156,316 +208,115 @@ function formatarData(valor) {
 
 const MAPA_NICHOS = {
   celulares: [
-    "celular",
-    "smartphone",
-    "iphone",
-    "galaxy",
-    "redmi",
-    "poco",
-    "motorola",
-    "xiaomi",
-    "realme",
-    "infinix",
-    "capinha celular",
-    "capa iphone",
-    "pelicula celular",
-    "pelicula iphone",
-    "suporte celular",
-    "carregador celular"
+    "celular", "smartphone", "iphone", "galaxy", "redmi",
+    "poco", "motorola", "xiaomi", "realme", "infinix",
+    "capinha celular", "capa iphone", "pelicula celular",
+    "pelicula iphone", "suporte celular", "carregador celular"
   ],
 
   informatica: [
-    "notebook",
-    "laptop",
-    "computador",
-    "pc gamer",
-    "monitor",
-    "teclado",
-    "mouse",
-    "mousepad",
-    "ssd",
-    "nvme",
-    "hd externo",
-    "pendrive",
-    "memoria ram",
-    "placa de video",
-    "gpu",
-    "processador",
-    "placa mae",
-    "gabinete",
-    "fonte pc",
-    "cooler",
-    "roteador",
-    "adaptador wifi",
-    "hub usb"
+    "notebook", "laptop", "computador", "pc gamer", "monitor",
+    "teclado", "mouse", "mousepad", "ssd", "nvme", "hd externo",
+    "pendrive", "memoria ram", "placa de video", "gpu",
+    "processador", "placa mae", "gabinete", "fonte pc", "cooler",
+    "roteador", "adaptador wifi", "hub usb"
   ],
 
   games: [
-    "videogame",
-    "video game",
-    "playstation",
-    "ps4",
-    "ps5",
-    "xbox",
-    "nintendo",
-    "switch",
-    "controle gamer",
-    "joystick",
-    "gamepad",
-    "console",
-    "jogo ps5",
-    "jogo ps4",
-    "jogo xbox",
-    "cadeira gamer",
-    "volante gamer"
+    "videogame", "video game", "playstation", "ps4", "ps5",
+    "xbox", "nintendo", "switch", "controle gamer", "joystick",
+    "gamepad", "console", "jogo ps5", "jogo ps4", "jogo xbox",
+    "cadeira gamer", "volante gamer"
   ],
 
   cozinha: [
-    "panela",
-    "frigideira",
-    "talher",
-    "prato",
-    "copo",
-    "caneca",
-    "garrafa termica",
-    "jarra",
-    "marmita",
-    "escorredor",
-    "ralador",
-    "cortador legumes",
-    "batedor",
-    "mixer",
-    "air fryer",
-    "airfryer",
-    "cafeteira",
-    "chaleira",
-    "tabua de corte",
-    "peneira",
-    "liquidificador",
-    "sanduicheira",
-    "torradeira",
-    "forma bolo",
-    "assadeira",
-    "panela pressao"
+    "panela", "frigideira", "talher", "prato", "copo", "caneca",
+    "garrafa termica", "jarra", "marmita", "escorredor", "ralador",
+    "cortador legumes", "batedor", "mixer", "air fryer", "airfryer",
+    "cafeteira", "chaleira", "tabua de corte", "peneira",
+    "liquidificador", "sanduicheira", "torradeira", "forma bolo",
+    "assadeira", "panela pressao"
   ],
 
   ferramentas: [
-    "furadeira",
-    "parafusadeira",
-    "serra circular",
-    "martelo",
-    "alicate",
-    "chave philips",
-    "chave fenda",
-    "chave catraca",
-    "soquete",
-    "broca",
-    "trena",
-    "ferro de solda",
-    "compressor",
-    "esmerilhadeira",
-    "lixadeira",
-    "multimetro",
-    "caixa ferramentas",
-    "kit ferramentas"
+    "furadeira", "parafusadeira", "serra circular", "martelo",
+    "alicate", "chave philips", "chave fenda", "chave catraca",
+    "soquete", "broca", "trena", "ferro de solda", "compressor",
+    "esmerilhadeira", "lixadeira", "multimetro",
+    "caixa ferramentas", "kit ferramentas"
   ],
 
   automotivo: [
-    "automotivo",
-    "automotiva",
-    "acessorio carro",
-    "acessorio moto",
-    "pneu",
-    "volante",
-    "retrovisor",
-    "capacete",
-    "farol",
-    "limpa para brisa",
-    "tapete carro",
-    "capa banco carro",
-    "carregador veicular",
-    "lavagem automotiva",
-    "polimento",
-    "suporte celular carro",
-    "camera veicular"
+    "automotivo", "automotiva", "acessorio carro", "acessorio moto",
+    "pneu", "volante", "retrovisor", "capacete", "farol",
+    "limpa para brisa", "tapete carro", "capa banco carro",
+    "carregador veicular", "lavagem automotiva", "polimento",
+    "suporte celular carro", "camera veicular"
   ],
 
   bebe: [
-    "bebe",
-    "mamadeira",
-    "chupeta",
-    "fralda",
-    "berco",
-    "carrinho bebe",
-    "banheira bebe",
-    "body bebe",
-    "roupa bebe",
-    "kit maternidade",
-    "maternidade",
-    "babador",
-    "cadeirinha bebe",
-    "copo infantil"
+    "bebe", "mamadeira", "chupeta", "fralda", "berco",
+    "carrinho bebe", "banheira bebe", "body bebe", "roupa bebe",
+    "kit maternidade", "maternidade", "babador",
+    "cadeirinha bebe", "copo infantil"
   ],
 
   pet: [
-    "pet",
-    "cachorro",
-    "gato",
-    "racao",
-    "petisco",
-    "coleira",
-    "peitoral pet",
-    "comedouro",
-    "bebedouro pet",
-    "areia gato",
-    "areia sanitaria",
-    "casinha pet",
-    "cama pet",
-    "arranhador",
-    "brinquedo cachorro",
-    "brinquedo gato"
+    "pet", "cachorro", "gato", "racao", "petisco", "coleira",
+    "peitoral pet", "comedouro", "bebedouro pet", "areia gato",
+    "areia sanitaria", "casinha pet", "cama pet", "arranhador",
+    "brinquedo cachorro", "brinquedo gato"
   ],
 
   beleza: [
-    "maquiagem",
-    "batom",
-    "rimel",
-    "mascara cilios",
-    "base facial",
-    "corretivo",
-    "blush",
-    "sombra maquiagem",
-    "delineador",
-    "skincare",
-    "hidratante facial",
-    "creme corporal",
-    "serum",
-    "shampoo",
-    "condicionador",
-    "mascara capilar",
-    "perfume",
-    "body splash",
-    "protetor solar",
-    "esmalte",
-    "depilador",
-    "secador cabelo",
-    "chapinha",
-    "modelador cabelo"
+    "maquiagem", "batom", "rimel", "mascara cilios", "base facial",
+    "corretivo", "blush", "sombra maquiagem", "delineador",
+    "skincare", "hidratante facial", "creme corporal", "serum",
+    "shampoo", "condicionador", "mascara capilar", "perfume",
+    "body splash", "protetor solar", "esmalte", "depilador",
+    "secador cabelo", "chapinha", "modelador cabelo"
   ],
 
   fitness: [
-    "fitness",
-    "academia",
-    "musculacao",
-    "halter",
-    "peso academia",
-    "elastico exercicio",
-    "tapete yoga",
-    "luva academia",
-    "corda pular",
-    "bicicleta ergometrica",
-    "esteira academia",
-    "faixa elastica",
-    "kit treino"
+    "fitness", "academia", "musculacao", "halter", "peso academia",
+    "elastico exercicio", "tapete yoga", "luva academia",
+    "corda pular", "bicicleta ergometrica", "esteira academia",
+    "faixa elastica", "kit treino"
   ],
 
   papelaria: [
-    "papelaria",
-    "caderno",
-    "caneta",
-    "lapis",
-    "lapiseira",
-    "marca texto",
-    "estojo",
-    "agenda",
-    "planner",
-    "papel a4",
-    "post it",
-    "adesivo escolar",
-    "mochila escolar",
-    "fichario",
-    "borracha escolar",
-    "apontador",
-    "canetinha",
-    "material escolar"
+    "papelaria", "caderno", "caneta", "lapis", "lapiseira",
+    "marca texto", "estojo", "agenda", "planner", "papel a4",
+    "post it", "adesivo escolar", "mochila escolar", "fichario",
+    "borracha escolar", "apontador", "canetinha", "material escolar"
   ],
 
   moda: [
-    "vestido",
-    "blusa",
-    "camisa feminina",
-    "camisa masculina",
-    "camiseta",
-    "regata",
-    "cropped",
-    "calca feminina",
-    "calca masculina",
-    "jeans",
-    "legging",
-    "short feminino",
-    "short masculino",
-    "bermuda",
-    "saia",
-    "macacao",
-    "conjunto feminino",
-    "conjunto masculino",
-    "roupa feminina",
-    "roupa masculina",
-    "tenis feminino",
-    "tenis masculino",
-    "sapato feminino",
-    "sapato masculino",
-    "sandalia",
-    "chinelo feminino",
-    "chinelo masculino",
-    "bolsa feminina",
-    "calcinha",
-    "sutia",
-    "pijama"
+    "vestido", "blusa", "camisa feminina", "camisa masculina",
+    "camiseta", "regata", "cropped", "calca feminina",
+    "calca masculina", "jeans", "legging", "short feminino",
+    "short masculino", "bermuda", "saia", "macacao",
+    "conjunto feminino", "conjunto masculino", "roupa feminina",
+    "roupa masculina", "tenis feminino", "tenis masculino",
+    "sapato feminino", "sapato masculino", "sandalia",
+    "chinelo feminino", "chinelo masculino", "bolsa feminina",
+    "calcinha", "sutia", "pijama"
   ],
 
   eletronicos: [
-    "smartwatch",
-    "relogio inteligente",
-    "fone bluetooth",
-    "headphone",
-    "earbuds",
-    "caixa de som",
-    "speaker bluetooth",
-    "power bank",
-    "camera digital",
-    "webcam",
-    "microfone",
-    "projetor",
-    "lampada inteligente",
-    "adaptador bluetooth",
-    "tv box",
-    "controle remoto universal"
+    "smartwatch", "relogio inteligente", "fone bluetooth",
+    "headphone", "earbuds", "caixa de som", "speaker bluetooth",
+    "power bank", "camera digital", "webcam", "microfone",
+    "projetor", "lampada inteligente", "adaptador bluetooth",
+    "tv box", "controle remoto universal"
   ],
 
   casa: [
-    "organizador",
-    "prateleira",
-    "toalha",
-    "lencol",
-    "fronha",
-    "cama",
-    "sofa",
-    "manta",
-    "tapete",
-    "cortina",
-    "almofada",
-    "travesseiro",
-    "banheiro",
-    "cabide",
-    "cesto roupa",
-    "mop",
-    "vassoura",
-    "rodo",
-    "limpeza casa",
-    "decoracao",
-    "vaso decorativo",
-    "luminaria"
+    "organizador", "prateleira", "toalha", "lencol", "fronha",
+    "cama", "sofa", "manta", "tapete", "cortina", "almofada",
+    "travesseiro", "banheiro", "cabide", "cesto roupa", "mop",
+    "vassoura", "rodo", "limpeza casa", "decoracao",
+    "vaso decorativo", "luminaria"
   ]
 };
 
@@ -509,9 +360,7 @@ function detectarNichoProduto(produto) {
     produto.shop_name || ""
   ].join(" "));
 
-  if (!texto) {
-    return null;
-  }
+  if (!texto) return null;
 
   let melhorNicho = null;
   let melhorPontuacao = 0;
@@ -529,10 +378,7 @@ function detectarNichoProduto(produto) {
 }
 
 function produtoPertenceNicho(produto, nicho) {
-  if (!nicho || nicho === "all") {
-    return true;
-  }
-
+  if (!nicho || nicho === "all") return true;
   return detectarNichoProduto(produto) === nicho;
 }
 
@@ -544,87 +390,33 @@ function normalizarMomentum(p) {
   return {
     id: String(p.product_id ?? p.id ?? ""),
     tipo: "momentum",
-
-    name:
-      p.product_name ??
-      "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
-
-    product_url:
-      p.product_url ?? "",
-
-    affiliate_url:
-      p.affiliate_url ??
-      p.product_url ??
-      "",
-
-    shop_name:
-      p.shop_name ??
-      "Shopee",
-
-    price:
-      numeroSeguro(p.price),
-
-    sold_count:
-      numeroSeguro(p.sold_count),
-
-    rating:
-      numeroSeguro(p.rating),
+    name: p.product_name ?? "Produto Shopee",
+    image_url: p.image_url ?? "",
+    product_url: p.product_url ?? "",
+    affiliate_url: p.affiliate_url ?? p.product_url ?? "",
+    shop_name: p.shop_name ?? "Shopee",
+    price: numeroSeguro(p.price),
+    sold_count: numeroSeguro(p.sold_count),
+    rating: numeroSeguro(p.rating),
 
     // SOMENTE INFORMATIVO
-    commission_value:
-      numeroSeguro(p.commission_value),
+    commission_value: numeroSeguro(p.commission_value),
+    commission_rate: numeroSeguro(p.commission_rate),
 
-    commission_rate:
-      numeroSeguro(p.commission_rate),
-
-    momentum_score:
-      numeroSeguro(p.momentum_score),
-
-    momentum_posicao:
-      numeroSeguro(p.momentum_posicao),
-
-    momentum_nivel:
-      p.momentum_nivel ??
-      "observar",
-
-    momentum_rotulo:
-      p.momentum_rotulo ??
-      "👀 OBSERVAR",
-
-    trend_score:
-      numeroSeguro(p.trend_score),
-
-    trend_nivel:
-      p.trend_nivel ??
-      "⚪ Presença baixa",
-
-    capturas_24h:
-      numeroSeguro(p.capturas_24h),
-
+    momentum_score: numeroSeguro(p.momentum_score),
+    momentum_posicao: numeroSeguro(p.momentum_posicao),
+    momentum_nivel: p.momentum_nivel ?? "observar",
+    momentum_rotulo: p.momentum_rotulo ?? "👀 OBSERVAR",
+    trend_score: numeroSeguro(p.trend_score),
+    trend_nivel: p.trend_nivel ?? "⚪ Presença baixa",
+    capturas_24h: numeroSeguro(p.capturas_24h),
     vendas_confirmadas_24h:
-      numeroSeguro(
-        p.vendas_confirmadas_24h
-      ),
-
-    rank_atual:
-      numeroSeguro(p.rank_atual),
-
-    rank_anterior:
-      numeroSeguro(p.rank_anterior),
-
-    rank_change:
-      numeroSeguro(p.rank_change),
-
-    ultima_captura:
-      p.ultima_captura ??
-      p.captured_at ??
-      null,
-
-    sinais_reais:
-      numeroSeguro(p.sinais_reais)
+      numeroSeguro(p.vendas_confirmadas_24h),
+    rank_atual: numeroSeguro(p.rank_atual),
+    rank_anterior: numeroSeguro(p.rank_anterior),
+    rank_change: numeroSeguro(p.rank_change),
+    ultima_captura: p.ultima_captura ?? p.captured_at ?? null,
+    sinais_reais: numeroSeguro(p.sinais_reais)
   };
 }
 
@@ -632,53 +424,22 @@ function normalizarZero(p) {
   return {
     id: String(p.product_id ?? p.id ?? ""),
     tipo: "zero",
-
-    name:
-      p.product_name ??
-      "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
-
-    product_url:
-      p.product_url ?? "",
-
-    affiliate_url:
-      p.affiliate_url ??
-      p.product_url ??
-      "",
-
-    shop_name:
-      p.shop_name ??
-      "Shopee",
-
-    price:
-      numeroSeguro(p.price),
-
+    name: p.product_name ?? "Produto Shopee",
+    image_url: p.image_url ?? "",
+    product_url: p.product_url ?? "",
+    affiliate_url: p.affiliate_url ?? p.product_url ?? "",
+    shop_name: p.shop_name ?? "Shopee",
+    price: numeroSeguro(p.price),
     sold_count: 0,
-
-    rating:
-      numeroSeguro(p.rating),
-
-    times_seen:
-      numeroSeguro(p.times_seen),
-
-    rank_atual:
-      numeroSeguro(p.current_rank),
-
-    rank_change:
-      numeroSeguro(p.rank_change),
-
-    ultima_captura:
-      p.last_seen_at ?? null,
-
+    rating: numeroSeguro(p.rating),
+    times_seen: numeroSeguro(p.times_seen),
+    rank_atual: numeroSeguro(p.current_rank),
+    rank_change: numeroSeguro(p.rank_change),
+    ultima_captura: p.last_seen_at ?? null,
     estrategia_rotulo:
-      p.estrategia_rotulo ??
-      "🎯 Ranquear seus vídeos",
-
+      p.estrategia_rotulo ?? "🎯 Ranquear seus vídeos",
     motivo:
-      p.motivo ??
-      "Produto com 0 vendas totais registradas."
+      p.motivo ?? "Produto com 0 vendas totais registradas."
   };
 }
 
@@ -686,47 +447,21 @@ function normalizarRanking(p) {
   return {
     id: String(p.product_id ?? p.id ?? ""),
     tipo: "ranking",
-
-    name:
-      p.product_name ??
-      p.name ??
-      "Produto Shopee",
-
-    image_url:
-      p.image_url ?? "",
-
-    product_url:
-      p.product_url ?? "",
-
-    affiliate_url:
-      p.affiliate_url ??
-      p.product_url ??
-      "",
-
-    shop_name:
-      p.shop_name ??
-      "Shopee",
-
-    price:
-      numeroSeguro(p.price),
-
-    sold_count:
-      numeroSeguro(p.sold_count),
-
-    rating:
-      numeroSeguro(p.rating),
-
+    name: p.product_name ?? p.name ?? "Produto Shopee",
+    image_url: p.image_url ?? "",
+    product_url: p.product_url ?? "",
+    affiliate_url: p.affiliate_url ?? p.product_url ?? "",
+    shop_name: p.shop_name ?? "Shopee",
+    price: numeroSeguro(p.price),
+    sold_count: numeroSeguro(p.sold_count),
+    rating: numeroSeguro(p.rating),
     ultima_captura:
-      p.captured_at ??
-      p.last_seen_at ??
-      null
+      p.captured_at ?? p.last_seen_at ?? null
   };
 }
 
 function normalizarPack(v) {
-  const partes = String(
-    v.shopee_video_id || ""
-  ).split(":");
+  const partes = String(v.shopee_video_id || "").split(":");
 
   const canal = String(
     v.source_channel ||
@@ -751,50 +486,21 @@ function normalizarPack(v) {
     );
 
   return {
-    id: String(
-      v.id ??
-      v.shopee_video_id ??
-      ""
-    ),
-
+    id: String(v.id ?? v.shopee_video_id ?? ""),
     tipo: "pack",
-
     name:
       v.description?.trim() ||
       "Pack de vídeos para afiliados",
-
-    description:
-      v.description ?? "",
-
-    image_url:
-      v.thumbnail_url ?? "",
-
-    thumbnail_url:
-      v.thumbnail_url ?? "",
-
-    source_url:
-      sourceUrl,
-
-    watch_url:
-      sourceUrl ||
-      v.watch_url ||
-      "",
-
-    shop_name:
-      canal
-        ? `@${canal}`
-        : "Pack encontrado",
-
-    source_channel:
-      canal,
-
-    source_platform:
-      v.source_platform ?? "",
-
+    description: v.description ?? "",
+    image_url: v.thumbnail_url ?? "",
+    thumbnail_url: v.thumbnail_url ?? "",
+    source_url: sourceUrl,
+    watch_url: sourceUrl || v.watch_url || "",
+    shop_name: canal ? `@${canal}` : "Pack encontrado",
+    source_channel: canal,
+    source_platform: v.source_platform ?? "",
     ultima_captura:
-      v.published_at ??
-      v.created_at ??
-      null
+      v.published_at ?? v.created_at ?? null
   };
 }
 
@@ -802,11 +508,7 @@ function removerDuplicados(lista) {
   const mapa = new Map();
 
   for (const p of lista) {
-    if (
-      p &&
-      p.id &&
-      !mapa.has(String(p.id))
-    ) {
+    if (p && p.id && !mapa.has(String(p.id))) {
       mapa.set(String(p.id), p);
     }
   }
@@ -822,15 +524,8 @@ function montarURL(pagina) {
   if (filtroAtual === "packs") {
     const url = new URL(PACKS_API);
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
-
-    url.searchParams.set(
-      "limit",
-      String(LIMITE_POR_PAGINA)
-    );
+    url.searchParams.set("page", String(pagina));
+    url.searchParams.set("limit", String(LIMITE_POR_PAGINA));
 
     return {
       url: url.toString(),
@@ -841,37 +536,19 @@ function montarURL(pagina) {
   if (filtroAtual === "zero") {
     const url = new URL(ZERO_API);
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
-
-    url.searchParams.set(
-      "limit",
-      String(LIMITE_POR_PAGINA)
-    );
+    url.searchParams.set("page", String(pagina));
+    url.searchParams.set("limit", String(LIMITE_POR_PAGINA));
 
     if (buscaDigitada) {
-      url.searchParams.set(
-        "q",
-        buscaDigitada
-      );
+      url.searchParams.set("q", buscaDigitada);
     }
 
     let sort = "recent";
 
-    if (ordenacaoAtual === "rating") {
-      sort = "rating";
-    }
+    if (ordenacaoAtual === "rating") sort = "rating";
+    if (ordenacaoAtual === "trend") sort = "seen";
 
-    if (ordenacaoAtual === "trend") {
-      sort = "seen";
-    }
-
-    url.searchParams.set(
-      "sort",
-      sort
-    );
+    url.searchParams.set("sort", sort);
 
     return {
       url: url.toString(),
@@ -885,15 +562,8 @@ function montarURL(pagina) {
   ) {
     const url = new URL(RANKING_API);
 
-    url.searchParams.set(
-      "page",
-      String(pagina)
-    );
-
-    url.searchParams.set(
-      "limit",
-      String(LIMITE_POR_PAGINA)
-    );
+    url.searchParams.set("page", String(pagina));
+    url.searchParams.set("limit", String(LIMITE_POR_PAGINA));
 
     url.searchParams.set(
       "mode",
@@ -910,15 +580,8 @@ function montarURL(pagina) {
 
   const url = new URL(MOMENTUM_API);
 
-  url.searchParams.set(
-    "page",
-    String(pagina)
-  );
-
-  url.searchParams.set(
-    "limit",
-    String(LIMITE_POR_PAGINA)
-  );
+  url.searchParams.set("page", String(pagina));
+  url.searchParams.set("limit", String(LIMITE_POR_PAGINA));
 
   return {
     url: url.toString(),
@@ -934,6 +597,8 @@ async function carregarProdutos(
   pagina = 1,
   adicionar = false
 ) {
+  if (modoDownload) return;
+
   if (
     carregando ||
     (
@@ -960,18 +625,16 @@ async function carregarProdutos(
   }
 
   try {
-    const config =
-      montarURL(pagina);
+    const config = montarURL(pagina);
 
-    const resposta =
-      await fetch(
-        config.url,
-        {
-          method: "GET",
-          headers: criarHeadersAPI(),
-          cache: "no-store"
-        }
-      );
+    const resposta = await fetch(
+      config.url,
+      {
+        method: "GET",
+        headers: criarHeadersAPI(),
+        cache: "no-store"
+      }
+    );
 
     if (
       resposta.status === 401 ||
@@ -984,12 +647,9 @@ async function carregarProdutos(
     let dados;
 
     try {
-      dados =
-        await resposta.json();
+      dados = await resposta.json();
     } catch {
-      throw new Error(
-        "Resposta inválida da API."
-      );
+      throw new Error("Resposta inválida da API.");
     }
 
     if (
@@ -1008,9 +668,7 @@ async function carregarProdutos(
     if (config.tipo === "pack") {
       novos =
         Array.isArray(dados.videos)
-          ? dados.videos.map(
-              normalizarPack
-            )
+          ? dados.videos.map(normalizarPack)
           : [];
     } else {
       const lista =
@@ -1019,27 +677,15 @@ async function carregarProdutos(
           : [];
 
       if (config.tipo === "momentum") {
-        novos =
-          lista.map(
-            normalizarMomentum
-          );
-      } else if (
-        config.tipo === "zero"
-      ) {
-        novos =
-          lista.map(
-            normalizarZero
-          );
+        novos = lista.map(normalizarMomentum);
+      } else if (config.tipo === "zero") {
+        novos = lista.map(normalizarZero);
       } else {
-        novos =
-          lista.map(
-            normalizarRanking
-          );
+        novos = lista.map(normalizarRanking);
       }
     }
 
-    novos =
-      removerDuplicados(novos);
+    novos = removerDuplicados(novos);
 
     produtos =
       adicionar
@@ -1049,40 +695,27 @@ async function carregarProdutos(
           ])
         : novos;
 
-    paginaAtual =
-      numeroSeguro(
-        dados.paginaAtual ??
-        dados.page ??
-        pagina
-      );
+    paginaAtual = numeroSeguro(
+      dados.paginaAtual ??
+      dados.page ??
+      pagina
+    );
 
-    if (
-      typeof dados.has_more ===
-      "boolean"
-    ) {
-      temProximaPagina =
-        dados.has_more;
+    if (typeof dados.has_more === "boolean") {
+      temProximaPagina = dados.has_more;
     } else {
       temProximaPagina =
-        Boolean(
-          dados.temProximaPagina
-        );
+        Boolean(dados.temProximaPagina);
     }
 
-    totalServidor =
-      numeroSeguro(dados.total);
-
-    resumoServidor =
-      dados.resumo || {};
+    totalServidor = numeroSeguro(dados.total);
+    resumoServidor = dados.resumo || {};
 
     atualizarInterfaceModo();
     aplicarOrdenacao();
 
   } catch (erro) {
-    console.error(
-      "Erro Shopee Radar:",
-      erro
-    );
+    console.error("Erro Shopee Radar:", erro);
 
     if (!adicionar) {
       mostrarErro(
@@ -1105,15 +738,9 @@ async function carregarProdutos(
 // ======================================================
 
 function obterListaFiltrada() {
-  let lista =
-    removerDuplicados([
-      ...produtos
-    ]);
+  let lista = removerDuplicados([...produtos]);
 
-  const busca =
-    normalizarTexto(
-      buscaDigitada
-    );
+  const busca = normalizarTexto(buscaDigitada);
 
   if (
     busca &&
@@ -1133,10 +760,7 @@ function obterListaFiltrada() {
     filtroAtual !== "packs"
   ) {
     lista = lista.filter(p =>
-      produtoPertenceNicho(
-        p,
-        nichoAtual
-      )
+      produtoPertenceNicho(p, nichoAtual)
     );
   }
 
@@ -1147,9 +771,7 @@ function obterListaFiltrada() {
 // CONTADORES
 // ======================================================
 
-function atualizarContadores(
-  listaVisivel = null
-) {
+function atualizarContadores(listaVisivel = null) {
   const lista =
     Array.isArray(listaVisivel)
       ? listaVisivel
@@ -1170,21 +792,16 @@ function atualizarContadores(
   }
 
   if (totalVideos) {
-    totalVideos.textContent =
-      produtos.length;
+    totalVideos.textContent = produtos.length;
   }
 
-  if (!totalOportunidades) {
-    return;
-  }
+  if (!totalOportunidades) return;
 
   if (filtroAtual === "packs") {
     totalOportunidades.textContent =
       new Set(
         lista
-          .map(
-            p => p.source_channel
-          )
+          .map(p => p.source_channel)
           .filter(Boolean)
       ).size;
 
@@ -1194,10 +811,7 @@ function atualizarContadores(
   if (filtroAtual === "zero") {
     totalOportunidades.textContent =
       lista.filter(
-        p =>
-          numeroSeguro(
-            p.times_seen
-          ) >= 2
+        p => numeroSeguro(p.times_seen) >= 2
       ).length;
 
     return;
@@ -1208,10 +822,8 @@ function atualizarContadores(
       filtrando
         ? lista.filter(
             p =>
-              p.momentum_nivel ===
-                "em_alta" ||
-              p.momentum_nivel ===
-                "ganhando_forca"
+              p.momentum_nivel === "em_alta" ||
+              p.momentum_nivel === "ganhando_forca"
           ).length
         : (
             numeroSeguro(
@@ -1225,8 +837,7 @@ function atualizarContadores(
     return;
   }
 
-  totalOportunidades.textContent =
-    lista.length;
+  totalOportunidades.textContent = lista.length;
 }
 
 // ======================================================
@@ -1234,24 +845,17 @@ function atualizarContadores(
 // ======================================================
 
 function atualizarInterfaceModo() {
-  const zero =
-    filtroAtual === "zero";
+  const zero = filtroAtual === "zero";
 
   const totalVideosLabel =
-    document.getElementById(
-      "totalVideosLabel"
-    );
+    document.getElementById("totalVideosLabel");
 
   if (totalVideosLabel) {
-    totalVideosLabel.textContent =
-      "CARREGADOS";
+    totalVideosLabel.textContent = "CARREGADOS";
   }
 
   if (zeroStrategyBox) {
-    zeroStrategyBox.classList.toggle(
-      "active",
-      zero
-    );
+    zeroStrategyBox.classList.toggle("active", zero);
   }
 
   if (totalProdutosLabel) {
@@ -1277,26 +881,15 @@ function atualizarInterfaceModo() {
 
   if (resultsTitle) {
     if (filtroAtual === "packs") {
-      resultsTitle.textContent =
-        "📦 Packs para Afiliados";
-    } else if (
-      filtroAtual === "zero"
-    ) {
-      resultsTitle.textContent =
-        "🎯 Ranquear seus vídeos";
-    } else if (
-      filtroAtual === "hot"
-    ) {
-      resultsTitle.textContent =
-        "🔥 Mais vendidos";
-    } else if (
-      filtroAtual === "rating"
-    ) {
-      resultsTitle.textContent =
-        "⭐ Melhor avaliação";
+      resultsTitle.textContent = "📦 Packs para Afiliados";
+    } else if (filtroAtual === "zero") {
+      resultsTitle.textContent = "🎯 Ranquear seus vídeos";
+    } else if (filtroAtual === "hot") {
+      resultsTitle.textContent = "🔥 Mais vendidos";
+    } else if (filtroAtual === "rating") {
+      resultsTitle.textContent = "⭐ Melhor avaliação";
     } else {
-      resultsTitle.textContent =
-        "🔥 O que está ganhando força";
+      resultsTitle.textContent = "🔥 O que está ganhando força";
     }
   }
 
@@ -1307,13 +900,11 @@ function atualizarInterfaceModo() {
     }
 
     if (totalProdutosLabel) {
-      totalProdutosLabel.textContent =
-        "PACKS";
+      totalProdutosLabel.textContent = "PACKS";
     }
 
     if (totalOportunidadesLabel) {
-      totalOportunidadesLabel.textContent =
-        "CANAIS";
+      totalOportunidadesLabel.textContent = "CANAIS";
     }
   }
 }
@@ -1324,78 +915,45 @@ function atualizarInterfaceModo() {
 // ======================================================
 
 function aplicarOrdenacao() {
-  let lista =
-    obterListaFiltrada();
+  if (modoDownload) return;
+
+  let lista = obterListaFiltrada();
 
   if (filtroAtual === "packs") {
     lista.sort(
       (a, b) =>
-        new Date(
-          b.ultima_captura || 0
-        ) -
-        new Date(
-          a.ultima_captura || 0
-        )
+        new Date(b.ultima_captura || 0) -
+        new Date(a.ultima_captura || 0)
     );
-  } else if (
-    ordenacaoAtual === "relevance"
-  ) {
+  } else if (ordenacaoAtual === "relevance") {
     lista.sort(
       (a, b) =>
-        numeroSeguro(
-          b.momentum_score
-        ) -
-        numeroSeguro(
-          a.momentum_score
-        )
+        numeroSeguro(b.momentum_score) -
+        numeroSeguro(a.momentum_score)
     );
-  } else if (
-    ordenacaoAtual === "trend"
-  ) {
+  } else if (ordenacaoAtual === "trend") {
     lista.sort(
       (a, b) =>
-        numeroSeguro(
-          b.trend_score
-        ) -
-        numeroSeguro(
-          a.trend_score
-        )
+        numeroSeguro(b.trend_score) -
+        numeroSeguro(a.trend_score)
     );
-  } else if (
-    ordenacaoAtual === "sales"
-  ) {
+  } else if (ordenacaoAtual === "sales") {
     lista.sort(
       (a, b) =>
-        numeroSeguro(
-          b.sold_count
-        ) -
-        numeroSeguro(
-          a.sold_count
-        )
+        numeroSeguro(b.sold_count) -
+        numeroSeguro(a.sold_count)
     );
-  } else if (
-    ordenacaoAtual === "rating"
-  ) {
+  } else if (ordenacaoAtual === "rating") {
     lista.sort(
       (a, b) =>
-        numeroSeguro(
-          b.rating
-        ) -
-        numeroSeguro(
-          a.rating
-        )
+        numeroSeguro(b.rating) -
+        numeroSeguro(a.rating)
     );
-  } else if (
-    ordenacaoAtual === "recent"
-  ) {
+  } else if (ordenacaoAtual === "recent") {
     lista.sort(
       (a, b) =>
-        new Date(
-          b.ultima_captura || 0
-        ) -
-        new Date(
-          a.ultima_captura || 0
-        )
+        new Date(b.ultima_captura || 0) -
+        new Date(a.ultima_captura || 0)
     );
   }
 
@@ -1410,21 +968,14 @@ function aplicarOrdenacao() {
 function criarCardMomentum(p) {
   const topNumerico =
     p.momentum_posicao > 0
-      ? Math.round(
-          p.momentum_posicao
-        )
+      ? Math.round(p.momentum_posicao)
       : null;
 
   const vendasAgora =
-    numeroSeguro(
-      p.vendas_confirmadas_24h
-    );
+    numeroSeguro(p.vendas_confirmadas_24h);
 
   return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
+    <article class="product-card" data-id="${escapar(p.id)}">
 
       <div class="product-image-wrap">
 
@@ -1454,9 +1005,7 @@ function criarCardMomentum(p) {
         }
 
         <span class="opportunity-badge">
-          ${escapar(
-            p.momentum_rotulo
-          )}
+          ${escapar(p.momentum_rotulo)}
         </span>
 
         ${
@@ -1486,31 +1035,21 @@ function criarCardMomentum(p) {
           <div class="product-stat">
             <span>VENDIDOS</span>
             <strong>
-              ${formatarNumero(
-                p.sold_count
-              )}
+              ${formatarNumero(p.sold_count)}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>VENDAS AGORA</span>
             <strong>
-              ${
-                vendasAgora > 0
-                  ? "+"
-                  : ""
-              }${formatarNumero(
-                vendasAgora
-              )}
+              ${vendasAgora > 0 ? "+" : ""}${formatarNumero(vendasAgora)}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>VISTO NO RADAR</span>
             <strong>
-              ${formatarNumero(
-                p.capturas_24h
-              )}x
+              ${formatarNumero(p.capturas_24h)}x
             </strong>
           </div>
 
@@ -1519,10 +1058,7 @@ function criarCardMomentum(p) {
             <strong>
               ${
                 p.rank_atual > 0
-                  ? "#" +
-                    Math.round(
-                      p.rank_atual
-                    )
+                  ? "#" + Math.round(p.rank_atual)
                   : "—"
               }
             </strong>
@@ -1533,42 +1069,25 @@ function criarCardMomentum(p) {
         <div class="radar-mini-grid">
 
           <div class="radar-mini-box">
-            <small>
-              POSIÇÃO RADAR
-            </small>
-
+            <small>POSIÇÃO RADAR</small>
             <strong>
-              ${
-                topNumerico
-                  ? "#" + topNumerico
-                  : "—"
-              }
+              ${topNumerico ? "#" + topNumerico : "—"}
             </strong>
           </div>
 
           <div class="radar-mini-box">
-            <small>
-              FORÇA AGORA
-            </small>
-
+            <small>FORÇA AGORA</small>
             <strong>
-              ${Math.round(
-                p.momentum_score
-              )}/100
+              ${Math.round(p.momentum_score)}/100
             </strong>
           </div>
 
           <div class="radar-mini-box">
-            <small>
-              💰 COMISSÃO
-            </small>
-
+            <small>💰 COMISSÃO</small>
             <strong>
               ${
                 p.commission_value > 0
-                  ? dinheiro(
-                      p.commission_value
-                    )
+                  ? dinheiro(p.commission_value)
                   : "—"
               }
             </strong>
@@ -1580,21 +1099,15 @@ function criarCardMomentum(p) {
 
           <div>
             <small>TENDÊNCIA</small>
-
             <strong>
-              ${Math.round(
-                p.trend_score
-              )}/100
+              ${Math.round(p.trend_score)}/100
             </strong>
           </div>
 
           <div class="product-price">
             <small>PREÇO</small>
-
             <strong>
-              ${dinheiro(
-                p.price
-              )}
+              ${dinheiro(p.price)}
             </strong>
           </div>
 
@@ -1612,10 +1125,7 @@ function criarCardMomentum(p) {
 
 function criarCardZero(p) {
   return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
+    <article class="product-card" data-id="${escapar(p.id)}">
 
       <div class="product-image-wrap">
 
@@ -1657,35 +1167,22 @@ function criarCardZero(p) {
 
           <div class="product-stat">
             <span>VISTO NO RADAR</span>
-
             <strong>
-              ${formatarNumero(
-                p.times_seen
-              )}x
+              ${formatarNumero(p.times_seen)}x
             </strong>
           </div>
 
           <div class="product-stat">
             <span>RANKING</span>
-
             <strong>
-              ${
-                p.rank_atual > 0
-                  ? "#" + p.rank_atual
-                  : "—"
-              }
+              ${p.rank_atual > 0 ? "#" + p.rank_atual : "—"}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>AVALIAÇÃO</span>
-
             <strong>
-              ${
-                p.rating > 0
-                  ? p.rating.toFixed(1)
-                  : "—"
-              }
+              ${p.rating > 0 ? p.rating.toFixed(1) : "—"}
             </strong>
           </div>
 
@@ -1700,10 +1197,7 @@ function criarCardZero(p) {
 
           <div class="product-price">
             <small>PREÇO</small>
-
-            <strong>
-              ${dinheiro(p.price)}
-            </strong>
+            <strong>${dinheiro(p.price)}</strong>
           </div>
 
         </div>
@@ -1720,10 +1214,7 @@ function criarCardZero(p) {
 
 function criarCardRanking(p) {
   return `
-    <article
-      class="product-card"
-      data-id="${escapar(p.id)}"
-    >
+    <article class="product-card" data-id="${escapar(p.id)}">
 
       <div class="product-image-wrap">
 
@@ -1764,23 +1255,15 @@ function criarCardRanking(p) {
 
           <div class="product-stat">
             <span>VENDIDOS</span>
-
             <strong>
-              ${formatarNumero(
-                p.sold_count
-              )}
+              ${formatarNumero(p.sold_count)}
             </strong>
           </div>
 
           <div class="product-stat">
             <span>AVALIAÇÃO</span>
-
             <strong>
-              ${
-                p.rating > 0
-                  ? p.rating.toFixed(1)
-                  : "—"
-              }
+              ${p.rating > 0 ? p.rating.toFixed(1) : "—"}
             </strong>
           </div>
 
@@ -1795,10 +1278,7 @@ function criarCardRanking(p) {
 
           <div class="product-price">
             <small>PREÇO</small>
-
-            <strong>
-              ${dinheiro(p.price)}
-            </strong>
+            <strong>${dinheiro(p.price)}</strong>
           </div>
 
         </div>
@@ -1820,10 +1300,7 @@ function criarCardPack(p) {
       : "Fonte pública";
 
   return `
-    <article
-      class="pack-card"
-      data-id="${escapar(p.id)}"
-    >
+    <article class="pack-card" data-id="${escapar(p.id)}">
 
       <div class="pack-media">
 
@@ -1831,9 +1308,7 @@ function criarCardPack(p) {
           p.thumbnail_url
             ? `
               <img
-                src="${escapar(
-                  p.thumbnail_url
-                )}"
+                src="${escapar(p.thumbnail_url)}"
                 alt="Pack para afiliados"
                 loading="lazy"
                 referrerpolicy="no-referrer"
@@ -1880,13 +1355,8 @@ function criarCardPack(p) {
             p.source_url
               ? `
                 <a
-                  class="
-                    pack-button
-                    pack-button-primary
-                  "
-                  href="${escapar(
-                    p.source_url
-                  )}"
+                  class="pack-button pack-button-primary"
+                  href="${escapar(p.source_url)}"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1894,12 +1364,7 @@ function criarCardPack(p) {
                 </a>
               `
               : `
-                <span
-                  class="
-                    pack-button
-                    pack-button-disabled
-                  "
-                >
+                <span class="pack-button pack-button-disabled">
                   PACK INDISPONÍVEL
                 </span>
               `
@@ -1918,12 +1383,9 @@ function criarCardPack(p) {
 // ======================================================
 
 function renderizarProdutos(lista) {
-  if (!productsGrid) {
-    return;
-  }
+  if (!productsGrid || modoDownload) return;
 
-  const listaUnica =
-    removerDuplicados(lista);
+  const listaUnica = removerDuplicados(lista);
 
   if (!listaUnica.length) {
     productsGrid.innerHTML = "";
@@ -1931,11 +1393,8 @@ function renderizarProdutos(lista) {
     if (emptyState) {
       emptyState.hidden = false;
 
-      const titulo =
-        emptyState.querySelector("h3");
-
-      const texto =
-        emptyState.querySelector("p");
+      const titulo = emptyState.querySelector("h3");
+      const texto = emptyState.querySelector("p");
 
       if (titulo) {
         titulo.textContent =
@@ -1987,39 +1446,25 @@ function renderizarProdutos(lista) {
 
 function ativarEventosCards() {
   document
-    .querySelectorAll(
-      ".product-card, .pack-card"
-    )
+    .querySelectorAll(".product-card, .pack-card")
     .forEach(card => {
-      card.addEventListener(
-        "click",
-        e => {
-          if (
-            e.target.closest(
-              "a,button,iframe"
-            )
-          ) {
-            return;
-          }
-
-          const p =
-            encontrarProduto(
-              card.dataset.id
-            );
-
-          if (p) {
-            abrirModal(p);
-          }
+      card.addEventListener("click", e => {
+        if (e.target.closest("a,button,iframe")) {
+          return;
         }
-      );
+
+        const p = encontrarProduto(card.dataset.id);
+
+        if (p) {
+          abrirModal(p);
+        }
+      });
     });
 }
 
 function encontrarProduto(id) {
   return produtos.find(
-    p =>
-      String(p.id) ===
-      String(id)
+    p => String(p.id) === String(id)
   );
 }
 
@@ -2028,14 +1473,8 @@ function encontrarProduto(id) {
 // ======================================================
 
 function abrirModal(p) {
-  if (
-    !productModal ||
-    !modalBody
-  ) {
-    return;
-  }
+  if (!productModal || !modalBody) return;
 
-  // PACK
   if (p.tipo === "pack") {
     const canal =
       p.source_channel
@@ -2043,9 +1482,7 @@ function abrirModal(p) {
         : "Fonte pública";
 
     modalBody.innerHTML = `
-      <h2>
-        📦 Pack para Afiliados
-      </h2>
+      <h2>📦 Pack para Afiliados</h2>
 
       <p
         style="
@@ -2065,9 +1502,7 @@ function abrirModal(p) {
         "
       >
 
-        <strong>
-          📦 Material encontrado
-        </strong>
+        <strong>📦 Material encontrado</strong>
 
         <p
           style="
@@ -2087,9 +1522,7 @@ function abrirModal(p) {
         p.source_url
           ? `
             <a
-              href="${escapar(
-                p.source_url
-              )}"
+              href="${escapar(p.source_url)}"
               target="_blank"
               rel="noopener noreferrer"
               style="
@@ -2112,7 +1545,6 @@ function abrirModal(p) {
     `;
 
     productModal.hidden = false;
-
     return;
   }
 
@@ -2126,9 +1558,7 @@ function abrirModal(p) {
   if (p.tipo === "momentum") {
     const topNumerico =
       p.momentum_posicao > 0
-        ? Math.round(
-            p.momentum_posicao
-          )
+        ? Math.round(p.momentum_posicao)
         : null;
 
     extra = `
@@ -2141,58 +1571,38 @@ function abrirModal(p) {
         "
       >
 
-        <strong>
-          📊 Inteligência do Radar
-        </strong>
+        <strong>📊 Inteligência do Radar</strong>
 
         <p>
           🔥 Força agora:
-          <strong>
-            ${Math.round(
-              p.momentum_score
-            )}/100
-          </strong>
+          <strong>${Math.round(p.momentum_score)}/100</strong>
         </p>
 
         <p>
           📈 Tendência:
-          <strong>
-            ${escapar(
-              p.trend_nivel
-            )}
-          </strong>
+          <strong>${escapar(p.trend_nivel)}</strong>
         </p>
 
         <p>
           📈 Força da tendência:
-          <strong>
-            ${Math.round(
-              p.trend_score
-            )}/100
-          </strong>
+          <strong>${Math.round(p.trend_score)}/100</strong>
         </p>
 
         <p>
           🛒 Vendas detectadas:
           <strong>
             ${
-              numeroSeguro(
-                p.vendas_confirmadas_24h
-              ) > 0
+              numeroSeguro(p.vendas_confirmadas_24h) > 0
                 ? "+"
                 : ""
-            }${formatarNumero(
-              p.vendas_confirmadas_24h
-            )}
+            }${formatarNumero(p.vendas_confirmadas_24h)}
           </strong>
         </p>
 
         <p>
           👀 Visto pelo Radar:
           <strong>
-            ${formatarNumero(
-              p.capturas_24h
-            )} vezes
+            ${formatarNumero(p.capturas_24h)} vezes
           </strong>
         </p>
 
@@ -2265,9 +1675,7 @@ function abrirModal(p) {
 
         <p>
           Detectado pelo Radar:
-          ${formatarNumero(
-            p.times_seen
-          )} vezes.
+          ${formatarNumero(p.times_seen)} vezes.
         </p>
 
       </div>
@@ -2280,12 +1688,8 @@ function abrirModal(p) {
       p.image_url
         ? `
           <img
-            src="${escapar(
-              p.image_url
-            )}"
-            alt="${escapar(
-              p.name
-            )}"
+            src="${escapar(p.image_url)}"
+            alt="${escapar(p.name)}"
             style="
               width:100%;
               max-height:300px;
@@ -2298,14 +1702,10 @@ function abrirModal(p) {
         : ""
     }
 
-    <h2>
-      ${escapar(p.name)}
-    </h2>
+    <h2>${escapar(p.name)}</h2>
 
     <p style="margin-top:8px">
-      🏪 ${escapar(
-        p.shop_name
-      )}
+      🏪 ${escapar(p.shop_name)}
     </p>
 
     <p style="margin-top:15px">
@@ -2315,16 +1715,12 @@ function abrirModal(p) {
 
     <p>
       <strong>Vendidos:</strong>
-      ${formatarNumero(
-        p.sold_count
-      )}
+      ${formatarNumero(p.sold_count)}
     </p>
 
     <p>
       <strong>Avaliação:</strong>
-      ⭐ ${numeroSeguro(
-        p.rating
-      ).toFixed(1)}
+      ⭐ ${numeroSeguro(p.rating).toFixed(1)}
     </p>
 
     ${
@@ -2332,13 +1728,9 @@ function abrirModal(p) {
       p.commission_value > 0
         ? `
           <p>
-            <strong>
-              💰 Comissão:
-            </strong>
+            <strong>💰 Comissão:</strong>
 
-            ${dinheiro(
-              p.commission_value
-            )}
+            ${dinheiro(p.commission_value)}
 
             ${
               p.commission_rate > 0
@@ -2394,13 +1786,13 @@ function fecharModal() {
 // ======================================================
 
 function mostrarLoading() {
+  if (modoDownload) return;
+
   if (emptyState) {
     emptyState.hidden = true;
   }
 
-  if (!productsGrid) {
-    return;
-  }
+  if (!productsGrid) return;
 
   productsGrid.innerHTML = `
     <div
@@ -2427,9 +1819,7 @@ function mostrarLoading() {
 // ======================================================
 
 function mostrarErro(mensagem) {
-  if (!productsGrid) {
-    return;
-  }
+  if (!productsGrid || modoDownload) return;
 
   productsGrid.innerHTML = `
     <div
@@ -2442,13 +1832,9 @@ function mostrarErro(mensagem) {
 
       <div>⚠️</div>
 
-      <h3>
-        Não foi possível carregar
-      </h3>
+      <h3>Não foi possível carregar</h3>
 
-      <p>
-        ${escapar(mensagem)}
-      </p>
+      <p>${escapar(mensagem)}</p>
 
       <button
         id="retryRadarButton"
@@ -2470,9 +1856,7 @@ function mostrarErro(mensagem) {
   `;
 
   document
-    .getElementById(
-      "retryRadarButton"
-    )
+    .getElementById("retryRadarButton")
     ?.addEventListener(
       "click",
       reiniciarRadar
@@ -2484,6 +1868,8 @@ function mostrarErro(mensagem) {
 // ======================================================
 
 function reiniciarRadar() {
+  if (modoDownload) return;
+
   produtos = [];
   paginaAtual = 1;
   totalServidor = 0;
@@ -2494,10 +1880,662 @@ function reiniciarRadar() {
   atualizarInterfaceModo();
   atualizarContadores([]);
 
-  carregarProdutos(
-    1,
-    false
+  carregarProdutos(1, false);
+}
+
+// ======================================================
+// DOWNLOAD — UTILIDADES
+// ======================================================
+
+function mostrarStatusVideo(
+  mensagem,
+  tipo = ""
+) {
+  if (!videoDownloadStatus) return;
+
+  videoDownloadStatus.hidden = false;
+  videoDownloadStatus.textContent = mensagem;
+
+  videoDownloadStatus.classList.remove(
+    "success",
+    "error"
   );
+
+  if (tipo) {
+    videoDownloadStatus.classList.add(tipo);
+  }
+}
+
+function esconderStatusVideo() {
+  if (!videoDownloadStatus) return;
+
+  videoDownloadStatus.hidden = true;
+  videoDownloadStatus.textContent = "";
+
+  videoDownloadStatus.classList.remove(
+    "success",
+    "error"
+  );
+}
+
+function liberarObjectUrlAnterior() {
+  if (videoLimpoObjectUrl) {
+    try {
+      URL.revokeObjectURL(
+        videoLimpoObjectUrl
+      );
+    } catch {}
+
+    videoLimpoObjectUrl = "";
+  }
+}
+
+function limparResultadoVideo() {
+  liberarObjectUrlAnterior();
+
+  videoOriginalUrl = "";
+  videoLimpoBlob = null;
+  limpandoVideo = false;
+
+  if (shopeeVideoPreview) {
+    shopeeVideoPreview.pause();
+    shopeeVideoPreview.removeAttribute("src");
+    shopeeVideoPreview.load();
+  }
+
+  if (videoDownloadResult) {
+    videoDownloadResult.hidden = true;
+  }
+
+  if (metadataCleanProgress) {
+    metadataCleanProgress.hidden = true;
+  }
+
+  if (metadataCleanSuccess) {
+    metadataCleanSuccess.hidden = true;
+  }
+
+  if (downloadCleanVideo) {
+    downloadCleanVideo.hidden = true;
+    downloadCleanVideo.removeAttribute("href");
+    downloadCleanVideo.removeAttribute("download");
+  }
+
+  if (cleanVideoMetadata) {
+    cleanVideoMetadata.disabled = false;
+  }
+}
+
+function gerarNomeVideo() {
+  let codigo = "";
+
+  try {
+    const bytes =
+      new Uint8Array(5);
+
+    crypto.getRandomValues(bytes);
+
+    codigo =
+      Array.from(bytes)
+        .map(
+          n =>
+            n
+              .toString(16)
+              .padStart(2, "0")
+        )
+        .join("");
+  } catch {
+    codigo =
+      Math.random()
+        .toString(36)
+        .slice(2, 12);
+  }
+
+  return `radar-video-${codigo}.mp4`;
+}
+
+async function carregarMediabunny() {
+  if (!mediabunnyPromise) {
+    mediabunnyPromise =
+      import(MEDIABUNNY_MODULE)
+        .catch(erro => {
+          mediabunnyPromise = null;
+          throw erro;
+        });
+  }
+
+  return mediabunnyPromise;
+}
+
+// ======================================================
+// DOWNLOAD — ABRIR / FECHAR ÁREA
+// ======================================================
+
+function abrirDownloader() {
+  modoDownload = true;
+
+  fecharModal();
+
+  if (radarMainContent) {
+    radarMainContent.hidden = true;
+  }
+
+  if (videoDownloaderPage) {
+    videoDownloaderPage.hidden = false;
+  }
+
+  document
+    .querySelectorAll(".bottom-item")
+    .forEach(item => {
+      item.classList.remove("active");
+    });
+
+  if (videoDownloaderNav) {
+    videoDownloaderNav.classList.add("active");
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+
+  setTimeout(() => {
+    shopeeVideoLink?.focus();
+  }, 250);
+}
+
+function sairDownloader() {
+  modoDownload = false;
+
+  if (videoDownloaderPage) {
+    videoDownloaderPage.hidden = true;
+  }
+
+  if (radarMainContent) {
+    radarMainContent.hidden = false;
+  }
+}
+
+// ======================================================
+// DOWNLOAD — BUSCAR ORIGINAL / HD
+// ======================================================
+
+async function buscarVideoShopee() {
+  if (buscandoVideo) return;
+
+  const link =
+    shopeeVideoLink?.value
+      ?.trim() || "";
+
+  if (!link) {
+    mostrarStatusVideo(
+      "Cole primeiro o link do vídeo da Shopee.",
+      "error"
+    );
+
+    shopeeVideoLink?.focus();
+    return;
+  }
+
+  limparResultadoVideo();
+
+  buscandoVideo = true;
+
+  if (findShopeeVideo) {
+    findShopeeVideo.disabled = true;
+  }
+
+  mostrarStatusVideo(
+    "🔎 Procurando o vídeo Original / HD..."
+  );
+
+  try {
+    const resposta =
+      await fetch(
+        SHOPEE_VIDEO_API,
+        {
+          method: "POST",
+
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            url: link
+          }),
+
+          cache: "no-store"
+        }
+      );
+
+    let dados;
+
+    try {
+      dados = await resposta.json();
+    } catch {
+      throw new Error(
+        "A Netlify respondeu em um formato inválido."
+      );
+    }
+
+    if (
+      !resposta.ok ||
+      dados.ok !== true ||
+      dados.original_found !== true
+    ) {
+      throw new Error(
+        dados.error ||
+        "Vídeo Original/HD não encontrado."
+      );
+    }
+
+    const url =
+      dados.original_url ||
+      dados.mp4 ||
+      dados.media ||
+      dados.variants?.[0]?.url ||
+      "";
+
+    if (!url) {
+      throw new Error(
+        "A V6.1 encontrou o vídeo, mas não devolveu a URL do MP4."
+      );
+    }
+
+    videoOriginalUrl = url;
+
+    if (shopeeVideoPreview) {
+      shopeeVideoPreview.src =
+        videoOriginalUrl;
+
+      shopeeVideoPreview.load();
+    }
+
+    if (videoDownloadResult) {
+      videoDownloadResult.hidden = false;
+    }
+
+    if (metadataCleanProgress) {
+      metadataCleanProgress.hidden = true;
+    }
+
+    if (metadataCleanSuccess) {
+      metadataCleanSuccess.hidden = true;
+    }
+
+    if (downloadCleanVideo) {
+      downloadCleanVideo.hidden = true;
+    }
+
+    if (cleanVideoMetadata) {
+      cleanVideoMetadata.disabled = false;
+    }
+
+    mostrarStatusVideo(
+      "✅ Original / HD encontrado.",
+      "success"
+    );
+
+    setTimeout(() => {
+      videoDownloadResult
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+    }, 150);
+
+  } catch (erro) {
+    console.error(
+      "Erro ao buscar vídeo:",
+      erro
+    );
+
+    limparResultadoVideo();
+
+    mostrarStatusVideo(
+      erro instanceof Error
+        ? erro.message
+        : "Não foi possível encontrar o vídeo.",
+      "error"
+    );
+  } finally {
+    buscandoVideo = false;
+
+    if (findShopeeVideo) {
+      findShopeeVideo.disabled = false;
+    }
+  }
+}
+
+// ======================================================
+// DOWNLOAD — LIMPEZA REAL DE METADADOS
+// ======================================================
+
+async function limparMetadadosVideo() {
+  if (
+    limpandoVideo ||
+    !videoOriginalUrl
+  ) {
+    return;
+  }
+
+  limpandoVideo = true;
+
+  liberarObjectUrlAnterior();
+  videoLimpoBlob = null;
+
+  if (cleanVideoMetadata) {
+    cleanVideoMetadata.disabled = true;
+  }
+
+  if (downloadCleanVideo) {
+    downloadCleanVideo.hidden = true;
+    downloadCleanVideo.removeAttribute("href");
+  }
+
+  if (metadataCleanSuccess) {
+    metadataCleanSuccess.hidden = true;
+  }
+
+  if (metadataCleanProgress) {
+    metadataCleanProgress.hidden = false;
+  }
+
+  mostrarStatusVideo(
+    "🧹 Preparando a limpeza local do vídeo..."
+  );
+
+  try {
+    /*
+     * Primeiro baixamos o Original/HD diretamente
+     * para a memória do navegador.
+     *
+     * Nada é salvo no Supabase.
+     * Nada é enviado para banco.
+     */
+    const respostaVideo =
+      await fetch(
+        videoOriginalUrl,
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+
+    if (!respostaVideo.ok) {
+      throw new Error(
+        `Não foi possível ler o MP4 Original/HD. HTTP ${respostaVideo.status}.`
+      );
+    }
+
+    const blobOriginal =
+      await respostaVideo.blob();
+
+    if (
+      !blobOriginal ||
+      blobOriginal.size <= 0
+    ) {
+      throw new Error(
+        "O vídeo recebido está vazio."
+      );
+    }
+
+    mostrarStatusVideo(
+      "🧹 Limpando metadados no seu aparelho..."
+    );
+
+    const Mediabunny =
+      await carregarMediabunny();
+
+    const {
+      Input,
+      Output,
+      Conversion,
+      ALL_FORMATS,
+      BlobSource,
+      Mp4OutputFormat,
+      BufferTarget
+    } = Mediabunny;
+
+    if (
+      !Input ||
+      !Output ||
+      !Conversion ||
+      !ALL_FORMATS ||
+      !BlobSource ||
+      !Mp4OutputFormat ||
+      !BufferTarget
+    ) {
+      throw new Error(
+        "Não foi possível carregar o limpador de metadados."
+      );
+    }
+
+    const input =
+      new Input({
+        formats: ALL_FORMATS,
+        source: new BlobSource(
+          blobOriginal
+        )
+      });
+
+    const target =
+      new BufferTarget();
+
+    const output =
+      new Output({
+        format:
+          new Mp4OutputFormat(),
+
+        target
+      });
+
+    /*
+     * tags: {}
+     *
+     * É aqui que os metadados descritivos
+     * do MP4 deixam de ser copiados.
+     */
+    const conversion =
+      await Conversion.init({
+        input,
+        output,
+
+        tracks: "all",
+
+        tags: {}
+      });
+
+    if (!conversion.isValid) {
+      console.error(
+        "Faixas descartadas:",
+        conversion.discardedTracks
+      );
+
+      throw new Error(
+        "Este vídeo não pôde ser remontado mantendo suas faixas."
+      );
+    }
+
+    conversion.onProgress =
+      progress => {
+        const porcentagem =
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Math.round(
+                numeroSeguro(progress) *
+                100
+              )
+            )
+          );
+
+        mostrarStatusVideo(
+          `🧹 Limpando metadados... ${porcentagem}%`
+        );
+      };
+
+    await conversion.execute();
+
+    const buffer =
+      target.buffer;
+
+    if (
+      !buffer ||
+      buffer.byteLength <= 0
+    ) {
+      throw new Error(
+        "A limpeza terminou, mas o novo MP4 ficou vazio."
+      );
+    }
+
+    videoLimpoBlob =
+      new Blob(
+        [buffer],
+        {
+          type: "video/mp4"
+        }
+      );
+
+    videoLimpoObjectUrl =
+      URL.createObjectURL(
+        videoLimpoBlob
+      );
+
+    const nomeArquivo =
+      gerarNomeVideo();
+
+    if (downloadCleanVideo) {
+      downloadCleanVideo.href =
+        videoLimpoObjectUrl;
+
+      downloadCleanVideo.download =
+        nomeArquivo;
+
+      downloadCleanVideo.hidden =
+        false;
+    }
+
+    if (metadataCleanProgress) {
+      metadataCleanProgress.hidden =
+        true;
+    }
+
+    if (metadataCleanSuccess) {
+      metadataCleanSuccess.hidden =
+        false;
+    }
+
+    /*
+     * Botão de limpar fica concluído.
+     * O CSS já pode aplicar o estado visual.
+     */
+    if (cleanVideoMetadata) {
+      cleanVideoMetadata.disabled =
+        true;
+
+      cleanVideoMetadata.dataset.cleaned =
+        "true";
+    }
+
+    mostrarStatusVideo(
+      "✅ Metadados limpos. O vídeo está pronto para baixar.",
+      "success"
+    );
+
+    setTimeout(() => {
+      downloadCleanVideo
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+    }, 150);
+
+  } catch (erro) {
+    console.error(
+      "Erro ao limpar metadados:",
+      erro
+    );
+
+    if (metadataCleanProgress) {
+      metadataCleanProgress.hidden =
+        true;
+    }
+
+    if (metadataCleanSuccess) {
+      metadataCleanSuccess.hidden =
+        true;
+    }
+
+    if (downloadCleanVideo) {
+      downloadCleanVideo.hidden =
+        true;
+    }
+
+    if (cleanVideoMetadata) {
+      cleanVideoMetadata.disabled =
+        false;
+
+      delete cleanVideoMetadata
+        .dataset.cleaned;
+    }
+
+    const mensagem =
+      erro instanceof Error
+        ? erro.message
+        : String(erro);
+
+    /*
+     * Se o CDN da Shopee bloquear CORS,
+     * normalmente o fetch aparece como
+     * "Failed to fetch".
+     */
+    if (
+      /failed to fetch|networkerror|load failed|cors/i
+        .test(mensagem)
+    ) {
+      mostrarStatusVideo(
+        "⚠️ O Original/HD foi encontrado, mas o navegador bloqueou a leitura direta do MP4. Será necessário ativar o proxy de transmissão da Netlify.",
+        "error"
+      );
+    } else {
+      mostrarStatusVideo(
+        `⚠️ Não foi possível limpar o vídeo: ${mensagem}`,
+        "error"
+      );
+    }
+
+  } finally {
+    limpandoVideo = false;
+  }
+}
+
+// ======================================================
+// DOWNLOAD — BAIXAR
+// ======================================================
+
+function prepararDownloadLimpo(event) {
+  if (
+    !videoLimpoBlob ||
+    !videoLimpoObjectUrl
+  ) {
+    event?.preventDefault();
+
+    mostrarStatusVideo(
+      "Primeiro limpe os metadados do vídeo.",
+      "error"
+    );
+
+    return;
+  }
+
+  /*
+   * O próprio <a download> faz o download.
+   * O Blob existe somente na memória
+   * desta página.
+   */
 }
 
 // ======================================================
@@ -2505,6 +2543,8 @@ function reiniciarRadar() {
 // ======================================================
 
 function trocarFiltro(filtro) {
+  sairDownloader();
+
   if (filtro === "all") {
     filtro = "radar";
   }
@@ -2521,17 +2561,11 @@ function trocarFiltro(filtro) {
 
   if (filtroAtual === "packs") {
     ordenacaoAtual = "recent";
-  } else if (
-    filtroAtual === "hot"
-  ) {
+  } else if (filtroAtual === "hot") {
     ordenacaoAtual = "sales";
-  } else if (
-    filtroAtual === "rating"
-  ) {
+  } else if (filtroAtual === "rating") {
     ordenacaoAtual = "rating";
-  } else if (
-    filtroAtual === "zero"
-  ) {
+  } else if (filtroAtual === "zero") {
     ordenacaoAtual = "recent";
   } else {
     ordenacaoAtual = "relevance";
@@ -2544,18 +2578,14 @@ function trocarFiltro(filtro) {
     .forEach(b => {
       b.classList.toggle(
         "active",
-        b.dataset.filter ===
-          filtroAtual
+        b.dataset.filter === filtroAtual
       );
     });
 
   document
-    .querySelectorAll(
-      ".bottom-item"
-    )
+    .querySelectorAll(".bottom-item")
     .forEach(b => {
-      const valor =
-        b.dataset.filter;
+      const valor = b.dataset.filter;
 
       b.classList.toggle(
         "active",
@@ -2571,14 +2601,11 @@ function trocarFiltro(filtro) {
     });
 
   document
-    .querySelectorAll(
-      "[data-sort]"
-    )
+    .querySelectorAll("[data-sort]")
     .forEach(b => {
       b.classList.toggle(
         "active",
-        b.dataset.sort ===
-          ordenacaoAtual
+        b.dataset.sort === ordenacaoAtual
       );
     });
 
@@ -2595,9 +2622,7 @@ function trocarFiltro(filtro) {
 // ======================================================
 
 document
-  .querySelectorAll(
-    "[data-filter]"
-  )
+  .querySelectorAll("[data-filter]")
   .forEach(botao => {
     botao.addEventListener(
       "click",
@@ -2610,25 +2635,79 @@ document
   });
 
 // ======================================================
+// BOTÃO BAIXAR VÍDEO
+// ======================================================
+
+if (videoDownloaderNav) {
+  videoDownloaderNav.addEventListener(
+    "click",
+    abrirDownloader
+  );
+}
+
+// ======================================================
+// BUSCAR VÍDEO SHOPEE
+// ======================================================
+
+if (findShopeeVideo) {
+  findShopeeVideo.addEventListener(
+    "click",
+    buscarVideoShopee
+  );
+}
+
+if (shopeeVideoLink) {
+  shopeeVideoLink.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        buscarVideoShopee();
+      }
+    }
+  );
+}
+
+// ======================================================
+// LIMPAR METADADOS
+// ======================================================
+
+if (cleanVideoMetadata) {
+  cleanVideoMetadata.addEventListener(
+    "click",
+    limparMetadadosVideo
+  );
+}
+
+// ======================================================
+// DOWNLOAD FINAL
+// ======================================================
+
+if (downloadCleanVideo) {
+  downloadCleanVideo.addEventListener(
+    "click",
+    prepararDownloadLimpo
+  );
+}
+
+// ======================================================
 // ORDENAÇÃO
 // ======================================================
 
 document
-  .querySelectorAll(
-    "[data-sort]"
-  )
+  .querySelectorAll("[data-sort]")
   .forEach(botao => {
     botao.addEventListener(
       "click",
       () => {
+        if (modoDownload) return;
+
         ordenacaoAtual =
           botao.dataset.sort ||
           "relevance";
 
         document
-          .querySelectorAll(
-            "[data-sort]"
-          )
+          .querySelectorAll("[data-sort]")
           .forEach(i => {
             i.classList.toggle(
               "active",
@@ -2636,9 +2715,7 @@ document
             );
           });
 
-        if (
-          filtroAtual === "zero"
-        ) {
+        if (filtroAtual === "zero") {
           reiniciarRadar();
         } else {
           aplicarOrdenacao();
@@ -2655,15 +2732,13 @@ if (searchInput) {
   searchInput.addEventListener(
     "keydown",
     event => {
-      if (
-        event.key === "Enter"
-      ) {
+      if (modoDownload) return;
+
+      if (event.key === "Enter") {
         buscaDigitada =
           searchInput.value.trim();
 
-        if (
-          filtroAtual === "zero"
-        ) {
+        if (filtroAtual === "zero") {
           reiniciarRadar();
         } else {
           aplicarOrdenacao();
@@ -2675,12 +2750,12 @@ if (searchInput) {
   searchInput.addEventListener(
     "search",
     () => {
+      if (modoDownload) return;
+
       if (!searchInput.value) {
         buscaDigitada = "";
 
-        if (
-          filtroAtual === "zero"
-        ) {
+        if (filtroAtual === "zero") {
           reiniciarRadar();
         } else {
           aplicarOrdenacao();
@@ -2698,6 +2773,8 @@ if (categoryFilter) {
   categoryFilter.addEventListener(
     "change",
     () => {
+      if (modoDownload) return;
+
       nichoAtual =
         categoryFilter.value;
 
@@ -2712,6 +2789,7 @@ if (categoryFilter) {
 
 async function carregarProximaPagina() {
   if (
+    modoDownload ||
     carregando ||
     !temProximaPagina
   ) {
@@ -2728,6 +2806,7 @@ window.addEventListener(
   "scroll",
   () => {
     if (
+      modoDownload ||
       carregando ||
       !temProximaPagina
     ) {
@@ -2757,8 +2836,8 @@ window.addEventListener(
 setInterval(
   () => {
     if (
-      document.visibilityState ===
-        "visible" &&
+      !modoDownload &&
+      document.visibilityState === "visible" &&
       paginaAtual === 1 &&
       !carregando
     ) {
@@ -2784,9 +2863,7 @@ if (closeModal) {
 
 if (productModal) {
   productModal
-    .querySelector(
-      ".modal-overlay"
-    )
+    .querySelector(".modal-overlay")
     ?.addEventListener(
       "click",
       fecharModal
@@ -2807,10 +2884,43 @@ document.addEventListener(
 );
 
 // ======================================================
+// LIMPEZA DE MEMÓRIA AO SAIR DA PÁGINA
+// ======================================================
+
+window.addEventListener(
+  "pagehide",
+  () => {
+    liberarObjectUrlAnterior();
+
+    videoLimpoBlob = null;
+    videoOriginalUrl = "";
+  }
+);
+
+window.addEventListener(
+  "beforeunload",
+  () => {
+    liberarObjectUrlAnterior();
+
+    videoLimpoBlob = null;
+    videoOriginalUrl = "";
+  }
+);
+
+// ======================================================
 // INICIALIZAÇÃO
 // ======================================================
 
 filtroAtual = "radar";
 ordenacaoAtual = "relevance";
+modoDownload = false;
+
+if (videoDownloaderPage) {
+  videoDownloaderPage.hidden = true;
+}
+
+if (radarMainContent) {
+  radarMainContent.hidden = false;
+}
 
 reiniciarRadar();
