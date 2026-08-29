@@ -2,13 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
-
-  <title>Teste CORS sem Preflight</title>
+  <title>Teste GET Cross-Origin</title>
 
   <style>
     body {
@@ -53,19 +51,18 @@
 
   <div class="box">
 
-    <h1>🧪 Teste sem Preflight</h1>
+    <h1>🧪 Teste GET direto</h1>
 
     <p>
-      GitHub Pages → Netlify usando POST simples.
+      GitHub Pages → Netlify sem POST,
+      sem JSON e sem preflight.
     </p>
 
     <button id="testar">
-      TESTAR CONEXÃO
+      TESTAR GET
     </button>
 
-    <pre id="resultado">
-Aguardando teste...
-    </pre>
+    <pre id="resultado">Aguardando teste...</pre>
 
   </div>
 
@@ -76,53 +73,36 @@ Aguardando teste...
     const resultado =
       document.getElementById("resultado");
 
-    botao.addEventListener(
-      "click",
-      async () => {
+    botao.addEventListener("click", async () => {
+      resultado.textContent = "Testando...";
+
+      try {
+        const response = await fetch(
+          "https://shopee-video-teste.netlify.app/.netlify/functions/cors-test",
+          {
+            method: "GET",
+            cache: "no-store"
+          }
+        );
+
+        const texto =
+          await response.text();
 
         resultado.textContent =
-          "Testando...";
+          "SUCESSO ✅\n\n" +
+          "HTTP: " +
+          response.status +
+          "\n\n" +
+          texto;
 
-        try {
-
-          const response =
-            await fetch(
-              "https://shopee-video-teste.netlify.app/.netlify/functions/cors-test",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "text/plain;charset=UTF-8"
-                },
-
-                body:
-                  JSON.stringify({
-                    teste: true
-                  })
-              }
-            );
-
-          const texto =
-            await response.text();
-
-          resultado.textContent =
-            "SUCESSO ✅\n\n" +
-            "HTTP: " +
-            response.status +
-            "\n\n" +
-            texto;
-
-        } catch (error) {
-
-          resultado.textContent =
-            "FALHOU ❌\n\n" +
-            error.name +
-            "\n\n" +
-            error.message;
-        }
+      } catch (error) {
+        resultado.textContent =
+          "FALHOU ❌\n\n" +
+          error.name +
+          "\n\n" +
+          error.message;
       }
-    );
+    });
   </script>
 
 </body>
